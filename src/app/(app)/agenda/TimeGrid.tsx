@@ -16,6 +16,12 @@ import { BASE_HOUR_HEIGHT, GUTTER_WIDTH } from "./useAgendaZoom";
 export const DEFAULT_TASK_DURATION_MINUTES = 30;
 export const MIN_BLOCK_HEIGHT = 18;
 export const GRID_START_HOUR = 6;
+// Hauteur réservée, identique pour toutes les colonnes (y compris la
+// gouttière), pour la bande "tâches sans heure" de WeekView — qu'il y ait ou
+// non des tâches ce jour-là. Sans cette réservation constante, un jour avec
+// des tâches sans heure pousse son conteneur de grille plus bas que les
+// autres colonnes et que le TimeGutter, désalignant heures et créneaux.
+export const UNSCHEDULED_BAND_HEIGHT = 24;
 const GRID_START_MINUTES = GRID_START_HOUR * 60;
 const GRID_HOURS_COUNT = 24 - GRID_START_HOUR;
 // Espace "d'amorce" au-dessus de la première heure affichée (06h), pour que

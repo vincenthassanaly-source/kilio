@@ -22,6 +22,7 @@ import {
   gridHeight,
   HourLines,
   TimeGutter,
+  UNSCHEDULED_BAND_HEIGHT,
   useInitialScroll,
   WorkHoursBand,
 } from "./TimeGrid";
@@ -147,6 +148,7 @@ export function WeekView({
           <div className="flex" style={{ width: GUTTER_WIDTH + days.length * dayColumnWidth }}>
             <div className="sticky left-0 z-20 bg-surface">
               <div className="h-11 border-b border-line" />
+              <div className="border-b border-line/60" style={{ height: UNSCHEDULED_BAND_HEIGHT }} />
               <TimeGutter zoom={zoom} />
             </div>
 
@@ -176,25 +178,24 @@ export function WeekView({
                     <span className="text-[10px] text-ink-2">{format(day, "d MMM", { locale: fr })}</span>
                   </button>
 
-                  {dayTachesSansHeure.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => onSelectDay(day)}
-                      className="flex flex-wrap gap-0.5 border-b border-line/60 px-0.5 py-0.5"
-                    >
-                      {dayTachesSansHeure.slice(0, 2).map((t) => (
-                        <span
-                          key={t.id}
-                          className="truncate rounded bg-surface-alt px-1 py-0.5 text-[9.5px] font-medium text-ink-2"
-                        >
-                          {t.titre}
-                        </span>
-                      ))}
-                      {dayTachesSansHeure.length > 2 && (
-                        <span className="text-[9.5px] text-ink-2">+{dayTachesSansHeure.length - 2}</span>
-                      )}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => onSelectDay(day)}
+                    className="flex flex-wrap items-center gap-0.5 overflow-hidden border-b border-line/60 px-0.5 py-0.5"
+                    style={{ height: UNSCHEDULED_BAND_HEIGHT }}
+                  >
+                    {dayTachesSansHeure.slice(0, 2).map((t) => (
+                      <span
+                        key={t.id}
+                        className="truncate rounded bg-surface-alt px-1 py-0.5 text-[9.5px] font-medium text-ink-2"
+                      >
+                        {t.titre}
+                      </span>
+                    ))}
+                    {dayTachesSansHeure.length > 2 && (
+                      <span className="text-[9.5px] text-ink-2">+{dayTachesSansHeure.length - 2}</span>
+                    )}
+                  </button>
 
                   <button
                     type="button"
