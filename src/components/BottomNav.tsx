@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { MouseEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
 import { useViewTransitionNavigate } from "@/hooks/useViewTransitionNavigate";
 import { findNavItem, resolveActiveHref } from "@/lib/navigation/registry";
@@ -17,6 +18,41 @@ const PLUS_ICON = (c: string) => (
   </svg>
 );
 
+// layoutId partagé par le fond de l'onglet actif (les 4 slots ET le bouton
+// "Plus") : à tout instant un seul d'entre eux le monte, et framer-motion
+// anime automatiquement sa position/taille entre l'ancien et le nouveau
+// slot actif (transition "layout" classique, pas besoin d'AnimatePresence
+// puisqu'il n'y a jamais deux instances montées en même temps).
+const ACTIVE_PILL_LAYOUT_ID = "bottom-nav-active-pill";
+
+// Transition spring douce (comportement normal) vs. quasi-instantanée si
+// `prefers-reduced-motion: reduce` est actif. Le pill est animé par
+// framer-motion via des mutations directes de `transform` (Web Animations
+// API), pas par la propriété CSS `transition` : une règle dans globals.css
+// n'aurait donc aucune prise dessus, contrairement aux autres animations
+// (CSS keyframes, View Transitions) déjà neutralisées là-bas. `useReducedMotion`
+// est la seule façon effective de respecter la préférence ici.
+function pillTransition(reduceMotion: boolean) {
+  return reduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 500, damping: 40 };
+}
+
+// Fond de l'onglet actif : enfant supplémentaire du slot, positionné derrière
+// l'icône + le label (grâce à l'ordre de peinture des éléments flex, qui
+// place cet élément `position: absolute` sous les items flex statiques
+// suivants). N'intercepte aucun événement pointer (`pointer-events: none`)
+// et ne touche ni au ref `setNodeRef` de useDroppable ni à l'outline de
+// dépôt, portés par le slot parent.
+function ActivePill({ reduceMotion }: { reduceMotion: boolean }) {
+  return (
+    <motion.div
+      layoutId={ACTIVE_PILL_LAYOUT_ID}
+      className="absolute inset-0 rounded-[18px] pointer-events-none"
+      style={{ background: "var(--accent-kcal-soft)" }}
+      transition={pillTransition(reduceMotion)}
+    />
+  );
+}
+
 // Chaque emplacement configurable est une zone `useDroppable` distincte
 // (id `bottombar-slot-{index}`, lu par NavigationEditContext.handleDragEnd)
 // pour que déposer une tuile de ModulesGrid dessus l'épingle à cet index.
@@ -25,12 +61,14 @@ function BottomNavSlot({
   index,
   active,
   isDropTarget,
+  reduceMotion,
   onClick,
 }: {
   href: string;
   index: number;
   active: boolean;
   isDropTarget: boolean;
+  reduceMotion: boolean;
   onClick: (e: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   const item = findNavItem(href);
@@ -46,13 +84,13 @@ function BottomNavSlot({
       ref={setNodeRef}
       href={item.href}
       onClick={onClick}
-      className="flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
+      className="relative flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
       style={{
-        background: active ? "var(--accent-kcal-soft)" : "transparent",
         outline: showDropRing ? "2px dashed var(--accent-kcal)" : undefined,
         outlineOffset: showDropRing ? "2px" : undefined,
       }}
     >
+      {active && <ActivePill reduceMotion={reduceMotion} />}
       {item.icon(color)}
       <span className="text-[10px]" style={{ color, fontWeight: active ? 700 : 500 }}>
         {item.label}
@@ -65,6 +103,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const navigate = useViewTransitionNavigate();
   const { modulesBarreBasse, activeHref } = useNavigationEdit();
+  const reduceMotion = useReducedMotion() ?? false;
 
   // Un drag est en cours depuis ModulesGrid (voir NavigationEditContext) :
   // les 4 emplacements deviennent des zones de dépôt visibles.
@@ -96,15 +135,16 @@ export function BottomNav() {
             index={index}
             active={activeItemHref === href}
             isDropTarget={isDropTarget}
+            reduceMotion={reduceMotion}
             onClick={(e) => handleClick(e, href)}
           />
         ))}
         <Link
           href="/plus"
           onClick={(e) => handleClick(e, "/plus")}
-          className="flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
-          style={{ background: plusActive ? "var(--accent-kcal-soft)" : "transparent" }}
+          className="relative flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
         >
+          {plusActive && <ActivePill reduceMotion={reduceMotion} />}
           {PLUS_ICON(plusActive ? "var(--accent-kcal)" : "var(--ink-3)")}
           <span
             className="text-[10px]"
