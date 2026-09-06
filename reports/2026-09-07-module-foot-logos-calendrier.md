@@ -1,5 +1,7 @@
 # Module Foot — logos d'équipes + bande de dates J-7/J+7 (style Onefootball)
 
+> **État final (voir Addendum 2 ci-dessous)** : la stratégie décrite dans le corps de ce rapport (13 appels `league`+`season`, un par compétition) a dû être abandonnée — elle est incompatible avec le plan gratuit API-Football. La stratégie réellement en place est **15 appels `date=<jour>` (un par jour, sans `league` ni `season`)**, filtrés côté serveur sur les 13 compétitions suivies. Le corps du rapport ci-dessous documente le raisonnement initial et reste utile pour comprendre les choix (logos, bande de dates, regroupement par jour), mais la section "stratégie API" doit être lue à la lumière de l'Addendum 2.
+
 ## Addendum : correction post-déploiement (13 appels en parallèle → tous en erreur)
 
 Vincent a testé la page réelle et est tombé sur "Impossible de contacter API-Football (quota dépassé ou problème réseau)" alors que son tableau de bord API-Football n'affichait que **3% d'utilisation du quota journalier** — donc clairement pas un quota de 100/jour dépassé.
@@ -11,6 +13,29 @@ Vincent a testé la page réelle et est tombé sur "Impossible de contacter API-
 **Contrepartie** : le chargement de `/foot` prend maintenant quelques secondes de plus (environ 5 à 10 secondes au lieu d'un temps quasi instantané), le temps que les 13 appels s'enchaînent avec leur délai. Compromis assumé pour ne plus casser la page entière — cohérent avec le principe du module (un seul chargement à l'ouverture/rafraîchissement manuel, jamais de polling).
 
 **Toujours non testé en direct** : cette correction n'a pas pu être re-testée dans cet environnement (mêmes limitations réseau que le reste du module). Vincent doit revalider que `/foot` charge correctement après ce correctif, et signaler si des compétitions individuelles continuent d'apparaître en erreur de façon récurrente (auquel cas le délai de 350 ms devra être augmenté).
+
+## Addendum 2 : la sérialisation ne suffisait pas — vraie cause trouvée via diagnostic à l'écran
+
+Le correctif ci-dessus n'a pas résolu le problème (toujours le même échec total). N'ayant pas accès aux logs serveur/Vercel depuis cette session, `chargerFixturesCompetition` a été modifié pour remonter le code HTTP réel et un extrait du corps de réponse directement dans le message d'erreur affiché à l'écran, afin d'obtenir un vrai diagnostic sans deviner davantage.
+
+**Résultat** : le message réel renvoyé par API-Football pour `league=61&season=2026&from=...&to=...` (Ligue 1) était :
+
+```
+{"plan":"Free plans do not have access to this season, try from 2022 to 2024."}
+```
+
+**Cause réelle** : la combinaison `league=<id>&season=<année>` est une fonctionnalité payante sur API-Football — le plan gratuit ne donne accès qu'aux saisons 2022 à 2024 via ce filtre, quelle que soit la compétition. La stratégie "13 appels, un par compétition, avec `season=<année en cours>`" prévue en Phase 2 du prompt initial est donc **incompatible avec le plan gratuit**, indépendamment de tout problème de débit/rafale : chaque appel échouait avec ce message, systématiquement, dès le premier essai — la sérialisation n'y changeait rien.
+
+**Correctif appliqué** (`src/app/actions/foot.ts`, `src/lib/foot/compute.ts`) : retour à une stratégie **par jour** plutôt que par compétition, seul filtrage réellement disponible sur le plan gratuit (c'est aussi celui de la V1 du 2026-09-06, qui n'utilisait ni `league` ni `season`) :
+- **15 appels** `fixtures?date=<jour>` (sans `league` ni `season`), un par jour de la fenêtre J-7/J+7, filtrés côté serveur sur les 13 compétitions suivies après réception.
+- `saisonCourante()` retirée de `compute.ts` (devenue inutile, plus aucun appel n'utilise `season`).
+- Appels toujours séquentiels et espacés de 350 ms (`DELAI_ENTRE_APPELS_MS`) pour respecter la limite de 10 requêtes/minute du plan gratuit, cause probable d'un éventuel échec partiel résiduel (mais plus d'échec total garanti, contrairement au problème de `season`).
+- Nouveauté : les 15 jours sont récupérés dans un **ordre "Aujourd'hui d'abord, puis en s'écartant"** (`ordreRecuperation`) plutôt que chronologique J-7→J+7, pour que si le débit limite malgré tout une partie des appels, ce soit les jours extrêmes (J-7/J+7) qui soient sacrifiés en priorité plutôt qu'"Aujourd'hui".
+- Coût : 15 requêtes par chargement/rafraîchissement ⇒ ~6 rafraîchissements/jour max sur le plan gratuit (100/jour), légèrement revu à la baisse par rapport aux ~7/jour annoncés avec la stratégie à 13 appels.
+
+**Enseignement pour la suite** : la documentation publique consultée pendant ce module (recherches web, sans accès direct aux pages officielles bloquées par le proxy réseau) ne mentionnait nulle part cette restriction de saison sur le plan gratuit — elle n'a été découverte qu'en récupérant le message d'erreur réel renvoyé en production. Toute stratégie d'appel API-Football future utilisant `league`+`season` devra être testée en conditions réelles (ou son message d'erreur explicitement vérifié) avant d'être considérée fiable sur ce plan gratuit.
+
+**Toujours non testé en direct** par cette session (mêmes limitations réseau). Vincent doit revalider `/foot` après ce correctif.
 
 
 ## Fichiers modifiés

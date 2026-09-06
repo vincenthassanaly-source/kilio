@@ -149,13 +149,6 @@ export function dateDuJourParis(): string {
   return formatDateParis(new Date());
 }
 
-/** Année de début de la saison européenne en cours (ex. 2026 pour la saison
- * 2026-2027, dès juillet 2026), en fuseau Europe/Paris. */
-export function saisonCourante(reference: Date = new Date()): number {
-  const [annee, mois] = formatDateParis(reference).split("-").map(Number);
-  return mois >= 7 ? annee : annee - 1;
-}
-
 const NB_JOURS_PASSES = 7;
 const NB_JOURS_FUTURS = 7;
 
