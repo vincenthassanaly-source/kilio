@@ -109,21 +109,35 @@ export function BottomNav() {
   // les 4 emplacements deviennent des zones de dépôt visibles.
   const isDropTarget = activeHref !== null;
 
+  const activeItemHref = resolveActiveHref(pathname);
+  // Le bouton "Plus" est actif dès que l'onglet résolu n'est ni l'accueil ni
+  // l'un des 4 modules actuellement épinglés en barre du bas (ex. /agenda
+  // tant qu'Agenda n'est pas épinglé).
+  const plusActive = activeItemHref !== null && !modulesBarreBasse.includes(activeItemHref);
+
+  // Ordre visuel complet des emplacements de la barre (les 4 slots
+  // configurables puis "Plus" toujours en dernier) : sert à déterminer le
+  // sens du slide selon que l'onglet ciblé est visuellement à droite ou à
+  // gauche de l'onglet actif, indépendamment de la hiérarchie des routes.
+  const ordreVisuel = [...modulesBarreBasse, "/plus"];
+  function indexVisuel(href: string | null): number {
+    if (href === null) return ordreVisuel.length - 1;
+    const index = ordreVisuel.indexOf(href);
+    return index !== -1 ? index : ordreVisuel.length - 1;
+  }
+
   function handleClick(e: MouseEvent<HTMLAnchorElement>, href: string) {
     // Ne bloque la navigation native de <Link> (et son prefetch) que si
     // l'API View Transitions est disponible : sinon on laisse Next.js gérer
     // la navigation comme avant, sans rien casser sur Safari/Firefox.
     if (typeof document !== "undefined" && "startViewTransition" in document) {
       e.preventDefault();
-      navigate(href);
+      const indexActuel = indexVisuel(activeItemHref);
+      const indexCible = indexVisuel(href);
+      const direction = indexCible === indexActuel ? undefined : indexCible > indexActuel ? "avance" : "recule";
+      navigate(href, direction);
     }
   }
-
-  const activeItemHref = resolveActiveHref(pathname);
-  // Le bouton "Plus" est actif dès que l'onglet résolu n'est ni l'accueil ni
-  // l'un des 4 modules actuellement épinglés en barre du bas (ex. /agenda
-  // tant qu'Agenda n'est pas épinglé).
-  const plusActive = activeItemHref !== null && !modulesBarreBasse.includes(activeItemHref);
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+14px)]">

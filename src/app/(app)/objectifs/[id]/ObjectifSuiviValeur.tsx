@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import { enregistrerEntreeObjectif } from "@/app/actions/objectifs";
+import { showToast } from "@/components/toast/toast-store";
 import type { Tables } from "@/lib/supabase/types";
 import { card, ghostButton, input, label as labelClass, metaText, sectionTitle } from "@/lib/ui";
 import { toISODate } from "../date-utils";
@@ -64,6 +65,14 @@ function EvolutionChart({
   );
 }
 
+// Nouvelle entrée affichée optimistiquement (barre de progression,
+// historique/graphe) avant confirmation serveur — même pattern
+// `useOptimistic` que JournalEntriesList, pas TanStack Query. L'upsert
+// serveur (clé `objectif_id, date`) est reproduit ici en remplaçant toute
+// entrée existante à la même date plutôt qu'en l'empilant, pour un rendu
+// optimiste fidèle au comportement final ; réconcilié par la nouvelle prop
+// `entries` une fois `enregistrerEntreeObjectif` (qui appelle
+// revalidatePath) résolue, sans rollback manuel en cas d'échec.
 export function ObjectifSuiviValeur({
   objectifId,
   objectif,
@@ -74,12 +83,19 @@ export function ObjectifSuiviValeur({
   entries: Tables<"objectif_entries">[];
 }) {
   const [isPending, startTransition] = useTransition();
+  const [optimisticEntries, ajouterOptimiste] = useOptimistic(
+    entries,
+    (state, entree: Tables<"objectif_entries">) =>
+      [...state.filter((e) => e.date !== entree.date), entree].sort((a, b) =>
+        a.date.localeCompare(b.date)
+      )
+  );
   const [date, setDate] = useState(() => toISODate(new Date()));
   const valeurInputRef = useRef<HTMLInputElement>(null);
 
-  const valeurExistante = entries.find((e) => e.date === date)?.valeur;
+  const valeurExistante = optimisticEntries.find((e) => e.date === date)?.valeur;
 
-  const derniere = entries[entries.length - 1] ?? null;
+  const derniere = optimisticEntries[optimisticEntries.length - 1] ?? null;
   const ratio =
     objectif.valeur_cible != null
       ? Math.min(1, Math.max(0, (derniere?.valeur ?? 0) / objectif.valeur_cible))
@@ -88,7 +104,20 @@ export function ObjectifSuiviValeur({
   function enregistrer() {
     const nombre = Number(valeurInputRef.current?.value ?? "");
     if (!Number.isFinite(nombre)) return;
-    startTransition(() => enregistrerEntreeObjectif(objectifId, date, nombre));
+    startTransition(async () => {
+      ajouterOptimiste({
+        id: `optimiste-${date}`,
+        objectif_id: objectifId,
+        date,
+        valeur: nombre,
+        created_at: new Date().toISOString(),
+      });
+      try {
+        await enregistrerEntreeObjectif(objectifId, date, nombre);
+      } catch {
+        showToast("Impossible d'enregistrer cette valeur.");
+      }
+    });
   }
 
   return (
@@ -111,7 +140,7 @@ export function ObjectifSuiviValeur({
         </div>
       )}
 
-      <EvolutionChart entries={entries} cible={objectif.valeur_cible} />
+      <EvolutionChart entries={optimisticEntries} cible={objectif.valeur_cible} />
 
       <div className="flex items-end gap-2">
         <div className="flex flex-1 flex-col gap-1">

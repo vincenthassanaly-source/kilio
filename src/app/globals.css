@@ -151,10 +151,15 @@ textarea::placeholder {
   animation: agenda-glisse-depuis-gauche 220ms ease-out both;
 }
 
-/* Crossfade global de la View Transitions API entre deux pages (navigation
-   bottom nav / <Link> internes, voir useViewTransitionNavigate.ts). Portée
-   volontairement simple : fondu de toute la racine, pas de shared-element
-   nommé. Durée cohérente avec les ~220ms des agenda-glisse-* ci-dessus. */
+/* Transition de la View Transitions API entre deux pages (navigation bottom
+   nav / <Link> internes, voir useViewTransitionNavigate.ts). Fondu simple de
+   toute la racine par défaut (fallback quand aucun sens de navigation n'a pu
+   être déterminé, ex. bascule entre deux onglets sœurs comme
+   /nutrition/journal <-> /nutrition/recettes), remplacé par un slide
+   directionnel via `[data-nav-direction]` sur <html> ci-dessous dès qu'un
+   sens avance/recule est connu (barre du bas, liste -> détail, bouton
+   retour d'un écran de détail). Durée cohérente avec les ~220ms des
+   agenda-glisse-* ci-dessus. */
 ::view-transition-old(root) {
   animation: kilio-fondu-sortie 180ms ease-out both;
 }
@@ -175,6 +180,67 @@ textarea::placeholder {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* Slides directionnels (push/pop) posés par useViewTransitionNavigate juste
+   avant `document.startViewTransition()` : "avance" pour un passage
+   liste -> détail ou vers l'onglet suivant de la barre du bas (nouvelle page
+   glissant depuis la droite, ancienne s'effaçant légèrement vers la
+   gauche), "recule" pour l'inverse (retour d'un écran de détail, onglet
+   précédent). Ces règles, plus spécifiques (sélecteur d'attribut sur
+   <html>), l'emportent sur le simple fondu ci-dessus sans avoir besoin de
+   `!important`. */
+html[data-nav-direction="avance"]::view-transition-old(root) {
+  animation: kilio-glisse-sortie-gauche 200ms ease-out both;
+}
+html[data-nav-direction="avance"]::view-transition-new(root) {
+  animation: kilio-glisse-entree-droite 220ms ease-out both;
+}
+html[data-nav-direction="recule"]::view-transition-old(root) {
+  animation: kilio-glisse-sortie-droite 200ms ease-out both;
+}
+html[data-nav-direction="recule"]::view-transition-new(root) {
+  animation: kilio-glisse-entree-gauche 220ms ease-out both;
+}
+@keyframes kilio-glisse-sortie-gauche {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes kilio-glisse-entree-droite {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes kilio-glisse-sortie-droite {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes kilio-glisse-entree-gauche {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

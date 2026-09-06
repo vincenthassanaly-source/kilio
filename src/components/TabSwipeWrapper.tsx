@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useSwipeHorizontal, type SensSwipe } from "@/hooks/useSwipeHorizontal";
 import { useViewTransitionNavigate } from "@/hooks/useViewTransitionNavigate";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { useNavigationEdit } from "@/lib/navigation/NavigationEditContext";
 
 // Routes possédant leur propre swipe horizontal interne (changement de
@@ -29,6 +30,11 @@ const ROUTES_SWIPE_INTERNE = ["/agenda"];
  * sur Agenda lui-même, les handlers ne sont pas attachés du tout, pour ne
  * jamais entrer en conflit avec un swipe dates/semaines déjà présent sur ces
  * écrans.
+ *
+ * Porte aussi la restauration du scroll (`useScrollRestoration`) : `<main>`
+ * étant le seul conteneur scrollable de l'app (pas `window`) et restant
+ * monté d'une navigation à l'autre, un seul hook ici couvre génériquement
+ * toutes les listes scrollables de l'app.
  */
 export function TabSwipeWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -42,13 +48,17 @@ export function TabSwipeWrapper({ children }: { children: ReactNode }) {
     if (!actif) return;
     const prochainIndex = indexOngletActif + (sens === "suivant" ? 1 : -1);
     if (prochainIndex < 0 || prochainIndex >= modulesBarreBasse.length) return;
-    navigate(modulesBarreBasse[prochainIndex]);
+    navigate(modulesBarreBasse[prochainIndex], sens === "suivant" ? "avance" : "recule");
   }
 
   const swipeHandlers = useSwipeHorizontal(handleSwipe);
 
+  const mainRef = useRef<HTMLElement>(null);
+  useScrollRestoration(mainRef);
+
   return (
     <main
+      ref={mainRef}
       className="flex-1 overflow-x-hidden overflow-y-auto px-4"
       style={{
         paddingTop: "calc(env(safe-area-inset-top) + 64px)",
