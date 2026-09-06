@@ -35,6 +35,17 @@ function attendre(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Réduit un corps de réponse (JSON ou texte brut) à un extrait exploitable
+ * dans un message d'erreur affiché à l'écran, pour diagnostiquer sans accès
+ * aux logs serveur — voir reports/2026-09-07-module-foot-logos-calendrier.md,
+ * addendum du 2026-09-07 (bis) : le premier correctif, supposant un simple
+ * dépassement du taux de 10 req/min, n'a pas suffi, d'où ce diagnostic
+ * détaillé renvoyé directement dans `erreursPartielles`. */
+function extraireExtrait(texte: string): string {
+  const extrait = texte.trim().slice(0, 200);
+  return extrait.length > 0 ? extrait : "(réponse vide)";
+}
+
 async function chargerFixturesCompetition(
   competitionId: number,
   competitionNom: string,
@@ -54,21 +65,33 @@ async function chargerFixturesCompetition(
       }
     );
 
+    const corpsBrut = await res.text();
+
     if (res.status === 429) {
-      return { fixtures: [], erreur: `${competitionNom} : quota API-Football dépassé.` };
+      return { fixtures: [], erreur: `${competitionNom} : quota/débit dépassé (429) — ${extraireExtrait(corpsBrut)}` };
     }
     if (!res.ok) {
-      return { fixtures: [], erreur: `${competitionNom} : erreur API (code ${res.status}).` };
+      return {
+        fixtures: [],
+        erreur: `${competitionNom} : erreur API (code ${res.status}) — ${extraireExtrait(corpsBrut)}`,
+      };
     }
 
-    const data = (await res.json()) as FixturesApiFootballResponse;
+    let data: FixturesApiFootballResponse;
+    try {
+      data = JSON.parse(corpsBrut) as FixturesApiFootballResponse;
+    } catch {
+      return { fixtures: [], erreur: `${competitionNom} : réponse non-JSON — ${extraireExtrait(corpsBrut)}` };
+    }
+
     if (aDesErreurs(data.errors)) {
-      return { fixtures: [], erreur: `${competitionNom} : erreur API-Football (quota ou requête invalide).` };
+      return { fixtures: [], erreur: `${competitionNom} : ${extraireExtrait(JSON.stringify(data.errors))}` };
     }
 
     return { fixtures: data.response ?? [], erreur: null };
-  } catch {
-    return { fixtures: [], erreur: `${competitionNom} : problème réseau.` };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { fixtures: [], erreur: `${competitionNom} : exception réseau — ${message}` };
   }
 }
 
@@ -113,7 +136,10 @@ export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   const erreursPartielles = resultats.map((r) => r.erreur).filter((e): e is string => e !== null);
 
   if (erreursPartielles.length === COMPETITIONS_FOOT.length) {
-    return { ok: false, erreur: "Impossible de contacter API-Football (quota dépassé ou problème réseau)." };
+    // Affiche le détail de la première erreur directement à l'écran (plutôt
+    // qu'un message générique) : sans accès aux logs serveur depuis cette
+    // session, c'est le seul moyen de diagnostiquer une panne totale.
+    return { ok: false, erreur: `Toutes les compétitions ont échoué. Détail : ${erreursPartielles[0]}` };
   }
 
   const toutesFixtures = resultats.flatMap((r) => r.fixtures);
