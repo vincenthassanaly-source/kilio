@@ -3,7 +3,7 @@
 import {
   COMPETITIONS_FOOT,
   coupeAffichable,
-  genererFenetreDates,
+  genererFenetreJoursAccessibles,
   grouperFixturesParJour,
   type FixtureApiFootball,
   type JourFoot,
@@ -28,35 +28,15 @@ type FixturesApiFootballResponse = {
 
 type ResultatJour = { fixtures: FixtureApiFootball[]; erreur: string | null };
 
-// Le plan gratuit API-Football restreint aussi `date=` à une fenêtre
-// glissante étroite autour d'aujourd'hui : un premier test avec les 15
-// jours de la bande de navigation a renvoyé, pour chaque jour hors de cette
-// fenêtre, "Free plans do not have access to this date, try from
-// 2026-09-05 to 2026-09-07" (soit hier/aujourd'hui/demain, pour un test
-// fait le 2026-09-06) — voir reports/2026-09-07-module-foot-logos-calendrier.md,
-// addendum 3. On ne tente donc l'appel réseau que pour ces jours-là ; les
-// autres jours de la bande de navigation restent affichés (voir
-// `JourFoot.disponible`) mais ne consomment aucun appel, contrairement à
-// avant où les 12 jours hors fenêtre échouaient systématiquement.
+// Le plan gratuit API-Football restreint `date=` à une fenêtre glissante
+// étroite autour d'aujourd'hui : hors de cette fenêtre, l'API répond "Free
+// plans do not have access to this date, try from 2026-09-05 to
+// 2026-09-07" (soit hier/aujourd'hui/demain, pour un test fait le
+// 2026-09-06) — voir reports/2026-09-07-module-foot-logos-calendrier.md,
+// addendum 3. Vincent a confirmé (addendum 5) préférer ne montrer que ces
+// jours-là plutôt qu'une bande de dates plus large dont la plupart des
+// jours ne pourraient jamais afficher de contenu.
 const JOURS_ACCESSIBLES_PLAN_GRATUIT = 1;
-
-/** Fenêtre de jours accessibles, ancrée sur le "aujourd'hui" du serveur
- * API-Football plutôt que sur Europe/Paris : le test réel (2026-09-06,
- * ~1h du matin heure de Paris) a renvoyé une fenêtre alignée sur le jour
- * UTC, pas sur le jour Paris — les deux ne coïncident pas entre minuit et
- * l'heure de bascule UTC. Paris étant toujours en avance sur UTC (UTC+1 ou
- * UTC+2, jamais en retard), le "aujourd'hui" Paris tombe toujours dans
- * cette fenêtre ancrée UTC (au pire sur son bord supérieur), donc ce choix
- * n'exclut jamais le jour affiché comme "Aujourd'hui" à l'écran. */
-function genererFenetreAccessiblePlanGratuit(): string[] {
-  const dates: string[] = [];
-  for (let offset = -JOURS_ACCESSIBLES_PLAN_GRATUIT; offset <= JOURS_ACCESSIBLES_PLAN_GRATUIT; offset++) {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() + offset);
-    dates.push(d.toISOString().slice(0, 10));
-  }
-  return dates;
-}
 
 // Espacement entre deux appels API-Football successifs (voir le
 // commentaire de `getResultatsFootFenetre` ci-dessous : plan gratuit limité
@@ -129,22 +109,21 @@ async function chargerFixturesJour(dateISO: string, cle: string): Promise<Result
  * Stratégie retenue : un appel par jour (`date=<jour>`, sans `league` ni
  * `season`), filtré côté serveur sur les 13 compétitions suivies. Deux
  * restrictions du plan gratuit ont été découvertes en conditions réelles
- * (voir reports/2026-09-07-module-foot-logos-calendrier.md, addendums 2 et
- * 3) :
+ * (voir reports/2026-09-07-module-foot-logos-calendrier.md, addendums 2, 3
+ * et 5) :
  * 1. `league=<id>&season=<année>` (stratégie initialement prévue en Phase
  *    2, un appel par compétition) est une fonctionnalité payante — rejeté
  *    avec "Free plans do not have access to this season".
  * 2. `date=<jour>` lui-même n'est autorisé que sur une fenêtre glissante
- *    étroite autour d'aujourd'hui (hier/aujourd'hui/demain au moment du
- *    test) — les jours hors de cette fenêtre sont rejetés avec "Free plans
- *    do not have access to this date".
- * Seuls les `JOURS_ACCESSIBLES_PLAN_GRATUIT` jours autour d'aujourd'hui
- * sont donc réellement interrogés (3 requêtes par chargement, plutôt que
- * 15) ; les autres jours de la bande de navigation restent affichés mais
- * marqués `disponible: false`, sans consommer d'appel ni afficher d'erreur
- * pour un échec qui serait de toute façon garanti. Une compétition/jour en
- * erreur malgré tout (429, réseau) ne fait pas échouer la page entière :
- * son erreur est remontée dans `erreursPartielles`.
+ *    étroite autour d'aujourd'hui (hier/aujourd'hui/demain) — les jours
+ *    hors de cette fenêtre sont rejetés avec "Free plans do not have
+ *    access to this date". La bande de navigation n'affiche donc plus que
+ *    ces `JOURS_ACCESSIBLES_PLAN_GRATUIT` jours (3 requêtes par
+ *    chargement) : Vincent a préféré ne pas montrer de jours qui ne
+ *    pourront de toute façon jamais afficher de contenu sur ce plan.
+ * Une compétition/jour en erreur malgré tout (429, réseau) ne fait pas
+ * échouer la page entière : son erreur est remontée dans
+ * `erreursPartielles`.
  */
 export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   const cle = process.env.API_FOOTBALL_KEY;
@@ -152,12 +131,10 @@ export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
     return { ok: false, erreur: "Clé API-Football manquante (API_FOOTBALL_KEY)." };
   }
 
-  const dates = genererFenetreDates();
-  const datesAccessibles = genererFenetreAccessiblePlanGratuit();
-  const ensembleDatesAccessibles = new Set(datesAccessibles);
+  const dates = genererFenetreJoursAccessibles(new Date(), JOURS_ACCESSIBLES_PLAN_GRATUIT);
 
   const resultats: ResultatJour[] = [];
-  for (const [index, dateISO] of datesAccessibles.entries()) {
+  for (const [index, dateISO] of dates.entries()) {
     if (index > 0) await attendre(DELAI_ENTRE_APPELS_MS);
     resultats.push(await chargerFixturesJour(dateISO, cle));
   }
@@ -172,5 +149,5 @@ export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   }
 
   const toutesFixtures = resultats.flatMap((r) => r.fixtures);
-  return { ok: true, jours: grouperFixturesParJour(toutesFixtures, dates, ensembleDatesAccessibles), erreursPartielles };
+  return { ok: true, jours: grouperFixturesParJour(toutesFixtures, dates), erreursPartielles };
 }

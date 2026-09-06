@@ -133,3 +133,14 @@ Vincent a confirmé (2026-09-07) que la page fonctionne. Demande complémentaire
 - Le filtre est **fail-open** : si le libellé de manche renvoyé par l'API ne correspond à aucune entrée de la table de correspondance interne (`ORDRE_RONDES_COUPE`), le match est affiché plutôt que masqué. Objectif : éviter qu'une hypothèse de vocabulaire erronée ne finisse par cacher indéfiniment tous les matchs d'une coupe sans que personne ne s'en aperçoive — un problème visible (tour amateur affiché en trop) est préférable à un problème invisible (compétition qui n'affiche plus jamais rien).
 
 **⚠️ Non vérifié en direct** : les seuils ci-dessus reposent sur la connaissance générale du format de chaque coupe, **pas sur les libellés réels renvoyés par API-Football** (toujours aucun accès réseau/clé dans cette session). Le libellé de manche réel est affiché en petit à côté du nom de chaque coupe dans l'interface (ex. "Coupe de France — Round of 64") précisément pour que Vincent puisse vérifier si le filtre fonctionne comme prévu et me signaler le libellé exact si un tour amateur apparaît encore, ou si un tour avec des clubs de L1/PL/etc. est masqué à tort.
+
+## Addendum 5 : simplification de la bande de dates à 3 jours (plus de jours "vides")
+
+Vincent a demandé de retirer les jours qui ne peuvent de toute façon jamais afficher de contenu (J-7 à J-2 et J+2 à J+7), plutôt que de les garder visibles avec un message "non consultable sur le plan gratuit".
+
+**Simplification appliquée** :
+- La bande de navigation n'affiche plus que les 3 jours réellement interrogeables (hier/aujourd'hui/demain), calculés une seule fois via `genererFenetreJoursAccessibles` (déplacée dans `src/lib/foot/compute.ts` pour cohérence avec les autres fonctions pures du module).
+- Suppression de toute la mécanique devenue inutile : champ `JourFoot.disponible`, paramètre `datesInterrogees` de `grouperFixturesParJour`, branche "non consultable" et atténuation visuelle des chips dans `FootDayNavigator`, ancienne fonction `genererFenetreDates` (fenêtre Europe/Paris de 15 jours, plus utilisée nulle part).
+- Le comportement fonctionnel (3 appels réseau, fenêtre ancrée sur le jour UTC du serveur API-Football) est inchangé — seule la bande de navigation à l'écran est désormais réduite à ce qui est réellement consultable.
+
+**Conséquence à noter** : si Vincent passe un jour à un plan API-Football payant, il faudra à la fois augmenter `JOURS_ACCESSIBLES_PLAN_GRATUIT` dans `src/app/actions/foot.ts` **et** vérifier que la bande de navigation reste utilisable avec davantage de jours (elle a été pensée pour un petit nombre de chips, pas retestée avec 15).

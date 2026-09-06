@@ -170,11 +170,6 @@ export type CompetitionAvecMatchs = {
 
 export type JourFoot = {
   dateISO: string;
-  /** false si ce jour n'a pas été interrogé (hors fenêtre autorisée par le
-   * plan API-Football, voir `JOURS_ACCESSIBLES_PLAN_GRATUIT` dans
-   * `src/app/actions/foot.ts`) — à distinguer d'un jour interrogé sans
-   * aucun match. */
-  disponible: boolean;
   competitions: CompetitionAvecMatchs[];
 };
 
@@ -215,25 +210,22 @@ export function dateDuJourParis(): string {
   return formatDateParis(new Date());
 }
 
-const NB_JOURS_PASSES = 7;
-const NB_JOURS_FUTURS = 7;
-
-/** Fenêtre de `nbJoursPasses` à `nbJoursFuturs` autour de `reference` (dates
- * ISO, ordre croissant), en fuseau Europe/Paris. Ancrée à midi UTC pour
- * éviter tout décalage de jour lié au changement d'heure lors de l'addition
- * de jours. Par défaut, J-7 à J+7 (15 dates) pour la bande de navigation
- * affichée à l'écran. */
-export function genererFenetreDates(
-  reference: Date = new Date(),
-  nbJoursPasses: number = NB_JOURS_PASSES,
-  nbJoursFuturs: number = NB_JOURS_FUTURS
-): string[] {
-  const ancre = new Date(`${formatDateParis(reference)}T12:00:00Z`);
+/** Fenêtre de jours réellement consultables sur le plan gratuit
+ * API-Football (`nbJours` de chaque côté d'aujourd'hui, 1 par défaut ⇒
+ * hier/aujourd'hui/demain). Ancrée sur le jour **UTC**, pas Europe/Paris :
+ * le message d'erreur observé en conditions réelles pour `date=` hors
+ * fenêtre ("try from 2026-09-05 to 2026-09-07") correspond au jour UTC du
+ * serveur API-Football, pas au jour Europe/Paris — voir
+ * reports/2026-09-07-module-foot-logos-calendrier.md, addendum 3. Paris
+ * étant toujours en avance ou égal à UTC (jamais en retard), le jour
+ * affiché comme "Aujourd'hui" (calculé en Europe/Paris pour l'affichage)
+ * tombe toujours dans cette fenêtre. */
+export function genererFenetreJoursAccessibles(reference: Date = new Date(), nbJours: number = 1): string[] {
   const dates: string[] = [];
-  for (let offset = -nbJoursPasses; offset <= nbJoursFuturs; offset++) {
-    const d = new Date(ancre);
+  for (let offset = -nbJours; offset <= nbJours; offset++) {
+    const d = new Date(reference);
     d.setUTCDate(d.getUTCDate() + offset);
-    dates.push(formatDateParis(d));
+    dates.push(d.toISOString().slice(0, 10));
   }
   return dates;
 }
@@ -277,17 +269,10 @@ export function grouperFixturesParCompetition(fixtures: FixtureApiFootball[]): C
  * date se fait sur le jour calendaire Europe/Paris du coup d'envoi, pas sur
  * la date UTC brute renvoyée par l'API. Un jour sans aucun match dans les
  * compétitions suivies apparaît quand même dans le résultat (avec
- * `competitions: []`) pour que la bande de dates reste complète ;
- * `datesInterrogees` distingue ce cas d'un jour qui n'a même pas été
- * interrogé (hors fenêtre autorisée par le plan API-Football). */
-export function grouperFixturesParJour(
-  fixtures: FixtureApiFootball[],
-  dates: readonly string[],
-  datesInterrogees: ReadonlySet<string>
-): JourFoot[] {
+ * `competitions: []`) pour que la bande de dates reste complète. */
+export function grouperFixturesParJour(fixtures: FixtureApiFootball[], dates: readonly string[]): JourFoot[] {
   return dates.map((dateISO) => ({
     dateISO,
-    disponible: datesInterrogees.has(dateISO),
     competitions: grouperFixturesParCompetition(
       fixtures.filter((f) => formatDateParis(new Date(f.fixture.date)) === dateISO)
     ),

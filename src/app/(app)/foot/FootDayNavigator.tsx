@@ -41,12 +41,7 @@ export function FootDayNavigator({
               style={
                 estSelectionne
                   ? { background: "var(--accent-foot)", borderColor: "var(--accent-foot)", color: "white" }
-                  : {
-                      background: "var(--surface)",
-                      borderColor: "var(--line)",
-                      color: "var(--ink-2)",
-                      opacity: jour.disponible ? 1 : 0.45,
-                    }
+                  : { background: "var(--surface)", borderColor: "var(--line)", color: "var(--ink-2)" }
               }
             >
               {estAujourdhui ? "Aujourd'hui" : formatEtiquetteJour(jour.dateISO)}
@@ -61,14 +56,7 @@ export function FootDayNavigator({
         </p>
       )}
 
-      {!jourSelectionne.disponible ? (
-        <div className={`${card} py-6 text-center`}>
-          <p className="text-[13.5px] text-ink-2">
-            Ce jour n&apos;est pas consultable sur le plan gratuit API-Football (limité à hier, aujourd&apos;hui et
-            demain).
-          </p>
-        </div>
-      ) : jourSelectionne.competitions.length === 0 ? (
+      {jourSelectionne.competitions.length === 0 ? (
         <div className={`${card} py-6 text-center`}>
           <p className="text-[13.5px] text-ink-2">Aucun match ce jour-là dans les compétitions suivies.</p>
         </div>
