@@ -479,7 +479,7 @@ export function TaskCard({
   // `attributes`/`listeners` (déclencheurs du drag) sont posés sur la
   // poignée dans `content`, pas ici : voir GRIP_ICON plus haut.
   const dragStyle: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   };
 
