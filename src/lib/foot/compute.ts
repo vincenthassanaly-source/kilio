@@ -109,6 +109,11 @@ export type CompetitionAvecMatchs = {
 
 export type JourFoot = {
   dateISO: string;
+  /** false si ce jour n'a pas été interrogé (hors fenêtre autorisée par le
+   * plan API-Football, voir `JOURS_ACCESSIBLES_PLAN_GRATUIT` dans
+   * `src/app/actions/foot.ts`) — à distinguer d'un jour interrogé sans
+   * aucun match. */
+  disponible: boolean;
   competitions: CompetitionAvecMatchs[];
 };
 
@@ -152,13 +157,19 @@ export function dateDuJourParis(): string {
 const NB_JOURS_PASSES = 7;
 const NB_JOURS_FUTURS = 7;
 
-/** Fenêtre de J-7 à J+7 (15 dates ISO, ordre croissant), en fuseau
- * Europe/Paris. Ancrée à midi UTC pour éviter tout décalage de jour lié au
- * changement d'heure lors de l'addition de jours. */
-export function genererFenetreDates(reference: Date = new Date()): string[] {
+/** Fenêtre de `nbJoursPasses` à `nbJoursFuturs` autour de `reference` (dates
+ * ISO, ordre croissant), en fuseau Europe/Paris. Ancrée à midi UTC pour
+ * éviter tout décalage de jour lié au changement d'heure lors de l'addition
+ * de jours. Par défaut, J-7 à J+7 (15 dates) pour la bande de navigation
+ * affichée à l'écran. */
+export function genererFenetreDates(
+  reference: Date = new Date(),
+  nbJoursPasses: number = NB_JOURS_PASSES,
+  nbJoursFuturs: number = NB_JOURS_FUTURS
+): string[] {
   const ancre = new Date(`${formatDateParis(reference)}T12:00:00Z`);
   const dates: string[] = [];
-  for (let offset = -NB_JOURS_PASSES; offset <= NB_JOURS_FUTURS; offset++) {
+  for (let offset = -nbJoursPasses; offset <= nbJoursFuturs; offset++) {
     const d = new Date(ancre);
     d.setUTCDate(d.getUTCDate() + offset);
     dates.push(formatDateParis(d));
@@ -204,10 +215,17 @@ export function grouperFixturesParCompetition(fixtures: FixtureApiFootball[]): C
  * date se fait sur le jour calendaire Europe/Paris du coup d'envoi, pas sur
  * la date UTC brute renvoyée par l'API. Un jour sans aucun match dans les
  * compétitions suivies apparaît quand même dans le résultat (avec
- * `competitions: []`) pour que la bande de dates reste complète. */
-export function grouperFixturesParJour(fixtures: FixtureApiFootball[], dates: readonly string[]): JourFoot[] {
+ * `competitions: []`) pour que la bande de dates reste complète ;
+ * `datesInterrogees` distingue ce cas d'un jour qui n'a même pas été
+ * interrogé (hors fenêtre autorisée par le plan API-Football). */
+export function grouperFixturesParJour(
+  fixtures: FixtureApiFootball[],
+  dates: readonly string[],
+  datesInterrogees: ReadonlySet<string>
+): JourFoot[] {
   return dates.map((dateISO) => ({
     dateISO,
+    disponible: datesInterrogees.has(dateISO),
     competitions: grouperFixturesParCompetition(
       fixtures.filter((f) => formatDateParis(new Date(f.fixture.date)) === dateISO)
     ),

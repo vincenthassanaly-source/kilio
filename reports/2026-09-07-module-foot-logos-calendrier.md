@@ -1,6 +1,6 @@
 # Module Foot — logos d'équipes + bande de dates J-7/J+7 (style Onefootball)
 
-> **État final (voir Addendum 2 ci-dessous)** : la stratégie décrite dans le corps de ce rapport (13 appels `league`+`season`, un par compétition) a dû être abandonnée — elle est incompatible avec le plan gratuit API-Football. La stratégie réellement en place est **15 appels `date=<jour>` (un par jour, sans `league` ni `season`)**, filtrés côté serveur sur les 13 compétitions suivies. Le corps du rapport ci-dessous documente le raisonnement initial et reste utile pour comprendre les choix (logos, bande de dates, regroupement par jour), mais la section "stratégie API" doit être lue à la lumière de l'Addendum 2.
+> **État final (voir Addendum 3 ci-dessous)** : la stratégie décrite dans le corps de ce rapport (13 appels `league`+`season`, un par compétition) a dû être abandonnée — elle est incompatible avec le plan gratuit API-Football. La stratégie réellement en place est **3 appels `date=<jour>` (hier/aujourd'hui/demain uniquement, sans `league` ni `season`)**, filtrés côté serveur sur les 13 compétitions suivies ; les 12 autres jours de la bande de navigation restent affichés mais non interrogés (`disponible: false`). Le corps du rapport ci-dessous documente le raisonnement initial et reste utile pour comprendre les choix (logos, bande de dates, regroupement par jour), mais la section "stratégie API" doit être lue à la lumière des Addendums 2 et 3.
 
 ## Addendum : correction post-déploiement (13 appels en parallèle → tous en erreur)
 
@@ -94,3 +94,22 @@ Aucune — aucun test réel n'a pu être exécuté (cf. ci-dessus). La gestion d
 - Rendu visuel réel de la bande de dates et des logos avec de vraies données (toujours pas de clé `API_FOOTBALL_KEY` disponible dans cet environnement de session).
 - Comportement réel de `/leagues` pour la Conference League et pour la valeur de `season` sur les coupes nationales — à faire par Vincent une fois la clé active, voir tableau ci-dessus.
 - Défilement tactile / `scrollIntoView` de la bande de dates sur un vrai appareil mobile (pas de navigateur disponible dans cet environnement).
+
+## Addendum 3 : `date=` est aussi restreint sur le plan gratuit — retour à 3 jours réellement interrogés
+
+Après le correctif de l'Addendum 2 (passage à 15 appels `date=<jour>`), Vincent a confirmé que la page fonctionnait — de vrais matchs s'affichaient (ex. Estac Troyes en Ligue 1). Mais un message diagnostic s'affichait au-dessus des résultats, listant 12 journées en erreur avec le même détail :
+
+```
+{"plan":"Free plans do not have access to this date, try from 2026-09-05 to 2026-09-07."}
+```
+
+**Cause** : le plan gratuit API-Football restreint aussi le filtre `date=` à une fenêtre glissante étroite autour d'aujourd'hui — hier, aujourd'hui, demain (3 jours), pas plus. Interroger les 12 autres jours de la bande J-7/J+7 échouait donc systématiquement, à chaque chargement, en pure perte de quota (12 des 15 appels ne pouvaient jamais réussir).
+
+**Correctif appliqué** :
+- `src/app/actions/foot.ts` n'interroge plus que les **3 jours réellement accessibles** (`JOURS_ACCESSIBLES_PLAN_GRATUIT = 1`, soit ±1 jour) au lieu des 15 jours de la bande affichée. Coût réel : **3 requêtes par chargement/rafraîchissement** ⇒ jusqu'à ~33 rafraîchissements/jour possibles sur le plan gratuit (100/jour), bien mieux que les ~6-7/jour des stratégies précédentes.
+- Les 12 autres jours de la bande de navigation (J-7 à J-2 et J+2 à J+7) restent affichés dans l'interface — Vincent avait explicitement demandé le style Onefootball à 15 jours — mais ne déclenchent plus aucun appel réseau. `JourFoot` porte désormais un champ `disponible: boolean` : `grouperFixturesParJour()` le renseigne à partir de l'ensemble des dates réellement interrogées, et `FootDayNavigator` affiche un message dédié ("Ce jour n'est pas consultable sur le plan gratuit API-Football...") au lieu de "Aucun match ce jour-là", plus une chip visuellement atténuée (opacité réduite) pour les jours non disponibles.
+- **Subtilité fuseau horaire** : le message d'erreur ("try from 2026-09-05 to 2026-09-07") a été observé un test fait vers 01h du matin heure de Paris le 2026-09-06/07, et correspond au jour **UTC**, pas Europe/Paris (qui aurait déjà basculé au jour suivant à cette heure-là). La fenêtre des 3 jours réellement interrogée (`genererFenetreAccessiblePlanGratuit` dans `actions/foot.ts`) est donc calculée sur le jour UTC du serveur, pas sur `formatDateParis` comme le reste du module. Paris étant toujours en avance ou égal à UTC (jamais en retard), le jour affiché comme "Aujourd'hui" (calculé en Europe/Paris pour l'affichage) tombe toujours dans cette fenêtre UTC — vérifié par le raisonnement mais pas par un test réel à l'heure de la bascule.
+
+**Limite fonctionnelle à signaler à Vincent** : avec cette double restriction du plan gratuit (season sur `league`, fenêtre de 3 jours sur `date`), la "bande de navigation façon Onefootball allant de J-7 à J+7" demandée en Phase 2 du prompt initial **n'est consultable qu'à hauteur de 3 jours sur 15** avec la clé actuelle. Les 12 autres jours resteront vides avec le message "non consultable sur le plan gratuit" tant que le plan API-Football n'est pas mis à niveau (plan payant). L'interface reste prête à afficher ces jours automatiquement si Vincent passe un jour à un plan supérieur — aucun changement de code ne serait nécessaire au-delà d'augmenter `JOURS_ACCESSIBLES_PLAN_GRATUIT`.
+
+**Toujours non re-testé en direct par cette session** (mêmes limitations réseau). Vincent doit revalider que `/foot` n'affiche plus le message diagnostic pour les 12 jours hors fenêtre, et que la fenêtre UTC couvre bien correctement "Aujourd'hui" à toute heure.

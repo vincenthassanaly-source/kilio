@@ -27,6 +27,36 @@ type FixturesApiFootballResponse = {
 
 type ResultatJour = { fixtures: FixtureApiFootball[]; erreur: string | null };
 
+// Le plan gratuit API-Football restreint aussi `date=` à une fenêtre
+// glissante étroite autour d'aujourd'hui : un premier test avec les 15
+// jours de la bande de navigation a renvoyé, pour chaque jour hors de cette
+// fenêtre, "Free plans do not have access to this date, try from
+// 2026-09-05 to 2026-09-07" (soit hier/aujourd'hui/demain, pour un test
+// fait le 2026-09-06) — voir reports/2026-09-07-module-foot-logos-calendrier.md,
+// addendum 3. On ne tente donc l'appel réseau que pour ces jours-là ; les
+// autres jours de la bande de navigation restent affichés (voir
+// `JourFoot.disponible`) mais ne consomment aucun appel, contrairement à
+// avant où les 12 jours hors fenêtre échouaient systématiquement.
+const JOURS_ACCESSIBLES_PLAN_GRATUIT = 1;
+
+/** Fenêtre de jours accessibles, ancrée sur le "aujourd'hui" du serveur
+ * API-Football plutôt que sur Europe/Paris : le test réel (2026-09-06,
+ * ~1h du matin heure de Paris) a renvoyé une fenêtre alignée sur le jour
+ * UTC, pas sur le jour Paris — les deux ne coïncident pas entre minuit et
+ * l'heure de bascule UTC. Paris étant toujours en avance sur UTC (UTC+1 ou
+ * UTC+2, jamais en retard), le "aujourd'hui" Paris tombe toujours dans
+ * cette fenêtre ancrée UTC (au pire sur son bord supérieur), donc ce choix
+ * n'exclut jamais le jour affiché comme "Aujourd'hui" à l'écran. */
+function genererFenetreAccessiblePlanGratuit(): string[] {
+  const dates: string[] = [];
+  for (let offset = -JOURS_ACCESSIBLES_PLAN_GRATUIT; offset <= JOURS_ACCESSIBLES_PLAN_GRATUIT; offset++) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + offset);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
 // Espacement entre deux appels API-Football successifs (voir le
 // commentaire de `getResultatsFootFenetre` ci-dessous : plan gratuit limité
 // à 10 requêtes/minute en plus des 100/jour).
@@ -86,43 +116,32 @@ async function chargerFixturesJour(dateISO: string, cle: string): Promise<Result
   }
 }
 
-/** Ordre de récupération des 15 jours : "Aujourd'hui" d'abord, puis en
- * s'écartant progressivement (J+1, J-1, J+2, J-2, ...). Si le débit du plan
- * gratuit (10 req/min) limite malgré tout une partie des 15 appels
- * séquentiels, ce sont les jours les plus proches d'aujourd'hui qui
- * passent en premier et les jours extrêmes (J-7/J+7) qui ont le plus de
- * chances d'être sacrifiés — préférable à un ordre chronologique brut où
- * "Aujourd'hui" pourrait être parmi les derniers servis. */
-function ordreRecuperation(nbJours: number): number[] {
-  const centre = Math.floor(nbJours / 2);
-  const ordre = [centre];
-  for (let ecart = 1; ecart <= centre; ecart++) {
-    if (centre + ecart < nbJours) ordre.push(centre + ecart);
-    if (centre - ecart >= 0) ordre.push(centre - ecart);
-  }
-  return ordre;
-}
-
-/** Unique chargement de toute la fenêtre J-7 à J+7 par exécution de ce
- * Server Component (voir `cache: "no-store"` ci-dessous) : la contrainte de
- * quota (100 req/jour, plan gratuit) impose qu'aucun autre code du module ne
- * rappelle cette fonction en dehors d'un chargement/rafraîchissement manuel
- * de `/foot`. Le filtrage par date affiché à l'écran se fait ensuite
- * entièrement côté client, sans nouvel appel réseau.
+/** Unique chargement par exécution de ce Server Component (voir
+ * `cache: "no-store"` ci-dessous) : la contrainte de quota (100 req/jour,
+ * plan gratuit) impose qu'aucun autre code du module ne rappelle cette
+ * fonction en dehors d'un chargement/rafraîchissement manuel de `/foot`.
+ * Le filtrage par date affiché à l'écran se fait ensuite entièrement côté
+ * client, sans nouvel appel réseau.
  *
- * Stratégie retenue : un appel par jour (15 requêtes `date=<jour>`, sans
- * `league` ni `season`), filtré côté serveur sur les 13 compétitions
- * suivies. La stratégie initialement prévue (`league=<id>&season=<année>`,
- * un appel par compétition) s'est révélée indisponible sur le plan gratuit
- * : l'API renvoie explicitement "Free plans do not have access to this
- * season" dès qu'un `season` autre que 2022-2024 est demandé avec `league`
- * — voir reports/2026-09-07-module-foot-logos-calendrier.md. Coût : 15
- * requêtes par chargement/rafraîchissement ⇒ ~6 rafraîchissements/jour max
- * sur le plan gratuit (100 req/jour). Les appels sont séquentiels et
- * espacés (`DELAI_ENTRE_APPELS_MS`) pour respecter la limite de 10
- * requêtes/minute du plan gratuit. Un jour en erreur (429, réseau, etc.) ne
- * fait pas échouer la page entière : il est simplement absent des
- * résultats et son erreur remontée dans `erreursPartielles`.
+ * Stratégie retenue : un appel par jour (`date=<jour>`, sans `league` ni
+ * `season`), filtré côté serveur sur les 13 compétitions suivies. Deux
+ * restrictions du plan gratuit ont été découvertes en conditions réelles
+ * (voir reports/2026-09-07-module-foot-logos-calendrier.md, addendums 2 et
+ * 3) :
+ * 1. `league=<id>&season=<année>` (stratégie initialement prévue en Phase
+ *    2, un appel par compétition) est une fonctionnalité payante — rejeté
+ *    avec "Free plans do not have access to this season".
+ * 2. `date=<jour>` lui-même n'est autorisé que sur une fenêtre glissante
+ *    étroite autour d'aujourd'hui (hier/aujourd'hui/demain au moment du
+ *    test) — les jours hors de cette fenêtre sont rejetés avec "Free plans
+ *    do not have access to this date".
+ * Seuls les `JOURS_ACCESSIBLES_PLAN_GRATUIT` jours autour d'aujourd'hui
+ * sont donc réellement interrogés (3 requêtes par chargement, plutôt que
+ * 15) ; les autres jours de la bande de navigation restent affichés mais
+ * marqués `disponible: false`, sans consommer d'appel ni afficher d'erreur
+ * pour un échec qui serait de toute façon garanti. Une compétition/jour en
+ * erreur malgré tout (429, réseau) ne fait pas échouer la page entière :
+ * son erreur est remontée dans `erreursPartielles`.
  */
 export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   const cle = process.env.API_FOOTBALL_KEY;
@@ -131,23 +150,24 @@ export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   }
 
   const dates = genererFenetreDates();
-  const resultatsParIndex = new Array<ResultatJour>(dates.length);
+  const datesAccessibles = genererFenetreAccessiblePlanGratuit();
+  const ensembleDatesAccessibles = new Set(datesAccessibles);
 
-  const ordre = ordreRecuperation(dates.length);
-  for (const [i, index] of ordre.entries()) {
-    if (i > 0) await attendre(DELAI_ENTRE_APPELS_MS);
-    resultatsParIndex[index] = await chargerFixturesJour(dates[index], cle);
+  const resultats: ResultatJour[] = [];
+  for (const [index, dateISO] of datesAccessibles.entries()) {
+    if (index > 0) await attendre(DELAI_ENTRE_APPELS_MS);
+    resultats.push(await chargerFixturesJour(dateISO, cle));
   }
 
-  const erreursPartielles = resultatsParIndex.map((r) => r.erreur).filter((e): e is string => e !== null);
+  const erreursPartielles = resultats.map((r) => r.erreur).filter((e): e is string => e !== null);
 
-  if (erreursPartielles.length === dates.length) {
+  if (erreursPartielles.length === resultats.length) {
     // Affiche le détail de la première erreur directement à l'écran (plutôt
     // qu'un message générique) : sans accès aux logs serveur depuis cette
     // session, c'est le seul moyen de diagnostiquer une panne totale.
     return { ok: false, erreur: `Toutes les journées ont échoué. Détail : ${erreursPartielles[0]}` };
   }
 
-  const toutesFixtures = resultatsParIndex.flatMap((r) => r.fixtures);
-  return { ok: true, jours: grouperFixturesParJour(toutesFixtures, dates), erreursPartielles };
+  const toutesFixtures = resultats.flatMap((r) => r.fixtures);
+  return { ok: true, jours: grouperFixturesParJour(toutesFixtures, dates, ensembleDatesAccessibles), erreursPartielles };
 }
