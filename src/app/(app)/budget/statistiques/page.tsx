@@ -8,6 +8,7 @@ import { card, eyebrow, ghostButton, screenTitle, sectionTitle } from "@/lib/ui"
 import { RepartitionCategories } from "./RepartitionCategories";
 import { RepartitionComptes } from "./RepartitionComptes";
 import { TendanceChart } from "./TendanceChart";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 // Comme /budget et /budget/transactions : les occurrences récurrentes
 // peuvent générer de nouvelles transactions à chaque chargement.
@@ -57,55 +58,57 @@ export default async function StatistiquesPage({
   const periodeSuivante = periodeAdjacente(periode, "mensuel", 1);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className={eyebrow}>Budget</p>
-          <h1 className={screenTitle}>Statistiques</h1>
-        </div>
-        <Link
-          href="/budget/calendrier"
-          aria-label="Calendrier"
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line text-ink-2"
-        >
-          <CalendrierIcon />
-        </Link>
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-        <Link href={`/budget/statistiques?periode=${periodePrecedente}`} className={ghostButton}>
-          ← Précédent
-        </Link>
-        <p className="text-[13px] font-semibold text-ink">{formatPeriode(periode)}</p>
-        <Link href={`/budget/statistiques?periode=${periodeSuivante}`} className={ghostButton}>
-          Suivant →
-        </Link>
-      </div>
-
-      <div className={`${card} flex flex-col gap-3`}>
-        <h2 className={sectionTitle}>Répartition par catégorie</h2>
-        <RepartitionCategories suivi={suiviCategories} />
-      </div>
-
-      <div className={`${card} flex flex-col gap-3`}>
+    <PullToRefresh>
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className={sectionTitle}>Tendance</h2>
-          <div className="flex items-center gap-3 text-[11px] text-ink-2">
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-alert" /> Dépenses
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-kcal" /> Revenus
-            </span>
+          <div>
+            <p className={eyebrow}>Budget</p>
+            <h1 className={screenTitle}>Statistiques</h1>
           </div>
+          <Link
+            href="/budget/calendrier"
+            aria-label="Calendrier"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line text-ink-2"
+          >
+            <CalendrierIcon />
+          </Link>
         </div>
-        <TendanceChart donnees={tendance} />
-      </div>
 
-      <div className={`${card} flex flex-col gap-3`}>
-        <h2 className={sectionTitle}>Répartition par compte</h2>
-        <RepartitionComptes comptes={comptes} />
+        <div className="flex items-center justify-between gap-2">
+          <Link href={`/budget/statistiques?periode=${periodePrecedente}`} className={ghostButton}>
+            ← Précédent
+          </Link>
+          <p className="text-[13px] font-semibold text-ink">{formatPeriode(periode)}</p>
+          <Link href={`/budget/statistiques?periode=${periodeSuivante}`} className={ghostButton}>
+            Suivant →
+          </Link>
+        </div>
+
+        <div className={`${card} flex flex-col gap-3`}>
+          <h2 className={sectionTitle}>Répartition par catégorie</h2>
+          <RepartitionCategories suivi={suiviCategories} />
+        </div>
+
+        <div className={`${card} flex flex-col gap-3`}>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className={sectionTitle}>Tendance</h2>
+            <div className="flex items-center gap-3 text-[11px] text-ink-2">
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-alert" /> Dépenses
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-kcal" /> Revenus
+              </span>
+            </div>
+          </div>
+          <TendanceChart donnees={tendance} />
+        </div>
+
+        <div className={`${card} flex flex-col gap-3`}>
+          <h2 className={sectionTitle}>Répartition par compte</h2>
+          <RepartitionComptes comptes={comptes} />
+        </div>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }

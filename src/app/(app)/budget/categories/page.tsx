@@ -6,6 +6,7 @@ import { eyebrow, screenTitle } from "@/lib/ui";
 import { AddCategorieToggle } from "./AddCategorieToggle";
 import { CategoriesList } from "./CategoriesList";
 import { PeriodeSelector } from "./PeriodeSelector";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const TYPES_PERIODE: readonly Enums<"type_periode_budget">[] = ["hebdomadaire", "mensuel", "annuel"];
 
@@ -26,19 +27,21 @@ export default async function CategoriesBudgetPage({
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <p className={eyebrow}>Budget</p>
-        <h1 className={screenTitle}>Catégories</h1>
+    <PullToRefresh>
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className={eyebrow}>Budget</p>
+          <h1 className={screenTitle}>Catégories</h1>
+        </div>
+        <PeriodeSelector typePeriode={typePeriode} periode={periode} />
+        <AddCategorieToggle />
+        <CategoriesList
+          suiviDepenses={suiviDepenses}
+          categories={categories}
+          periode={periode}
+          typePeriode={typePeriode}
+        />
       </div>
-      <PeriodeSelector typePeriode={typePeriode} periode={periode} />
-      <AddCategorieToggle />
-      <CategoriesList
-        suiviDepenses={suiviDepenses}
-        categories={categories}
-        periode={periode}
-        typePeriode={typePeriode}
-      />
-    </div>
+    </PullToRefresh>
   );
 }

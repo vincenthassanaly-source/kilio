@@ -5,6 +5,7 @@ import { getSuiviCategories } from "@/app/actions/budgets";
 import { genererOccurrencesDues } from "@/app/actions/transactions-recurrentes";
 import { formatMontant, formatPeriode, premierJourDuMois } from "@/lib/budget/compute";
 import { card, eyebrow, screenTitle, sectionTitle } from "@/lib/ui";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const ICON_PROPS = {
   width: 15,
@@ -72,130 +73,132 @@ export default async function BudgetPage() {
   const enDepassement = suiviCategories.filter((s) => s.statut !== "ok");
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <p className={eyebrow}>Budget</p>
-        <h1 className={screenTitle}>Vue d&apos;ensemble</h1>
-      </div>
+    <PullToRefresh>
+      <div className="flex flex-col gap-5">
+        <div>
+          <p className={eyebrow}>Budget</p>
+          <h1 className={screenTitle}>Vue d&apos;ensemble</h1>
+        </div>
 
-      <div className={`${card} flex flex-col gap-1`}>
-        <p className={eyebrow}>Solde total</p>
-        <p
-          className={`font-display text-3xl font-semibold ${totalSoldes < 0 ? "text-alert" : "text-ink"}`}
-        >
-          {formatMontant(totalSoldes)}
-        </p>
-        <Link
-          href="/budget/comptes"
-          className="mt-1 inline-flex w-fit items-center rounded-full border border-line px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
-        >
-          {comptes.length === 0
-            ? "Ajouter un compte"
-            : `Voir ${comptes.length === 1 ? "le compte" : `les ${comptes.length} comptes`}`}
-        </Link>
-      </div>
+        <div className={`${card} flex flex-col gap-1`}>
+          <p className={eyebrow}>Solde total</p>
+          <p
+            className={`font-display text-3xl font-semibold ${totalSoldes < 0 ? "text-alert" : "text-ink"}`}
+          >
+            {formatMontant(totalSoldes)}
+          </p>
+          <Link
+            href="/budget/comptes"
+            className="mt-1 inline-flex w-fit items-center rounded-full border border-line px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
+          >
+            {comptes.length === 0
+              ? "Ajouter un compte"
+              : `Voir ${comptes.length === 1 ? "le compte" : `les ${comptes.length} comptes`}`}
+          </Link>
+        </div>
 
-      <div className={`${card} flex flex-col gap-3`}>
-        <p className={sectionTitle}>{formatPeriode(periode)}</p>
-        <div className="flex gap-5">
-          <div className="flex flex-col gap-0.5">
-            <span className={eyebrow}>Revenus</span>
-            <span className="font-display text-lg font-semibold text-kcal">
-              {formatMontant(resumeMois.totalRevenus)}
-            </span>
+        <div className={`${card} flex flex-col gap-3`}>
+          <p className={sectionTitle}>{formatPeriode(periode)}</p>
+          <div className="flex gap-5">
+            <div className="flex flex-col gap-0.5">
+              <span className={eyebrow}>Revenus</span>
+              <span className="font-display text-lg font-semibold text-kcal">
+                {formatMontant(resumeMois.totalRevenus)}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className={eyebrow}>Dépenses</span>
+              <span className="font-display text-lg font-semibold text-ink">
+                {formatMontant(resumeMois.totalDepenses)}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className={eyebrow}>Solde</span>
+              <span
+                className={`font-display text-lg font-semibold ${soldeMois < 0 ? "text-alert" : "text-ink"}`}
+              >
+                {formatMontant(soldeMois)}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <span className={eyebrow}>Dépenses</span>
-            <span className="font-display text-lg font-semibold text-ink">
-              {formatMontant(resumeMois.totalDepenses)}
-            </span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className={eyebrow}>Solde</span>
-            <span
-              className={`font-display text-lg font-semibold ${soldeMois < 0 ? "text-alert" : "text-ink"}`}
+          <Link
+            href="/budget/transactions"
+            className="inline-flex w-fit items-center rounded-full border border-line px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
+          >
+            Voir les transactions
+          </Link>
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <p className={sectionTitle}>Catégories en dépassement</p>
+          {enDepassement.length === 0 ? (
+            <p className="text-ink-2">Aucune catégorie en dépassement ce mois-ci.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {enDepassement.map((suivi) => {
+                const pct =
+                  suivi.cible > 0 ? Math.min(100, Math.round((suivi.consomme / suivi.cible) * 100)) : 100;
+                const color = suivi.statut === "depasse" ? "var(--accent-alert)" : "var(--accent-carbs)";
+
+                return (
+                  <li key={suivi.categorie.id} className={`${card} flex flex-col gap-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">
+                        {suivi.categorie.icone && <span>{suivi.categorie.icone}</span>}
+                        {suivi.categorie.nom}
+                      </p>
+                      <span
+                        className={`text-[12.5px] font-mono ${suivi.statut === "depasse" ? "text-alert" : "text-ink-2"}`}
+                      >
+                        {formatMontant(suivi.consomme)} / {formatMontant(suivi.cible)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, background: color }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <Link
+            href="/budget/categories"
+            className="inline-flex w-fit items-center rounded-full border border-line px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
+          >
+            Voir toutes les catégories
+          </Link>
+        </div>
+
+        <div className={`${card} flex flex-col gap-2`}>
+          <p className={sectionTitle}>Autres vues</p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/budget/recurrentes"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-alt px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
             >
-              {formatMontant(soldeMois)}
-            </span>
+              <RecurrentesIcon />
+              Transactions récurrentes
+            </Link>
+            <Link
+              href="/budget/calendrier"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-alt px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
+            >
+              <CalendrierIcon />
+              Calendrier
+            </Link>
+            <Link
+              href="/budget/statistiques"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-alt px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
+            >
+              <StatistiquesIcon />
+              Statistiques
+            </Link>
           </div>
         </div>
-        <Link
-          href="/budget/transactions"
-          className="inline-flex w-fit items-center rounded-full border border-line px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
-        >
-          Voir les transactions
-        </Link>
       </div>
-
-      <div className="flex flex-col gap-2.5">
-        <p className={sectionTitle}>Catégories en dépassement</p>
-        {enDepassement.length === 0 ? (
-          <p className="text-ink-2">Aucune catégorie en dépassement ce mois-ci.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {enDepassement.map((suivi) => {
-              const pct =
-                suivi.cible > 0 ? Math.min(100, Math.round((suivi.consomme / suivi.cible) * 100)) : 100;
-              const color = suivi.statut === "depasse" ? "var(--accent-alert)" : "var(--accent-carbs)";
-
-              return (
-                <li key={suivi.categorie.id} className={`${card} flex flex-col gap-2`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">
-                      {suivi.categorie.icone && <span>{suivi.categorie.icone}</span>}
-                      {suivi.categorie.nom}
-                    </p>
-                    <span
-                      className={`text-[12.5px] font-mono ${suivi.statut === "depasse" ? "text-alert" : "text-ink-2"}`}
-                    >
-                      {formatMontant(suivi.consomme)} / {formatMontant(suivi.cible)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: color }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <Link
-          href="/budget/categories"
-          className="inline-flex w-fit items-center rounded-full border border-line px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
-        >
-          Voir toutes les catégories
-        </Link>
-      </div>
-
-      <div className={`${card} flex flex-col gap-2`}>
-        <p className={sectionTitle}>Autres vues</p>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/budget/recurrentes"
-            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-alt px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
-          >
-            <RecurrentesIcon />
-            Transactions récurrentes
-          </Link>
-          <Link
-            href="/budget/calendrier"
-            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-alt px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
-          >
-            <CalendrierIcon />
-            Calendrier
-          </Link>
-          <Link
-            href="/budget/statistiques"
-            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-alt px-3.5 py-2 text-[13.5px] font-semibold text-ink-2"
-          >
-            <StatistiquesIcon />
-            Statistiques
-          </Link>
-        </div>
-      </div>
-    </div>
+    </PullToRefresh>
   );
 }

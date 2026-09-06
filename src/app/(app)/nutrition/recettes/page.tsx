@@ -8,6 +8,7 @@ import {
 } from "@/lib/nutrition/compute";
 import { errorText, screenTitle } from "@/lib/ui";
 import { NutritionSubNav } from "@/components/NutritionSubNav";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default async function RecettesPage() {
   const supabase = await createClient();
@@ -44,11 +45,13 @@ export default async function RecettesPage() {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <NutritionSubNav />
-      <h1 className={screenTitle}>Recettes</h1>
-      <AddRecetteToggle />
-      <RecettesList recettes={views} />
-    </div>
+    <PullToRefresh>
+      <div className="flex flex-col gap-4">
+        <NutritionSubNav />
+        <h1 className={screenTitle}>Recettes</h1>
+        <AddRecetteToggle />
+        <RecettesList recettes={views} />
+      </div>
+    </PullToRefresh>
   );
 }

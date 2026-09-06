@@ -7,6 +7,7 @@ import { screenTitle } from "@/lib/ui";
 import { AddTransactionToggle } from "./AddTransactionToggle";
 import { TransactionsFilters } from "./TransactionsFilters";
 import { TransactionsList } from "./TransactionsList";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const ICON_PROPS = {
   width: 16,
@@ -88,49 +89,51 @@ export default async function TransactionsPage({
     : "/budget/transactions";
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className={screenTitle}>Transactions</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/budget/calendrier"
-            aria-label="Calendrier"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line text-ink-2"
-          >
-            <CalendrierIcon />
-          </Link>
-          <Link
-            href="/budget/recurrentes"
-            aria-label="Récurrentes"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line text-ink-2"
-          >
-            <RecurrentesIcon />
-          </Link>
+    <PullToRefresh>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className={screenTitle}>Transactions</h1>
+          <div className="flex gap-2">
+            <Link
+              href="/budget/calendrier"
+              aria-label="Calendrier"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line text-ink-2"
+            >
+              <CalendrierIcon />
+            </Link>
+            <Link
+              href="/budget/recurrentes"
+              aria-label="Récurrentes"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line text-ink-2"
+            >
+              <RecurrentesIcon />
+            </Link>
+          </div>
         </div>
+        {date && (
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-alt px-3 py-2 text-[13px] text-ink">
+            <span>
+              Transactions du{" "}
+              {new Date(`${date}T00:00:00`).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+            <Link href={hrefSansDate} className="font-semibold text-ink-2">
+              Effacer ✕
+            </Link>
+          </div>
+        )}
+        <TransactionsFilters comptes={comptes} categories={categories} />
+        <AddTransactionToggle comptes={comptes} categories={categories} />
+        <TransactionsList
+          transactions={transactions}
+          comptes={comptes}
+          categories={categories}
+          compteFiltre={compte}
+        />
       </div>
-      {date && (
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-alt px-3 py-2 text-[13px] text-ink">
-          <span>
-            Transactions du{" "}
-            {new Date(`${date}T00:00:00`).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </span>
-          <Link href={hrefSansDate} className="font-semibold text-ink-2">
-            Effacer ✕
-          </Link>
-        </div>
-      )}
-      <TransactionsFilters comptes={comptes} categories={categories} />
-      <AddTransactionToggle comptes={comptes} categories={categories} />
-      <TransactionsList
-        transactions={transactions}
-        comptes={comptes}
-        categories={categories}
-        compteFiltre={compte}
-      />
-    </div>
+    </PullToRefresh>
   );
 }
