@@ -1,12 +1,13 @@
 export type Competition = { id: number; nom: string; pays: string };
 
 // IDs API-Football (v3.football.api-sports.io) confirmés par recoupement de
-// sources publiques indépendantes (voir reports/2026-09-06-module-foot.md :
-// l'environnement de dev n'a pas d'accès réseau sortant vers api-sports.io
-// ni de clé API, l'appel /leagues en direct n'a donc pas pu être fait
-// depuis cette session — à revérifier par Vincent via /leagues?search=...
-// une fois API_FOOTBALL_KEY renseignée, en particulier pour la Conference
-// League, seul ID non recoupé par une deuxième source indépendante).
+// sources publiques indépendantes (voir reports/2026-09-06-module-foot.md et
+// reports/2026-09-07-module-foot-logos-calendrier.md : l'environnement de
+// dev n'a toujours pas d'accès réseau sortant vers api-sports.io ni de clé
+// API, l'appel /leagues en direct n'a donc pas pu être fait depuis cette
+// session — à revérifier par Vincent via /leagues?search=... une fois
+// API_FOOTBALL_KEY renseignée, en particulier pour la Conference League,
+// seul ID non recoupé par une deuxième source indépendante).
 export const COMPETITIONS_FOOT: readonly Competition[] = [
   { id: 61, nom: "Ligue 1", pays: "France" },
   { id: 39, nom: "Premier League", pays: "Angleterre" },
@@ -80,8 +81,8 @@ export type FixtureApiFootball = {
   };
   league: { id: number };
   teams: {
-    home: { name: string };
-    away: { name: string };
+    home: { name: string; logo: string | null };
+    away: { name: string; logo: string | null };
   };
   goals: { home: number | null; away: number | null };
 };
@@ -93,6 +94,8 @@ export type MatchFoot = {
   statutShort: string;
   equipeDomicile: string;
   equipeExterieur: string;
+  logoDomicile: string | null;
+  logoExterieur: string | null;
   butsDomicile: number | null;
   butsExterieur: number | null;
   elapsed: number | null;
@@ -104,8 +107,24 @@ export type CompetitionAvecMatchs = {
   matchs: MatchFoot[];
 };
 
-/** Heure de coup d'envoi affichée en fuseau Europe/Paris, quel que soit le
- * fuseau du serveur d'exécution (Vercel tourne en UTC). */
+export type JourFoot = {
+  dateISO: string;
+  competitions: CompetitionAvecMatchs[];
+};
+
+/** Formate une date en "YYYY-MM-DD", en fuseau Europe/Paris quel que soit le
+ * fuseau du serveur d'exécution (Vercel tourne en UTC). Le format de sortie
+ * de la locale "en-CA" est directement "YYYY-MM-DD". */
+export function formatDateParis(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** Heure de coup d'envoi affichée en fuseau Europe/Paris. */
 export function formatHeureParis(dateISO: string): string {
   return new Intl.DateTimeFormat("fr-FR", {
     timeZone: "Europe/Paris",
@@ -114,15 +133,44 @@ export function formatHeureParis(dateISO: string): string {
   }).format(new Date(dateISO));
 }
 
-/** Date du jour au format ISO ("YYYY-MM-DD"), en fuseau Europe/Paris. Le
- * format de sortie de la locale "en-CA" est directement "YYYY-MM-DD". */
-export function dateDuJourParis(): string {
-  return new Intl.DateTimeFormat("en-CA", {
+/** Libellé court d'un jour de la bande de navigation, ex. "lun. 7". Ancre
+ * à midi UTC avant formatage : quel que soit le DST, midi UTC tombe
+ * toujours dans le même jour calendaire Europe/Paris que `dateISO`. */
+export function formatEtiquetteJour(dateISO: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
     timeZone: "Europe/Paris",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+    weekday: "short",
+    day: "numeric",
+  }).format(new Date(`${dateISO}T12:00:00Z`));
+}
+
+/** Date du jour au format ISO ("YYYY-MM-DD"), en fuseau Europe/Paris. */
+export function dateDuJourParis(): string {
+  return formatDateParis(new Date());
+}
+
+/** Année de début de la saison européenne en cours (ex. 2026 pour la saison
+ * 2026-2027, dès juillet 2026), en fuseau Europe/Paris. */
+export function saisonCourante(reference: Date = new Date()): number {
+  const [annee, mois] = formatDateParis(reference).split("-").map(Number);
+  return mois >= 7 ? annee : annee - 1;
+}
+
+const NB_JOURS_PASSES = 7;
+const NB_JOURS_FUTURS = 7;
+
+/** Fenêtre de J-7 à J+7 (15 dates ISO, ordre croissant), en fuseau
+ * Europe/Paris. Ancrée à midi UTC pour éviter tout décalage de jour lié au
+ * changement d'heure lors de l'addition de jours. */
+export function genererFenetreDates(reference: Date = new Date()): string[] {
+  const ancre = new Date(`${formatDateParis(reference)}T12:00:00Z`);
+  const dates: string[] = [];
+  for (let offset = -NB_JOURS_PASSES; offset <= NB_JOURS_FUTURS; offset++) {
+    const d = new Date(ancre);
+    d.setUTCDate(d.getUTCDate() + offset);
+    dates.push(formatDateParis(d));
+  }
+  return dates;
 }
 
 /** Regroupe les fixtures par compétition (dans l'ordre de `COMPETITIONS_FOOT`)
@@ -140,6 +188,8 @@ export function grouperFixturesParCompetition(fixtures: FixtureApiFootball[]): C
       statutShort: f.fixture.status.short,
       equipeDomicile: f.teams.home.name,
       equipeExterieur: f.teams.away.name,
+      logoDomicile: f.teams.home.logo ?? null,
+      logoExterieur: f.teams.away.logo ?? null,
       butsDomicile: f.goals.home,
       butsExterieur: f.goals.away,
       elapsed: f.fixture.status.elapsed,
@@ -154,4 +204,19 @@ export function grouperFixturesParCompetition(fixtures: FixtureApiFootball[]): C
       a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0
     ),
   })).filter((c) => c.matchs.length > 0);
+}
+
+/** Regroupe les fixtures de toute la fenêtre par jour (dans l'ordre de
+ * `dates`) puis par compétition au sein de chaque jour. Le filtrage par
+ * date se fait sur le jour calendaire Europe/Paris du coup d'envoi, pas sur
+ * la date UTC brute renvoyée par l'API. Un jour sans aucun match dans les
+ * compétitions suivies apparaît quand même dans le résultat (avec
+ * `competitions: []`) pour que la bande de dates reste complète. */
+export function grouperFixturesParJour(fixtures: FixtureApiFootball[], dates: readonly string[]): JourFoot[] {
+  return dates.map((dateISO) => ({
+    dateISO,
+    competitions: grouperFixturesParCompetition(
+      fixtures.filter((f) => formatDateParis(new Date(f.fixture.date)) === dateISO)
+    ),
+  }));
 }

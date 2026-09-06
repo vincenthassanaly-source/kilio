@@ -2,22 +2,16 @@
 
 import {
   COMPETITIONS_FOOT,
-  dateDuJourParis,
-  grouperFixturesParCompetition,
-  type CompetitionAvecMatchs,
+  genererFenetreDates,
+  grouperFixturesParJour,
+  saisonCourante,
   type FixtureApiFootball,
+  type JourFoot,
 } from "@/lib/foot/compute";
 
 export type ResultatsFoot =
-  | { ok: true; competitions: CompetitionAvecMatchs[] }
+  | { ok: true; jours: JourFoot[]; erreursPartielles: string[] }
   | { ok: false; erreur: string };
-
-const IDS_COMPETITIONS_RETENUES = new Set(COMPETITIONS_FOOT.map((c) => c.id));
-
-type FixturesApiFootballResponse = {
-  response: FixtureApiFootball[];
-  errors?: unknown;
-};
 
 function aDesErreurs(errors: unknown): boolean {
   if (!errors) return false;
@@ -25,42 +19,90 @@ function aDesErreurs(errors: unknown): boolean {
   return Object.keys(errors as Record<string, unknown>).length > 0;
 }
 
-/** Unique appel API-Football par exécution de ce Server Component (voir
- * `cache: "no-store"` ci-dessous) : la contrainte de quota (100 req/jour,
- * plan gratuit) impose qu'aucun autre code du module ne rappelle cette
- * fonction en dehors d'un chargement/rafraîchissement manuel de `/foot`. */
-export async function getResultatsFootDuJour(): Promise<ResultatsFoot> {
+type FixturesApiFootballResponse = {
+  response: FixtureApiFootball[];
+  errors?: unknown;
+};
+
+type ResultatCompetition = { fixtures: FixtureApiFootball[]; erreur: string | null };
+
+async function chargerFixturesCompetition(
+  competitionId: number,
+  competitionNom: string,
+  cle: string,
+  saison: number,
+  from: string,
+  to: string
+): Promise<ResultatCompetition> {
+  try {
+    const res = await fetch(
+      `https://v3.football.api-sports.io/fixtures?league=${competitionId}&season=${saison}&from=${from}&to=${to}`,
+      {
+        headers: { "x-apisports-key": cle },
+        // Impératif : garantit un vrai nouvel appel réseau à chaque exécution
+        // de ce Server Component, jamais de réponse mise en cache par Next.js.
+        cache: "no-store",
+      }
+    );
+
+    if (res.status === 429) {
+      return { fixtures: [], erreur: `${competitionNom} : quota API-Football dépassé.` };
+    }
+    if (!res.ok) {
+      return { fixtures: [], erreur: `${competitionNom} : erreur API (code ${res.status}).` };
+    }
+
+    const data = (await res.json()) as FixturesApiFootballResponse;
+    if (aDesErreurs(data.errors)) {
+      return { fixtures: [], erreur: `${competitionNom} : erreur API-Football (quota ou requête invalide).` };
+    }
+
+    return { fixtures: data.response ?? [], erreur: null };
+  } catch {
+    return { fixtures: [], erreur: `${competitionNom} : problème réseau.` };
+  }
+}
+
+/** Unique chargement de toute la fenêtre J-7 à J+7 par exécution de ce
+ * Server Component (voir `cache: "no-store"` ci-dessous) : la contrainte de
+ * quota (100 req/jour, plan gratuit) impose qu'aucun autre code du module ne
+ * rappelle cette fonction en dehors d'un chargement/rafraîchissement manuel
+ * de `/foot`. Le filtrage par date affiché à l'écran se fait ensuite
+ * entièrement côté client, sans nouvel appel réseau.
+ *
+ * Stratégie retenue : un appel par compétition suivie (13 requêtes
+ * `league=<id>&season=<saison>&from=<J-7>&to=<J+7>` en parallèle), plutôt
+ * qu'un appel par date (15 requêtes `date=<jour>` non filtrables par
+ * compétition côté API, qui auraient aussi nécessité un filtrage manuel de
+ * bien plus de fixtures). Coût : 13 requêtes par chargement/rafraîchissement
+ * ⇒ ~7 rafraîchissements/jour max sur le plan gratuit (100 req/jour).
+ * Une compétition en erreur (quota, réseau, ID invalide) ne fait pas
+ * échouer la page entière : elle est simplement absente des résultats et
+ * son erreur remontée dans `erreursPartielles`.
+ */
+export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   const cle = process.env.API_FOOTBALL_KEY;
   if (!cle) {
     return { ok: false, erreur: "Clé API-Football manquante (API_FOOTBALL_KEY)." };
   }
 
-  try {
-    const date = dateDuJourParis();
-    const res = await fetch(`https://v3.football.api-sports.io/fixtures?date=${date}`, {
-      headers: { "x-apisports-key": cle },
-      // Impératif : garantit un vrai nouvel appel réseau à chaque exécution
-      // de ce Server Component, jamais de réponse mise en cache par Next.js
-      // qui contournerait la fraîcheur/le contrôle de quota attendu.
-      cache: "no-store",
-    });
+  const dates = genererFenetreDates();
+  const from = dates[0];
+  const to = dates[dates.length - 1];
+  const saison = saisonCourante();
 
-    if (res.status === 429) {
-      return { ok: false, erreur: "Quota API-Football dépassé pour aujourd'hui (plan gratuit : 100 requêtes/jour)." };
-    }
-    if (!res.ok) {
-      return { ok: false, erreur: `Erreur API-Football (code ${res.status}).` };
-    }
+  const resultats = await Promise.all(
+    COMPETITIONS_FOOT.map((competition) =>
+      chargerFixturesCompetition(competition.id, competition.nom, cle, saison, from, to)
+    )
+  );
 
-    const data = (await res.json()) as FixturesApiFootballResponse;
-    if (aDesErreurs(data.errors)) {
-      return { ok: false, erreur: "API-Football a renvoyé une erreur (quota ou requête invalide)." };
-    }
+  const erreursPartielles = resultats.map((r) => r.erreur).filter((e): e is string => e !== null);
 
-    const fixturesRetenues = (data.response ?? []).filter((f) => IDS_COMPETITIONS_RETENUES.has(f.league.id));
-
-    return { ok: true, competitions: grouperFixturesParCompetition(fixturesRetenues) };
-  } catch {
-    return { ok: false, erreur: "Impossible de contacter API-Football (problème réseau)." };
+  if (erreursPartielles.length === COMPETITIONS_FOOT.length) {
+    return { ok: false, erreur: "Impossible de contacter API-Football (quota dépassé ou problème réseau)." };
   }
+
+  const toutesFixtures = resultats.flatMap((r) => r.fixtures);
+  return { ok: true, jours: grouperFixturesParJour(toutesFixtures, dates), erreursPartielles };
 }

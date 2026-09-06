@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { primaryButton } from "@/lib/ui";
 
-// `router.refresh()` relance FootPage côté serveur, donc `getResultatsFootDuJour()`
+// `router.refresh()` relance FootPage côté serveur, donc `getResultatsFootFenetre()`
 // avec elle : un nouvel appel API-Football déclenché explicitement par Vincent,
 // conforme à la contrainte "aucun appel automatique".
 export function FootRetryButton() {
