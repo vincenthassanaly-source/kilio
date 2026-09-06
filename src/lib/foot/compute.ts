@@ -25,9 +25,9 @@ export const COMPETITIONS_FOOT: readonly Competition[] = [
 ];
 
 // IDs des 5 coupes nationales suivies, pour lesquelles Vincent ne veut voir
-// les matchs qu'à partir du moment où les clubs de l'élite (Ligue 1,
-// Premier League, Liga, Bundesliga, Serie A) entrent en lice — pas les
-// tours préliminaires entre clubs amateurs/divisions inférieures.
+// les matchs qu'à partir des 16èmes de finale (seizièmes de finale, soit
+// l'équivalent de "Round of 32" : 32 équipes encore en lice) — pas les
+// tours antérieurs entre clubs amateurs/divisions inférieures.
 export const IDS_COUPES_NATIONALES: ReadonlySet<number> = new Set([66, 45, 143, 81, 137]);
 
 /** Ordre canonique (le plus précoce en premier) des libellés de manche que
@@ -54,20 +54,22 @@ const ORDRE_RONDES_COUPE = [
   "Final",
 ];
 
-/** Première manche à partir de laquelle les clubs de l'élite entrent dans
- * chaque coupe nationale suivie — `null` = pas de filtrage (DFB-Pokal :
- * les clubs de Bundesliga jouent dès la 1ère manche, contrairement à la
- * France ou l'Angleterre). Seuils estimés à partir du format connu de
- * chaque compétition (32èmes de finale pour la Coupe de France, 3ème tour
- * pour la FA Cup, etc.), **pas vérifiés en direct** — à corriger si les
- * libellés réels observés dans l'app diffèrent (affichés en sous-titre de
- * section pour les compétitions de `IDS_COUPES_NATIONALES`). */
+/** Manche à partir de laquelle chaque coupe nationale suivie est affichée :
+ * les 16èmes de finale (seizièmes de finale, 32 équipes encore en lice —
+ * demande explicite de Vincent le 2026-09-07), traduite dans le vocabulaire
+ * de manche propre à chaque compétition puisqu'API-Football ne semble pas
+ * utiliser un nom de manche uniforme d'une compétition à l'autre (numéroté
+ * "1st Round", "2nd Round", ... pour certaines, "Round of 64/32/16" pour
+ * d'autres). Seuils estimés à partir du format connu de chaque compétition,
+ * **pas vérifiés en direct** — à corriger si les libellés réels observés
+ * dans l'app diffèrent (affichés en sous-titre de section pour les
+ * compétitions de `IDS_COUPES_NATIONALES`). `null` = pas de filtrage. */
 const RONDE_MINIMALE_COUPES_NATIONALES: Partial<Record<number, string | null>> = {
-  66: "Round of 64", // Coupe de France : L1/L2 entrent aux 32èmes de finale
-  45: "3rd Round", // FA Cup : Premier League/Championship entrent au 3rd Round
-  143: "Round of 32", // Copa del Rey : clubs de Primera aux seizièmes de finale
-  81: null, // DFB-Pokal : clubs de Bundesliga dès la 1ère manche
-  137: "Round of 32", // Coppa Italia : clubs de Serie A aux seizièmes/huitièmes
+  66: "Round of 32", // Coupe de France : 16èmes de finale
+  45: "4th Round", // FA Cup : équivalent des 16èmes (32 équipes) dans sa numérotation par tour
+  143: "Round of 32", // Copa del Rey : 16èmes de finale
+  81: "2nd Round", // DFB-Pokal : équivalent des 16èmes (32 équipes) dans sa numérotation par tour
+  137: "Round of 32", // Coppa Italia : 16èmes de finale
 };
 
 /** true si ce match de coupe nationale doit être affiché compte tenu de sa

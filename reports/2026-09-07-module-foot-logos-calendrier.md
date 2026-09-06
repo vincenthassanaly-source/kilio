@@ -144,3 +144,21 @@ Vincent a demandé de retirer les jours qui ne peuvent de toute façon jamais af
 - Le comportement fonctionnel (3 appels réseau, fenêtre ancrée sur le jour UTC du serveur API-Football) est inchangé — seule la bande de navigation à l'écran est désormais réduite à ce qui est réellement consultable.
 
 **Conséquence à noter** : si Vincent passe un jour à un plan API-Football payant, il faudra à la fois augmenter `JOURS_ACCESSIBLES_PLAN_GRATUIT` dans `src/app/actions/foot.ts` **et** vérifier que la bande de navigation reste utilisable avec davantage de jours (elle a été pensée pour un petit nombre de chips, pas retestée avec 15).
+
+## Addendum 6 : seuil unifié "16èmes de finale" pour les 5 coupes nationales
+
+Vincent a précisé le seuil souhaité pour les coupes nationales : les 16èmes de finale (seizièmes de finale, 32 équipes encore en lice), plutôt que le seuil "entrée en lice des clubs de l'élite" estimé au doigt mouillé par compétition dans l'Addendum 4.
+
+**Mise à jour de `RONDE_MINIMALE_COUPES_NATIONALES`** (`src/lib/foot/compute.ts`), en traduisant "16èmes de finale" dans le vocabulaire de manche propre à chaque compétition (API-Football ne semble pas utiliser un nom de manche uniforme — certaines compétitions seraient numérotées "1st Round"/"2nd Round"/etc., d'autres en "Round of 64/32/16") :
+
+| Compétition | Ancien seuil (Addendum 4) | Nouveau seuil |
+|---|---|---|
+| Coupe de France | `Round of 64` (32èmes) | `Round of 32` (16èmes) |
+| FA Cup | `3rd Round` | `4th Round` (équivalent 32 équipes dans sa numérotation) |
+| Copa del Rey | `Round of 32` | inchangé |
+| DFB-Pokal | *(pas de seuil)* | `2nd Round` (équivalent 32 équipes dans sa numérotation) |
+| Coppa Italia | `Round of 32` | inchangé |
+
+DFB-Pokal, qui n'avait volontairement pas de seuil (les clubs de Bundesliga jouant dès la 1ère manche), est désormais filtrée comme les autres : Vincent a formulé sa demande pour "les coupes nationales" sans exception, ce qui prime sur mon hypothèse initiale.
+
+**Toujours non vérifié en direct** : mêmes réserves que l'Addendum 4 — les libellés de manche affichés à l'écran (sous-titre à côté du nom de chaque coupe) restent le moyen de vérifier/corriger ces seuils une fois de vraies données consultées.
