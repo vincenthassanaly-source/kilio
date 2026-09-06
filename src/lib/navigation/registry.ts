@@ -105,6 +105,15 @@ const NOTES_ICON = (c: string) =>
     createElement("path", { d: "M9 9.5h6M9 13h6M9 16.5h3.5" })
   );
 
+const FOOT_ICON = (c: string) =>
+  createElement(
+    "svg",
+    { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: c, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" },
+    createElement("circle", { cx: 12, cy: 12, r: 8.5 }),
+    createElement("path", { d: "M12 7.5l3.2 2.3-1.2 3.8h-4l-1.2-3.8z" }),
+    createElement("path", { d: "M12 7.5V4.2M15.2 9.8l3.3-1M13.9 13.6l2 3.4M10.1 13.6l-2 3.4M8.8 9.8l-3.3-1" })
+  );
+
 const REGLAGES_ICON = (c: string) =>
   createElement(
     "svg",
@@ -202,6 +211,13 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Profil, apparence et préférences",
     accentVar: "var(--accent-reglages)",
     icon: REGLAGES_ICON,
+  },
+  {
+    href: "/foot",
+    label: "Foot",
+    description: "Résultats du jour : 5 grands championnats, coupes nationales et coupes d'Europe",
+    accentVar: "var(--accent-foot)",
+    icon: FOOT_ICON,
   },
 ];
 
