@@ -514,6 +514,21 @@ function useTaskDragSensors() {
   return useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 }
 
+// Reproduit côté client les deux premières clés du tri serveur
+// (`getTachesAvecRelations` : fait, ordre) pour que la mise à jour
+// optimiste du cache après un drag reflète immédiatement le nouvel ordre
+// visuel, sans attendre le refetch. `echeance`/`created_at` sont omis : ils
+// ne changent jamais pendant un drag, donc ces deux clés suffisent à
+// reproduire fidèlement l'ordre serveur dans ce cas précis. Pour les
+// tâches faites (`fait: true`), on renvoie 0 plutôt que de comparer
+// `ordre` : `Array.prototype.sort` étant stable, leur position relative
+// dans le tableau en cache (déjà correcte) est préservée telle quelle.
+function comparerPourAffichage(a: TacheAvecRelations, b: TacheAvecRelations) {
+  if (a.fait !== b.fait) return a.fait ? 1 : -1;
+  if (!a.fait) return a.ordre - b.ordre;
+  return 0;
+}
+
 // Liste réordonnable au drag & drop. N'est utilisée que lorsque la vue
 // affichée correspond exactement à l'ensemble complet des tâches actives de
 // chaque liste concernée (voir `reordonnable` dans TachesView) : c'est ce
@@ -555,7 +570,9 @@ function SortableTachesList({
 
     const parOrdre = new Map(updates.map((u) => [u.id, u.ordre]));
     queryClient.setQueryData<TacheAvecRelations[]>(queryKeys.taches, (old) =>
-      old?.map((t) => (parOrdre.has(t.id) ? { ...t, ordre: parOrdre.get(t.id)! } : t))
+      old
+        ?.map((t) => (parOrdre.has(t.id) ? { ...t, ordre: parOrdre.get(t.id)! } : t))
+        .sort(comparerPourAffichage)
     );
 
     enregistrerOrdreTaches(updates).catch(() => {
