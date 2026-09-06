@@ -245,7 +245,11 @@ export function AddTaskForm({
             name="heure"
             type="time"
             value={heure}
-            onChange={(e) => setHeure(e.target.value)}
+            onChange={(e) => {
+              const nextHeure = e.target.value;
+              if (!heure && nextHeure && rappelMinutes === "") setRappelMinutes("5");
+              setHeure(nextHeure);
+            }}
             className={input}
           />
         </div>
