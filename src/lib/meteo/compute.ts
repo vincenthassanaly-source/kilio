@@ -14,3 +14,15 @@ export function interpreterCodeMeteo(code: number): MeteoInterpretation {
   if (code === 95 || code === 96 || code === 99) return { label: "Orage", icone: "⛈️" };
   return { label: "Météo indisponible", icone: "🌡️" };
 }
+
+/** Libellé du sélecteur de jour dans la modale de détail (index 0 =
+ * aujourd'hui, jusqu'à 7 = dans une semaine). */
+export function labelJournee(dateISO: string, index: number): string {
+  if (index === 0) return "Aujourd'hui";
+  if (index === 1) return "Demain";
+  return new Date(`${dateISO}T00:00:00`).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}

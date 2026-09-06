@@ -8,19 +8,20 @@ import { MeteoDetailModal } from "./MeteoDetailModal";
 
 export function MeteoHeaderWidget({ meteo }: { meteo: MeteoJour }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { label, icone } = interpreterCodeMeteo(meteo.codeMeteo);
+  const aujourdhui = meteo.journees[0];
+  const { label, icone } = interpreterCodeMeteo(meteo.codeMeteoActuel);
 
   return (
     <>
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        aria-label={`Météo : ${label}, ${meteo.tempMin}° / ${meteo.tempMax}°`}
+        aria-label={`Météo : ${label}, ${aujourdhui.tempMin}° / ${aujourdhui.tempMax}°`}
         className={`${pillTag} flex items-center gap-1 transition-transform active:scale-95`}
       >
         <span>{icone}</span>
         <span>
-          {meteo.tempMin}°/{meteo.tempMax}°
+          {aujourdhui.tempMin}°/{aujourdhui.tempMax}°
         </span>
       </button>
 

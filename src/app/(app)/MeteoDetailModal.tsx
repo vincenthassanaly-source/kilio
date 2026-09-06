@@ -1,20 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import { Modal } from "@/components/Modal";
-import { eyebrow, pillTag } from "@/lib/ui";
-import { interpreterCodeMeteo } from "@/lib/meteo/compute";
+import { eyebrow, pillTag, iconButton } from "@/lib/ui";
+import { interpreterCodeMeteo, labelJournee } from "@/lib/meteo/compute";
 import type { MeteoJour } from "@/app/actions/meteo";
 
 export function MeteoDetailModal({ meteo, onClose }: { meteo: MeteoJour; onClose: () => void }) {
-  const { label, icone } = interpreterCodeMeteo(meteo.codeMeteo);
+  const [dayIndex, setDayIndex] = useState(0);
+  const journee = meteo.journees[dayIndex];
+  const estAujourdhui = dayIndex === 0;
+  const { label, icone } = interpreterCodeMeteo(estAujourdhui ? meteo.codeMeteoActuel : journee.codeMeteo);
 
   return (
     <Modal title="Météo — Marseille" onClose={onClose}>
       <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setDayIndex((i) => Math.max(0, i - 1))}
+            disabled={dayIndex === 0}
+            aria-label="Jour précédent"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            ‹
+          </button>
+          <span className={`${eyebrow} capitalize`}>{labelJournee(journee.date, dayIndex)}</span>
+          <button
+            type="button"
+            onClick={() => setDayIndex((i) => Math.min(meteo.journees.length - 1, i + 1))}
+            disabled={dayIndex === meteo.journees.length - 1}
+            aria-label="Jour suivant"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            ›
+          </button>
+        </div>
+
         <div className="flex items-center gap-3">
           <span className="text-4xl">{icone}</span>
           <div className="flex flex-col">
-            <span className="text-[22px] font-bold text-ink">{meteo.tempActuelle}°</span>
+            <span className="text-[22px] font-bold text-ink">
+              {estAujourdhui ? `${meteo.tempActuelle}°` : `${journee.tempMin}° / ${journee.tempMax}°`}
+            </span>
             <span className="text-[13px] text-ink-2">{label}</span>
           </div>
         </div>
@@ -23,23 +51,27 @@ export function MeteoDetailModal({ meteo, onClose }: { meteo: MeteoJour; onClose
           <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface-alt p-2.5">
             <span className={eyebrow}>Ressenti</span>
             <span className="text-[13px] font-semibold text-ink">
-              {meteo.ressentiMin}°/{meteo.ressentiMax}°
+              {journee.ressentiMin}°/{journee.ressentiMax}°
             </span>
           </div>
           <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface-alt p-2.5">
             <span className={eyebrow}>Vent</span>
-            <span className="text-[13px] font-semibold text-ink">{meteo.vent} km/h</span>
+            <span className="text-[13px] font-semibold text-ink">
+              {estAujourdhui ? meteo.ventActuel : journee.vent} km/h
+            </span>
           </div>
           <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface-alt p-2.5">
             <span className={eyebrow}>Humidité</span>
-            <span className="text-[13px] font-semibold text-ink">{meteo.humidite}%</span>
+            <span className="text-[13px] font-semibold text-ink">
+              {estAujourdhui ? meteo.humiditeActuelle : journee.humidite}%
+            </span>
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className={eyebrow}>Prochaines heures</span>
+          <span className={eyebrow}>{estAujourdhui ? "Prochaines heures" : "Heures de la journée"}</span>
           <div className="flex gap-2 overflow-x-auto pb-1" data-swipe-ignore>
-            {meteo.previsionsHoraires.map((prevision) => {
+            {journee.previsionsHoraires.map((prevision) => {
               const { icone: iconePrevision } = interpreterCodeMeteo(prevision.code);
               return (
                 <div
