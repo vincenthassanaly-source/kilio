@@ -19,6 +19,12 @@ export function Modal({
       <div
         className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[22px] border border-line bg-surface shadow-card sm:rounded-[22px] sm:mb-6"
         onClick={(e) => e.stopPropagation()}
+        // Empêche un geste tactile dans la modale (ex. défilement horizontal
+        // d'un contenu interne) de remonter jusqu'au <main> de TabSwipeWrapper
+        // et d'y être interprété comme un swipe de navigation entre onglets.
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3.5">
           <span className="text-[15px] font-bold text-ink">{title}</span>

@@ -70,7 +70,7 @@ export function MeteoDetailModal({ meteo, onClose }: { meteo: MeteoJour; onClose
 
         <div className="flex flex-col gap-2">
           <span className={eyebrow}>{estAujourdhui ? "Prochaines heures" : "Heures de la journée"}</span>
-          <div className="flex gap-2 overflow-x-auto pb-1" data-swipe-ignore>
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {journee.previsionsHoraires.map((prevision) => {
               const { icone: iconePrevision } = interpreterCodeMeteo(prevision.code);
               return (
