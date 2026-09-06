@@ -12,6 +12,7 @@ import { CheckToggle } from "@/components/CheckToggle";
 import { useBackClose } from "@/hooks/useBackClose";
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, nameText, pillTag } from "@/lib/ui";
+import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
 const NoteForm = dynamic(() => import("./NoteForm").then((m) => m.NoteForm), { ssr: false });
@@ -53,7 +54,10 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
   // fréquentes sur une note existante : mise à jour optimiste du cache,
   // rollback silencieux + toast discret en cas d'échec serveur.
   const pinMutation = useMutation({
-    mutationFn: () => toggleEpingle(note.id, !note.epingle),
+    mutationFn: () => {
+      vibrate();
+      return toggleEpingle(note.id, !note.epingle);
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notes });
       const previous = queryClient.getQueryData<NoteAvecRelations[]>(queryKeys.notes);
@@ -71,6 +75,7 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
 
   const itemMutation = useMutation({
     mutationFn: async ({ itemId, coche }: { itemId: string; coche: boolean }) => {
+      vibrate();
       try {
         await toggleNoteItem(itemId, coche);
       } catch (err) {

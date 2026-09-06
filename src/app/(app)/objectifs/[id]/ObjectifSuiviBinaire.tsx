@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { changerStatutObjectif } from "@/app/actions/objectifs";
 import type { Tables } from "@/lib/supabase/types";
 import { card, primaryButton, secondaryButton } from "@/lib/ui";
+import { vibrate } from "@/lib/haptics";
 
 export function ObjectifSuiviBinaire({ objectif }: { objectif: Tables<"objectifs"> }) {
   const [isPending, startTransition] = useTransition();
@@ -17,11 +18,12 @@ export function ObjectifSuiviBinaire({ objectif }: { objectif: Tables<"objectifs
       <button
         type="button"
         disabled={isPending}
-        onClick={() =>
+        onClick={() => {
+          vibrate();
           startTransition(() =>
             changerStatutObjectif(objectif.id, atteint ? "en_cours" : "atteint")
-          )
-        }
+          );
+        }}
         className={atteint ? secondaryButton : primaryButton}
       >
         {atteint ? "Remettre en cours" : "Marquer comme atteint"}

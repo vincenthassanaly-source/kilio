@@ -10,6 +10,7 @@ import {
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, input, sectionTitle } from "@/lib/ui";
 import { CheckToggle } from "@/components/CheckToggle";
+import { vibrate } from "@/lib/haptics";
 
 export function ObjectifSuiviEtapes({
   objectifId,
@@ -52,7 +53,10 @@ export function ObjectifSuiviEtapes({
               <CheckToggle
                 checked={etape.fait}
                 disabled={isPending}
-                onToggle={() => startTransition(() => toggleEtape(objectifId, etape.id, !etape.fait))}
+                onToggle={() => {
+                  vibrate();
+                  startTransition(() => toggleEtape(objectifId, etape.id, !etape.fait));
+                }}
                 color="var(--accent-objectifs)"
                 label={etape.fait ? "Marquer non fait" : "Marquer fait"}
               />

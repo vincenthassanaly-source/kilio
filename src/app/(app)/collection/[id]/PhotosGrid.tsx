@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { deleteCollectionItem } from "@/app/actions/collections";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import type { Tables } from "@/lib/supabase/types";
+import { vibrate } from "@/lib/haptics";
 
 export function PhotosGrid({
   photos,
@@ -51,7 +52,10 @@ export function PhotosGrid({
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => startTransition(() => deleteCollectionItem(photo.id))}
+                onClick={() => {
+                  vibrate();
+                  startTransition(() => deleteCollectionItem(photo.id));
+                }}
                 aria-label="Supprimer la photo"
                 className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white disabled:opacity-50"
               >

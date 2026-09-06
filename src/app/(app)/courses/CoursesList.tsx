@@ -9,6 +9,7 @@ import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, listCard, nameText } from "@/lib/ui";
 import { CheckToggle } from "@/components/CheckToggle";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
+import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
 function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
@@ -22,6 +23,7 @@ function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
   // rollback silencieux + toast discret si le serveur échoue.
   const toggleMutation = useMutation({
     mutationFn: async () => {
+      vibrate();
       try {
         await toggleCourseItem(item.id, !item.coche);
       } catch (err) {
