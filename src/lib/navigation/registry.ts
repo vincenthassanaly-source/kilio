@@ -215,7 +215,6 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/foot",
     label: "Foot",
-    description: "Résultats du jour : 5 grands championnats, coupes nationales et coupes d'Europe",
     accentVar: "var(--accent-foot)",
     icon: FOOT_ICON,
   },

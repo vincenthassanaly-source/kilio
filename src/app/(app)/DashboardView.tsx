@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/skeletons/Skeleton";
 import { DashboardNutritionCard } from "./DashboardNutritionCard";
 import { DashboardTachesCard } from "./DashboardTachesCard";
 import { DashboardHabitudesCard } from "./DashboardHabitudesCard";
-import { DashboardFootCard } from "./DashboardFootCard";
 import { QuickAddFab } from "./QuickAddFab";
 
 // Silhouette des cartes "Aujourd'hui" + "Prochain événement", identique au
@@ -58,8 +57,6 @@ export function DashboardView({ today }: { today: string }) {
       <Suspense fallback={<HabitudesSkeleton />}>
         <DashboardHabitudesCard today={today} />
       </Suspense>
-
-      <DashboardFootCard />
 
       <QuickAddFab />
     </>
