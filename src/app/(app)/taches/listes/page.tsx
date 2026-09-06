@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { getListes, getTags } from "@/app/actions/taches";
+import { TransitionLink } from "@/components/TransitionLink";
 import { eyebrow, linkButton, screenTitle, sectionTitle } from "@/lib/ui";
 import { AddListeToggle } from "./AddListeToggle";
 import { ListesManager } from "./ListesManager";
@@ -14,9 +14,9 @@ export default async function ListesTachesPage() {
       <div>
         <p className={eyebrow}>Tâches</p>
         <h1 className={screenTitle}>Listes &amp; tags</h1>
-        <Link href="/taches" className={linkButton}>
+        <TransitionLink href="/taches" className={linkButton}>
           ← Retour aux tâches
-        </Link>
+        </TransitionLink>
       </div>
 
       <div className="flex flex-col gap-2.5">

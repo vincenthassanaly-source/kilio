@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import type { CSSProperties, MouseEvent } from "react";
 import { motion } from "framer-motion";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { findNavItem } from "@/lib/navigation/registry";
 import { useNavigationEdit } from "@/lib/navigation/NavigationEditContext";
+import { TransitionLink } from "@/components/TransitionLink";
 import { card } from "@/lib/ui";
 
 function ModuleTile({ href, isEditing }: { href: string; isEditing: boolean }) {
@@ -42,7 +42,7 @@ function ModuleTile({ href, isEditing }: { href: string; isEditing: boolean }) {
   }
 
   return (
-    <Link
+    <TransitionLink
       ref={setNodeRef}
       href={mod.href}
       onClick={handleClick}
@@ -62,7 +62,7 @@ function ModuleTile({ href, isEditing }: { href: string; isEditing: boolean }) {
         <p className="font-display text-[15px] font-semibold text-ink">{mod.label}</p>
         <p className="text-[12.5px] text-ink-2">{mod.description}</p>
       </div>
-    </Link>
+    </TransitionLink>
   );
 }
 

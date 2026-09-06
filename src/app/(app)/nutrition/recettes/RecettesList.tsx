@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { Tables } from "@/lib/supabase/types";
+import { TransitionLink } from "@/components/TransitionLink";
 import { input, kcalPillTag, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -109,7 +109,7 @@ export function RecettesList({
         <ul className="flex flex-col gap-2.5">
           {filtered.map((recette) => (
             <li key={recette.id}>
-              <Link href={`/nutrition/recettes/${recette.id}`} className={listCard}>
+              <TransitionLink href={`/nutrition/recettes/${recette.id}`} className={listCard}>
                 <div className="flex items-center justify-between gap-2">
                   <p className={nameText}>{recette.nom}</p>
                   <span className={kcalPillTag}>{recette.kcalParPortion} kcal/portion</span>
@@ -120,7 +120,7 @@ export function RecettesList({
                   {" · "}
                   {recette.portions} portion{recette.portions > 1 ? "s" : ""}
                 </p>
-              </Link>
+              </TransitionLink>
             </li>
           ))}
         </ul>

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 
 const TABS = [
   { href: "/nutrition/journal", label: "Journal" },
@@ -16,7 +16,7 @@ export function NutritionSubNav() {
       {TABS.map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
-          <Link
+          <TransitionLink
             key={tab.href}
             href={tab.href}
             className={`flex-1 rounded-xl py-2 text-center text-[13.5px] font-semibold transition-colors ${
@@ -24,7 +24,7 @@ export function NutritionSubNav() {
             }`}
           >
             {tab.label}
-          </Link>
+          </TransitionLink>
         );
       })}
     </div>

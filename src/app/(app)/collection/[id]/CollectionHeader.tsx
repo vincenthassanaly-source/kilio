@@ -1,17 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { MouseEvent } from "react";
 import { useState, useTransition } from "react";
 import { deleteCollection, renameCollection } from "@/app/actions/collections";
-import { useViewTransitionNavigate } from "@/hooks/useViewTransitionNavigate";
+import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
 
 export function CollectionHeader({ collection }: { collection: Tables<"collections"> }) {
   const router = useRouter();
-  const navigate = useViewTransitionNavigate();
   const [editing, setEditing] = useState(false);
   const [nom, setNom] = useState(collection.nom);
   const [isPending, startTransition] = useTransition();
@@ -47,20 +44,11 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
     });
   }
 
-  function handleBackClick(e: MouseEvent<HTMLAnchorElement>) {
-    // Ne bloque la navigation native de <Link> que si l'API View Transitions
-    // est disponible : sinon Next.js gère la navigation comme avant.
-    if (typeof document !== "undefined" && "startViewTransition" in document) {
-      e.preventDefault();
-      navigate("/collection");
-    }
-  }
-
   return (
     <div className="flex flex-col gap-2">
-      <Link href="/collection" onClick={handleBackClick} className={linkButton}>
+      <TransitionLink href="/collection" className={linkButton}>
         ‹ Collection
-      </Link>
+      </TransitionLink>
 
       <div className="flex items-start justify-between gap-3">
         {editing ? (

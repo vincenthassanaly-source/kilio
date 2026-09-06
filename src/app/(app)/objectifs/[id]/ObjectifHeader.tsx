@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { changerStatutObjectif, supprimerObjectif } from "@/app/actions/objectifs";
 import { ObjectifForm } from "../ObjectifForm";
+import { TransitionLink } from "@/components/TransitionLink";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
 
@@ -44,9 +44,9 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
 
   return (
     <div className="flex flex-col gap-2">
-      <Link href="/objectifs" className={linkButton}>
+      <TransitionLink href="/objectifs" className={linkButton}>
         ‹ Objectifs
-      </Link>
+      </TransitionLink>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">

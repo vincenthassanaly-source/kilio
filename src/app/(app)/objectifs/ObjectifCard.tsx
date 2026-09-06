@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { supprimerObjectif } from "@/app/actions/objectifs";
 import { ObjectifForm } from "./ObjectifForm";
 import type { Enums, Tables } from "@/lib/supabase/types";
+import { TransitionLink } from "@/components/TransitionLink";
 import { card, dangerButton, ghostButton, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 
 const TYPE_SUIVI_LABELS: Record<Enums<"type_suivi_objectif">, string> = {
@@ -42,7 +42,7 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
 
   return (
     <li className={listCard}>
-      <Link href={`/objectifs/${objectif.id}`} className="flex flex-col gap-1.5">
+      <TransitionLink href={`/objectifs/${objectif.id}`} className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
           <p className={nameText}>{objectif.titre}</p>
           <span className={pillTag}>{TYPE_SUIVI_LABELS[objectif.type_suivi]}</span>
@@ -53,7 +53,7 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
         {objectif.date_echeance && (
           <span className={metaText}>Échéance : {formatEcheance(objectif.date_echeance)}</span>
         )}
-      </Link>
+      </TransitionLink>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={() => setEditing(true)} className={ghostButton}>
           Modifier

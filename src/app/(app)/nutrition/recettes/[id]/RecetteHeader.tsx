@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState, useTransition } from "react";
 import { deleteRecette } from "@/app/actions/recettes";
 import type { Tables } from "@/lib/supabase/types";
+import { TransitionLink } from "@/components/TransitionLink";
 import { card, dangerButton, errorText, ghostButton, linkButton } from "@/lib/ui";
 
 const RecetteForm = dynamic(() => import("../RecetteForm").then((m) => m.RecetteForm), { ssr: false });
@@ -36,9 +36,9 @@ export function RecetteHeader({
 
   return (
     <div className="flex flex-col gap-2">
-      <Link href="/nutrition/recettes" className={linkButton}>
+      <TransitionLink href="/nutrition/recettes" className={linkButton}>
         ‹ Recettes
-      </Link>
+      </TransitionLink>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">
