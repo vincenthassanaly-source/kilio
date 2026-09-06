@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { deleteCollectionItem } from "@/app/actions/collections";
+import { FadeInImage } from "@/components/FadeInImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import type { Tables } from "@/lib/supabase/types";
 import { vibrate } from "@/lib/haptics";
@@ -39,14 +40,15 @@ export function PhotosGrid({
                 type="button"
                 onClick={() => setLightboxSrc(photo.url)}
                 aria-label="Agrandir la photo"
-                className="block h-full w-full"
+                className="relative block h-full w-full"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-                <img
+                <FadeInImage
                   src={photo.url}
                   alt=""
+                  fill
+                  sizes="50vw"
                   style={index === 0 ? { viewTransitionName: `collection-cover-${collectionId}` } : undefined}
-                  className="h-full w-full object-cover"
+                  className="object-cover"
                 />
               </button>
               <button

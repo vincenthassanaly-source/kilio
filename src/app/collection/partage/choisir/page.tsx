@@ -1,5 +1,6 @@
 import { getCollections } from "@/app/actions/collections";
 import { ChoisirCollectionForm } from "./ChoisirCollectionForm";
+import { FadeInImage } from "@/components/FadeInImage";
 import { screenTitle } from "@/lib/ui";
 
 // Atterrissage du Web Share Target (partage natif Android) : reçoit les
@@ -32,8 +33,14 @@ export default async function ChoisirCollectionPage({
           <>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {photos.map((url) => (
-                // eslint-disable-next-line @next/next/no-img-element -- aperçu de la/des photo(s) tout juste uploadée(s) via le partage natif, avant rattachement à une collection
-                <img key={url} src={url} alt="" className="h-24 w-24 shrink-0 rounded-2xl object-cover" />
+                <FadeInImage
+                  key={url}
+                  src={url}
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="h-24 w-24 shrink-0 rounded-2xl object-cover"
+                />
               ))}
             </div>
             <ChoisirCollectionForm collections={collections} photos={photos} />

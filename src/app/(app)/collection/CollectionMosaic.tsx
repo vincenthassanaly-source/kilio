@@ -1,3 +1,5 @@
+import { FadeInImage } from "@/components/FadeInImage";
+
 function PhotoPlaceholderIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -27,9 +29,15 @@ export function CollectionMosaic({
 
   if (photos.length === 1) {
     return (
-      <div className="aspect-square overflow-hidden rounded-2xl bg-surface-alt">
-        {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-        <img src={photos[0]} alt="" style={{ viewTransitionName }} className="h-full w-full object-cover" />
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-surface-alt">
+        <FadeInImage
+          src={photos[0]}
+          alt=""
+          fill
+          sizes="50vw"
+          style={{ viewTransitionName }}
+          className="object-cover"
+        />
       </div>
     );
   }
@@ -38,14 +46,16 @@ export function CollectionMosaic({
     return (
       <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
         {photos.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image
-          <img
-            key={i}
-            src={src}
-            alt=""
-            style={i === 0 ? { viewTransitionName } : undefined}
-            className="h-full w-full object-cover"
-          />
+          <div key={i} className="relative h-full w-full">
+            <FadeInImage
+              src={src}
+              alt=""
+              fill
+              sizes="25vw"
+              style={i === 0 ? { viewTransitionName } : undefined}
+              className="object-cover"
+            />
+          </div>
         ))}
       </div>
     );
@@ -54,18 +64,23 @@ export function CollectionMosaic({
   if (photos.length === 3) {
     return (
       <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
-        {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-        <img
-          src={photos[0]}
-          alt=""
-          style={{ viewTransitionName }}
-          className="row-span-2 h-full w-full object-cover"
-        />
+        <div className="relative row-span-2 h-full w-full">
+          <FadeInImage
+            src={photos[0]}
+            alt=""
+            fill
+            sizes="25vw"
+            style={{ viewTransitionName }}
+            className="object-cover"
+          />
+        </div>
         <div className="grid grid-rows-2 gap-0.5">
-          {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-          <img src={photos[1]} alt="" className="h-full w-full object-cover" />
-          {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-          <img src={photos[2]} alt="" className="h-full w-full object-cover" />
+          <div className="relative h-full w-full">
+            <FadeInImage src={photos[1]} alt="" fill sizes="25vw" className="object-cover" />
+          </div>
+          <div className="relative h-full w-full">
+            <FadeInImage src={photos[2]} alt="" fill sizes="25vw" className="object-cover" />
+          </div>
         </div>
       </div>
     );
@@ -74,14 +89,16 @@ export function CollectionMosaic({
   return (
     <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
       {photos.slice(0, 4).map((src, i) => (
-        // eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image
-        <img
-          key={i}
-          src={src}
-          alt=""
-          style={i === 0 ? { viewTransitionName } : undefined}
-          className="h-full w-full object-cover"
-        />
+        <div key={i} className="relative h-full w-full">
+          <FadeInImage
+            src={src}
+            alt=""
+            fill
+            sizes="25vw"
+            style={i === 0 ? { viewTransitionName } : undefined}
+            className="object-cover"
+          />
+        </div>
       ))}
     </div>
   );

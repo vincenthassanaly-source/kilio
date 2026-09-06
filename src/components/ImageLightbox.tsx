@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useBackClose } from "@/hooks/useBackClose";
+import { FadeInImage } from "@/components/FadeInImage";
 
 /** Overlay plein écran pour agrandir une image au tap. Fermeture au tap
  * n'importe où (y compris sur l'image, cf. object-contain qui laisse de
@@ -37,10 +38,7 @@ export function ImageLightbox({ src, onClose }: { src: string; onClose: () => vo
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 bg-black/80" onClick={onClose}>
       <button
         type="button"
         onClick={handleDownload}
@@ -62,8 +60,9 @@ export function ImageLightbox({ src, onClose }: { src: string; onClose: () => vo
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>
       </button>
-      {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, agrandie telle quelle sans optimisation next/image */}
-      <img src={src} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
+      <div className="absolute inset-4">
+        <FadeInImage src={src} alt="" fill sizes="100vw" className="object-contain" />
+      </div>
     </div>
   );
 }
