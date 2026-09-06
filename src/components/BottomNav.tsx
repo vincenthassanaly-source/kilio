@@ -110,10 +110,15 @@ export function BottomNav() {
   const isDropTarget = activeHref !== null;
 
   const activeItemHref = resolveActiveHref(pathname);
-  // Le bouton "Plus" est actif dès que l'onglet résolu n'est ni l'accueil ni
-  // l'un des 4 modules actuellement épinglés en barre du bas (ex. /agenda
-  // tant qu'Agenda n'est pas épinglé).
-  const plusActive = activeItemHref !== null && !modulesBarreBasse.includes(activeItemHref);
+  // Le bouton "Plus" est actif soit sur /plus elle-même (qui n'est pas un
+  // item du registre NAV_ITEMS, donc activeItemHref y vaut toujours null),
+  // soit dès que l'onglet résolu n'est ni l'accueil ni l'un des 4 modules
+  // actuellement épinglés en barre du bas (ex. /agenda tant qu'Agenda n'est
+  // pas épinglé).
+  const plusActive =
+    pathname === "/plus" ||
+    pathname.startsWith("/plus/") ||
+    (activeItemHref !== null && !modulesBarreBasse.includes(activeItemHref));
 
   // Ordre visuel complet des emplacements de la barre (les 4 slots
   // configurables puis "Plus" toujours en dernier) : sert à déterminer le
