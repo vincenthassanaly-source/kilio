@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { AddCategorieForm } from "./AddCategorieForm";
+import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 
 export function AddCategorieToggle() {
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   const trigger = (
     <button type="button" onClick={() => setOpen(true)} className={addCard}>

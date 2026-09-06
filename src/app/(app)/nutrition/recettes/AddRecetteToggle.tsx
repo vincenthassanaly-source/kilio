@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 
@@ -9,6 +10,7 @@ const RecetteForm = dynamic(() => import("./RecetteForm").then((m) => m.RecetteF
 
 export function AddRecetteToggle() {
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   const trigger = (
     <button type="button" onClick={() => setOpen(true)} className={addCard}>

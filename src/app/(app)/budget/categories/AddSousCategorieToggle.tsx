@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { AddSousCategorieForm } from "./AddSousCategorieForm";
+import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { ghostButton } from "@/lib/ui";
 
 export function AddSousCategorieToggle({ categorieParentId }: { categorieParentId: string }) {
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   const trigger = (
     <button type="button" onClick={() => setOpen(true)} className={`${ghostButton} self-start`}>

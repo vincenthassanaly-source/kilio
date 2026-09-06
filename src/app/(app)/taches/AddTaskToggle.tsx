@@ -3,6 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { Tables } from "@/lib/supabase/types";
+import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 
@@ -26,6 +27,7 @@ export function AddTaskToggle({
   onSaved?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   const trigger = (
     <button type="button" onClick={() => setOpen(true)} className={addCard}>

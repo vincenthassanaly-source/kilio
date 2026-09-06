@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CompteAvecSolde } from "@/app/actions/comptes";
 import type { Tables } from "@/lib/supabase/types";
+import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 import { RecurrenceModeForm } from "./RecurrenceModeForm";
@@ -15,6 +16,7 @@ export function AddRecurrenceToggle({
   categories: Tables<"categories_budget">[];
 }) {
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   if (comptes.length === 0 || categories.length === 0) {
     return null;
