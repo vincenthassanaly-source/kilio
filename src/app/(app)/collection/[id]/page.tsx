@@ -20,7 +20,7 @@ export default async function CollectionDetailPage({
     <div className="flex flex-col gap-4">
       <CollectionHeader collection={collection} />
       <AddPhotoButton collectionId={id} />
-      <PhotosGrid photos={collection.photos} />
+      <PhotosGrid photos={collection.photos} collectionId={id} />
     </div>
   );
 }

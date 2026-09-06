@@ -10,7 +10,13 @@ function PhotoPlaceholderIcon() {
 
 // Mosaïque de couverture d'une collection, façon Raindrop : jusqu'à 4
 // vignettes selon le nombre de photos disponibles.
-export function CollectionMosaic({ photos }: { photos: string[] }) {
+export function CollectionMosaic({
+  photos,
+  viewTransitionName,
+}: {
+  photos: string[];
+  viewTransitionName?: string;
+}) {
   if (photos.length === 0) {
     return (
       <div className="flex aspect-square items-center justify-center rounded-2xl bg-surface-alt">
@@ -23,7 +29,7 @@ export function CollectionMosaic({ photos }: { photos: string[] }) {
     return (
       <div className="aspect-square overflow-hidden rounded-2xl bg-surface-alt">
         {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-        <img src={photos[0]} alt="" className="h-full w-full object-cover" />
+        <img src={photos[0]} alt="" style={{ viewTransitionName }} className="h-full w-full object-cover" />
       </div>
     );
   }
@@ -33,7 +39,13 @@ export function CollectionMosaic({ photos }: { photos: string[] }) {
       <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
         {photos.map((src, i) => (
           // eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image
-          <img key={i} src={src} alt="" className="h-full w-full object-cover" />
+          <img
+            key={i}
+            src={src}
+            alt=""
+            style={i === 0 ? { viewTransitionName } : undefined}
+            className="h-full w-full object-cover"
+          />
         ))}
       </div>
     );
@@ -43,7 +55,12 @@ export function CollectionMosaic({ photos }: { photos: string[] }) {
     return (
       <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
         {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-        <img src={photos[0]} alt="" className="row-span-2 h-full w-full object-cover" />
+        <img
+          src={photos[0]}
+          alt=""
+          style={{ viewTransitionName }}
+          className="row-span-2 h-full w-full object-cover"
+        />
         <div className="grid grid-rows-2 gap-0.5">
           {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
           <img src={photos[1]} alt="" className="h-full w-full object-cover" />
@@ -58,7 +75,13 @@ export function CollectionMosaic({ photos }: { photos: string[] }) {
     <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
       {photos.slice(0, 4).map((src, i) => (
         // eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image
-        <img key={i} src={src} alt="" className="h-full w-full object-cover" />
+        <img
+          key={i}
+          src={src}
+          alt=""
+          style={i === 0 ? { viewTransitionName } : undefined}
+          className="h-full w-full object-cover"
+        />
       ))}
     </div>
   );

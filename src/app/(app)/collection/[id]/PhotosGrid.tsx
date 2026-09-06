@@ -6,7 +6,13 @@ import { deleteCollectionItem } from "@/app/actions/collections";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import type { Tables } from "@/lib/supabase/types";
 
-export function PhotosGrid({ photos }: { photos: Tables<"collection_items">[] }) {
+export function PhotosGrid({
+  photos,
+  collectionId,
+}: {
+  photos: Tables<"collection_items">[];
+  collectionId: string;
+}) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -35,7 +41,12 @@ export function PhotosGrid({ photos }: { photos: Tables<"collection_items">[] })
                 className="block h-full w-full"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public collection-images, affichée telle quelle sans optimisation next/image */}
-                <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={photo.url}
+                  alt=""
+                  style={index === 0 ? { viewTransitionName: `collection-cover-${collectionId}` } : undefined}
+                  className="h-full w-full object-cover"
+                />
               </button>
               <button
                 type="button"

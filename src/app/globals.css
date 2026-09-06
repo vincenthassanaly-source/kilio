@@ -178,6 +178,19 @@ textarea::placeholder {
   }
 }
 
+/* Morph nommé carte -> détail du module Collection (couverture + titre,
+   voir CollectionsGrid.tsx / CollectionMosaic.tsx / CollectionHeader.tsx /
+   PhotosGrid.tsx). La spec View Transitions n'autorise qu'un nom littéral
+   ou `*` pour ::view-transition-group(), pas de sélecteur par préfixe ni
+   attribut, donc on cible `*` : seul le groupe "root" (couvert séparément
+   ci-dessus) en est exclu, et aucun nom "collection-cover-…" ou
+   "collection-title-…" n'est posé ailleurs dans l'app. Durée alignée sur
+   le crossfade racine. */
+::view-transition-group(*) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* Tremblement façon iOS des tuiles de la grille "Plus" en mode édition (voir
    ModulesGrid.tsx) : deux variantes de rotation légèrement différentes,
    alternées par tuile (nth-child pair/impair) pour éviter que toute la
@@ -206,6 +219,11 @@ textarea::placeholder {
 
   ::view-transition-old(root),
   ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+
+  ::view-transition-group(*) {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
   }

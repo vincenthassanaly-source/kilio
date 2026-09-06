@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { MouseEvent } from "react";
 import { useState, useTransition } from "react";
 import { deleteCollection, renameCollection } from "@/app/actions/collections";
+import { useViewTransitionNavigate } from "@/hooks/useViewTransitionNavigate";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
 
 export function CollectionHeader({ collection }: { collection: Tables<"collections"> }) {
   const router = useRouter();
+  const navigate = useViewTransitionNavigate();
   const [editing, setEditing] = useState(false);
   const [nom, setNom] = useState(collection.nom);
   const [isPending, startTransition] = useTransition();
@@ -44,9 +47,18 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
     });
   }
 
+  function handleBackClick(e: MouseEvent<HTMLAnchorElement>) {
+    // Ne bloque la navigation native de <Link> que si l'API View Transitions
+    // est disponible : sinon Next.js gère la navigation comme avant.
+    if (typeof document !== "undefined" && "startViewTransition" in document) {
+      e.preventDefault();
+      navigate("/collection");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <Link href="/collection" className={linkButton}>
+      <Link href="/collection" onClick={handleBackClick} className={linkButton}>
         ‹ Collection
       </Link>
 
@@ -64,7 +76,12 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
             </button>
           </form>
         ) : (
-          <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">{collection.nom}</h1>
+          <h1
+            style={{ viewTransitionName: `collection-title-${collection.id}` }}
+            className="mt-1 truncate font-display text-[22px] font-semibold text-ink"
+          >
+            {collection.nom}
+          </h1>
         )}
 
         <div className="flex shrink-0 gap-2">
