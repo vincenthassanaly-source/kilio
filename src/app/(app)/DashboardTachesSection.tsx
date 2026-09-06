@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getTachesAvecRelations } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
@@ -22,10 +22,10 @@ export function DashboardTachesSection({ today }: { today: string }) {
 
   const tachesDuJour = (taches ?? []).filter((t) => t.echeance === today);
   const tachesDoneCount = tachesDuJour.filter((t) => t.fait).length;
-  const tachesAffichees = tachesDuJour
-    .filter((t) => !t.fait)
-    .concat(tachesDuJour.filter((t) => t.fait))
-    .slice(0, 4);
+  // Les tâches faites ne sont plus listées ici (cf.
+  // reports/2026-09-06-dashboard-taches-disparition.md) : le compteur
+  // ci-dessous reste dérivé de tachesDuJour au complet, pas de cette liste.
+  const tachesAffichees = tachesDuJour.filter((t) => !t.fait).slice(0, 4);
 
   const now = new Date();
   const nowHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -52,9 +52,18 @@ export function DashboardTachesSection({ today }: { today: string }) {
           <p className="text-[13.5px] text-ink-2">Rien de prévu aujourd&apos;hui.</p>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {tachesAffichees.map((t) => (
-              <DashboardTaskItem key={t.id} id={t.id} titre={t.titre} heure={t.heure} fait={t.fait} />
-            ))}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {tachesAffichees.map((t) => (
+                <motion.div
+                  key={t.id}
+                  layout
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <DashboardTaskItem id={t.id} titre={t.titre} heure={t.heure} fait={t.fait} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
