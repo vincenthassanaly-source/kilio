@@ -2,6 +2,7 @@
 
 import {
   COMPETITIONS_FOOT,
+  coupeAffichable,
   genererFenetreDates,
   grouperFixturesParJour,
   type FixtureApiFootball,
@@ -108,7 +109,9 @@ async function chargerFixturesJour(dateISO: string, cle: string): Promise<Result
       return { fixtures: [], erreur: `${dateISO} : ${extraireExtrait(JSON.stringify(data.errors))}` };
     }
 
-    const fixturesRetenues = (data.response ?? []).filter((f) => IDS_COMPETITIONS_RETENUES.has(f.league.id));
+    const fixturesRetenues = (data.response ?? [])
+      .filter((f) => IDS_COMPETITIONS_RETENUES.has(f.league.id))
+      .filter((f) => coupeAffichable(f.league.id, f.league.round));
     return { fixtures: fixturesRetenues, erreur: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

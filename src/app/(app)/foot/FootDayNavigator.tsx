@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { card, sectionTitle } from "@/lib/ui";
-import { formatEtiquetteJour, type JourFoot } from "@/lib/foot/compute";
+import { formatEtiquetteJour, IDS_COUPES_NATIONALES, type JourFoot } from "@/lib/foot/compute";
 import { FootMatchRow } from "./FootMatchRow";
 
 export function FootDayNavigator({
@@ -75,7 +75,12 @@ export function FootDayNavigator({
       ) : (
         jourSelectionne.competitions.map(({ competition, matchs }) => (
           <section key={competition.id} className="flex flex-col gap-2.5">
-            <h2 className={sectionTitle}>{competition.nom}</h2>
+            <h2 className={sectionTitle}>
+              {competition.nom}
+              {IDS_COUPES_NATIONALES.has(competition.id) && matchs[0] && (
+                <span className="ml-1.5 text-[11px] font-medium text-ink-3">— {matchs[0].round}</span>
+              )}
+            </h2>
             <div className="flex flex-col gap-2">
               {matchs.map((match) => (
                 <FootMatchRow key={match.id} match={match} />

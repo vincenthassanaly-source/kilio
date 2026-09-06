@@ -24,6 +24,66 @@ export const COMPETITIONS_FOOT: readonly Competition[] = [
   { id: 848, nom: "Conference League", pays: "Europe" },
 ];
 
+// IDs des 5 coupes nationales suivies, pour lesquelles Vincent ne veut voir
+// les matchs qu'à partir du moment où les clubs de l'élite (Ligue 1,
+// Premier League, Liga, Bundesliga, Serie A) entrent en lice — pas les
+// tours préliminaires entre clubs amateurs/divisions inférieures.
+export const IDS_COUPES_NATIONALES: ReadonlySet<number> = new Set([66, 45, 143, 81, 137]);
+
+/** Ordre canonique (le plus précoce en premier) des libellés de manche que
+ * renvoie API-Football (`fixture.league.round`) pour une coupe à
+ * élimination directe. Vocabulaire non vérifié en direct (voir
+ * reports/2026-09-07-module-foot-logos-calendrier.md) : `coupeAffichable`
+ * ci-dessous est conçue pour ne rien masquer si un libellé réel ne
+ * correspond à aucune entrée connue, plutôt que de risquer de cacher des
+ * matchs indéfiniment sur la base d'une supposition erronée. */
+const ORDRE_RONDES_COUPE = [
+  "Qualifying Round",
+  "Preliminary Round",
+  "1st Round",
+  "2nd Round",
+  "3rd Round",
+  "4th Round",
+  "5th Round",
+  "6th Round",
+  "Round of 64",
+  "Round of 32",
+  "Round of 16",
+  "Quarter-finals",
+  "Semi-finals",
+  "Final",
+];
+
+/** Première manche à partir de laquelle les clubs de l'élite entrent dans
+ * chaque coupe nationale suivie — `null` = pas de filtrage (DFB-Pokal :
+ * les clubs de Bundesliga jouent dès la 1ère manche, contrairement à la
+ * France ou l'Angleterre). Seuils estimés à partir du format connu de
+ * chaque compétition (32èmes de finale pour la Coupe de France, 3ème tour
+ * pour la FA Cup, etc.), **pas vérifiés en direct** — à corriger si les
+ * libellés réels observés dans l'app diffèrent (affichés en sous-titre de
+ * section pour les compétitions de `IDS_COUPES_NATIONALES`). */
+const RONDE_MINIMALE_COUPES_NATIONALES: Partial<Record<number, string | null>> = {
+  66: "Round of 64", // Coupe de France : L1/L2 entrent aux 32èmes de finale
+  45: "3rd Round", // FA Cup : Premier League/Championship entrent au 3rd Round
+  143: "Round of 32", // Copa del Rey : clubs de Primera aux seizièmes de finale
+  81: null, // DFB-Pokal : clubs de Bundesliga dès la 1ère manche
+  137: "Round of 32", // Coppa Italia : clubs de Serie A aux seizièmes/huitièmes
+};
+
+/** true si ce match de coupe nationale doit être affiché compte tenu de sa
+ * manche — toujours true pour une compétition non listée dans
+ * `RONDE_MINIMALE_COUPES_NATIONALES`, ou si le seuil ou le libellé de
+ * manche ne sont pas reconnus (fail-open : mieux vaut montrer un tour
+ * amateur en trop que risquer de masquer des matchs indéfiniment). */
+export function coupeAffichable(competitionId: number, round: string): boolean {
+  const rondeMinimale = RONDE_MINIMALE_COUPES_NATIONALES[competitionId];
+  if (rondeMinimale === undefined || rondeMinimale === null) return true;
+  const indexMinimal = ORDRE_RONDES_COUPE.indexOf(rondeMinimale);
+  const indexRonde = ORDRE_RONDES_COUPE.indexOf(round);
+  if (indexMinimal === -1 || indexRonde === -1) return true;
+  return indexRonde >= indexMinimal;
+}
+
 /** Traduit les codes `status.short` d'API-Football en libellé français. */
 export function interpreterStatutFixture(
   statusShort: string,
@@ -79,7 +139,7 @@ export type FixtureApiFootball = {
     date: string;
     status: { short: string; elapsed: number | null };
   };
-  league: { id: number };
+  league: { id: number; round: string };
   teams: {
     home: { name: string; logo: string | null };
     away: { name: string; logo: string | null };
@@ -92,6 +152,7 @@ export type MatchFoot = {
   dateISO: string;
   heureLabel: string;
   statutShort: string;
+  round: string;
   equipeDomicile: string;
   equipeExterieur: string;
   logoDomicile: string | null;
@@ -190,6 +251,7 @@ export function grouperFixturesParCompetition(fixtures: FixtureApiFootball[]): C
       dateISO: f.fixture.date,
       heureLabel: formatHeureParis(f.fixture.date),
       statutShort: f.fixture.status.short,
+      round: f.league.round,
       equipeDomicile: f.teams.home.name,
       equipeExterieur: f.teams.away.name,
       logoDomicile: f.teams.home.logo ?? null,

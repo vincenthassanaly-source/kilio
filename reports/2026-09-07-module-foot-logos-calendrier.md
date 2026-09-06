@@ -113,3 +113,23 @@ Après le correctif de l'Addendum 2 (passage à 15 appels `date=<jour>`), Vincen
 **Limite fonctionnelle à signaler à Vincent** : avec cette double restriction du plan gratuit (season sur `league`, fenêtre de 3 jours sur `date`), la "bande de navigation façon Onefootball allant de J-7 à J+7" demandée en Phase 2 du prompt initial **n'est consultable qu'à hauteur de 3 jours sur 15** avec la clé actuelle. Les 12 autres jours resteront vides avec le message "non consultable sur le plan gratuit" tant que le plan API-Football n'est pas mis à niveau (plan payant). L'interface reste prête à afficher ces jours automatiquement si Vincent passe un jour à un plan supérieur — aucun changement de code ne serait nécessaire au-delà d'augmenter `JOURS_ACCESSIBLES_PLAN_GRATUIT`.
 
 **Toujours non re-testé en direct par cette session** (mêmes limitations réseau). Vincent doit revalider que `/foot` n'affiche plus le message diagnostic pour les 12 jours hors fenêtre, et que la fenêtre UTC couvre bien correctement "Aujourd'hui" à toute heure.
+
+## Addendum 4 : masquer les tours préliminaires des coupes nationales
+
+Vincent a confirmé (2026-09-07) que la page fonctionne. Demande complémentaire : pour les 5 coupes nationales suivies, ne pas afficher les tours préliminaires entre clubs amateurs/divisions inférieures — seulement à partir du moment où les clubs de l'élite (Ligue 1, Premier League, Liga, Bundesliga, Serie A) entrent en lice.
+
+**Implémentation** (`src/lib/foot/compute.ts`, `src/app/actions/foot.ts`, `FootDayNavigator.tsx`) :
+- Chaque fixture porte déjà `league.round` dans la réponse API-Football (champ non exploité jusqu'ici) — ajouté à `FixtureApiFootball` et `MatchFoot`.
+- `coupeAffichable(competitionId, round)` filtre un match de coupe nationale selon un seuil de manche minimal par compétition, basé sur le format connu de chaque coupe :
+
+| Compétition | Seuil retenu | Justification |
+|---|---|---|
+| Coupe de France | `Round of 64` | L1/L2 entrent aux 32èmes de finale |
+| FA Cup | `3rd Round` | Premier League/Championship entrent au 3ème tour |
+| Copa del Rey | `Round of 32` | Clubs de Primera aux seizièmes de finale |
+| DFB-Pokal | *(pas de seuil)* | Clubs de Bundesliga dès la 1ère manche, à la différence de la France/l'Angleterre |
+| Coppa Italia | `Round of 32` | Clubs de Serie A aux seizièmes/huitièmes selon les cas |
+
+- Le filtre est **fail-open** : si le libellé de manche renvoyé par l'API ne correspond à aucune entrée de la table de correspondance interne (`ORDRE_RONDES_COUPE`), le match est affiché plutôt que masqué. Objectif : éviter qu'une hypothèse de vocabulaire erronée ne finisse par cacher indéfiniment tous les matchs d'une coupe sans que personne ne s'en aperçoive — un problème visible (tour amateur affiché en trop) est préférable à un problème invisible (compétition qui n'affiche plus jamais rien).
+
+**⚠️ Non vérifié en direct** : les seuils ci-dessus reposent sur la connaissance générale du format de chaque coupe, **pas sur les libellés réels renvoyés par API-Football** (toujours aucun accès réseau/clé dans cette session). Le libellé de manche réel est affiché en petit à côté du nom de chaque coupe dans l'interface (ex. "Coupe de France — Round of 64") précisément pour que Vincent puisse vérifier si le filtre fonctionne comme prévu et me signaler le libellé exact si un tour amateur apparaît encore, ou si un tour avec des clubs de L1/PL/etc. est masqué à tort.
