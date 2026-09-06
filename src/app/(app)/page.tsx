@@ -33,13 +33,13 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          <p className={`${eyebrow} capitalize`}>{dateLabel}</p>
+        <p className={`${eyebrow} capitalize`}>{dateLabel}</p>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="font-display text-[25px] font-bold tracking-tight text-ink">{greeting()}</h1>
           <Suspense fallback={<Skeleton className="h-6 w-20 rounded-full" />}>
             <MeteoHeaderCard />
           </Suspense>
         </div>
-        <h1 className="font-display text-[25px] font-bold tracking-tight text-ink">{greeting()}</h1>
       </header>
 
       <GlobalSearchBar />

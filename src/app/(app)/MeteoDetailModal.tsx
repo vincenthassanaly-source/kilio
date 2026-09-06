@@ -38,7 +38,7 @@ export function MeteoDetailModal({ meteo, onClose }: { meteo: MeteoJour; onClose
 
         <div className="flex flex-col gap-2">
           <span className={eyebrow}>Prochaines heures</span>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-2 overflow-x-auto pb-1" data-swipe-ignore>
             {meteo.previsionsHoraires.map((prevision) => {
               const { icone: iconePrevision } = interpreterCodeMeteo(prevision.code);
               return (
