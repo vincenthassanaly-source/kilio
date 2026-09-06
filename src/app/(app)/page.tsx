@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import { eyebrow } from "@/lib/ui";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 import { DashboardView } from "./DashboardView";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { MeteoHeaderCard } from "./MeteoHeaderCard";
+import { Skeleton } from "@/components/skeletons/Skeleton";
 
 function greeting() {
   const h = new Date().getHours();
@@ -30,7 +33,12 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-0.5">
-        <p className={`${eyebrow} capitalize`}>{dateLabel}</p>
+        <div className="flex items-center gap-2">
+          <p className={`${eyebrow} capitalize`}>{dateLabel}</p>
+          <Suspense fallback={<Skeleton className="h-6 w-20 rounded-full" />}>
+            <MeteoHeaderCard />
+          </Suspense>
+        </div>
         <h1 className="font-display text-[25px] font-bold tracking-tight text-ink">{greeting()}</h1>
       </header>
 
