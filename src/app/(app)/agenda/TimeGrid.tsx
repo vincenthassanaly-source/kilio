@@ -185,7 +185,7 @@ export function WorkHoursBand({
         return (
           <div
             key={creneau.id}
-            className="pointer-events-none absolute inset-x-0 flex items-center overflow-hidden rounded-md px-1.5"
+            className="pointer-events-none absolute inset-x-0 flex items-end justify-end overflow-hidden rounded-md px-1.5 pb-1"
             style={{
               top: minutesToPx(start, zoom),
               height,
