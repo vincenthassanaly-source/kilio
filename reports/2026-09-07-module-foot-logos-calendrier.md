@@ -1,5 +1,18 @@
 # Module Foot — logos d'équipes + bande de dates J-7/J+7 (style Onefootball)
 
+## Addendum : correction post-déploiement (13 appels en parallèle → tous en erreur)
+
+Vincent a testé la page réelle et est tombé sur "Impossible de contacter API-Football (quota dépassé ou problème réseau)" alors que son tableau de bord API-Football n'affichait que **3% d'utilisation du quota journalier** — donc clairement pas un quota de 100/jour dépassé.
+
+**Cause identifiée** : `getResultatsFootFenetre()` envoyait ses 13 requêtes (une par compétition) via `Promise.all`, donc en rafale quasi simultanée. Or le plan gratuit API-Football est aussi limité à **10 requêtes par minute**, en plus des 100/jour (confirmé par plusieurs sources indépendantes : documentation API-Football elle-même, et des tiers documentant les paliers de plan — 10/min pour le plan gratuit, 300/min pour Pro, etc.). Une rafale de 13 appels simultanés dépasse cette limite par minute et fait échouer une grande partie, voire la totalité, des appels avec un `429` — sans consommer le quota journalier de façon visible, ce qui correspond exactement à ce que Vincent a observé.
+
+**Correctif appliqué** (`src/app/actions/foot.ts`) : les 13 appels sont désormais **séquentiels**, espacés de 350 ms chacun (`DELAI_ENTRE_APPELS_MS`), au lieu d'un `Promise.all`. Cela réduit fortement le risque de tout casser d'un coup ; si malgré tout une poignée de compétitions se fait encore limiter en fin de séquence (rafale de 13 en quelques secondes, potentiellement encore au-dessus de 10/min selon la façon exacte dont la fenêtre glissante est appliquée côté API), le mécanisme d'erreurs partielles déjà en place absorbe le problème : ces compétitions sont simplement absentes des résultats et leur erreur apparaît en petit texte, sans faire planter toute la page — contrairement au scénario observé où la totalité des 13 échouait en même temps.
+
+**Contrepartie** : le chargement de `/foot` prend maintenant quelques secondes de plus (environ 5 à 10 secondes au lieu d'un temps quasi instantané), le temps que les 13 appels s'enchaînent avec leur délai. Compromis assumé pour ne plus casser la page entière — cohérent avec le principe du module (un seul chargement à l'ouverture/rafraîchissement manuel, jamais de polling).
+
+**Toujours non testé en direct** : cette correction n'a pas pu être re-testée dans cet environnement (mêmes limitations réseau que le reste du module). Vincent doit revalider que `/foot` charge correctement après ce correctif, et signaler si des compétitions individuelles continuent d'apparaître en erreur de façon récurrente (auquel cas le délai de 350 ms devra être augmenté).
+
+
 ## Fichiers modifiés
 
 - `src/lib/foot/compute.ts` — `FixtureApiFootball.teams.{home,away}.logo`, `MatchFoot.{logoDomicile,logoExterieur}`, `saisonCourante()`, `formatDateParis()`, `formatEtiquetteJour()`, `genererFenetreDates()`, `grouperFixturesParJour()` (regroupe par jour puis compétition, en réutilisant `grouperFixturesParCompetition` par jour).

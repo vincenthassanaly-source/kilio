@@ -26,6 +26,15 @@ type FixturesApiFootballResponse = {
 
 type ResultatCompetition = { fixtures: FixtureApiFootball[]; erreur: string | null };
 
+// Espacement entre deux appels API-Football successifs (voir le
+// commentaire de `getResultatsFootFenetre` ci-dessous : plan gratuit limité
+// à 10 requêtes/minute en plus des 100/jour).
+const DELAI_ENTRE_APPELS_MS = 350;
+
+function attendre(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function chargerFixturesCompetition(
   competitionId: number,
   competitionNom: string,
@@ -71,12 +80,16 @@ async function chargerFixturesCompetition(
  * entièrement côté client, sans nouvel appel réseau.
  *
  * Stratégie retenue : un appel par compétition suivie (13 requêtes
- * `league=<id>&season=<saison>&from=<J-7>&to=<J+7>` en parallèle), plutôt
- * qu'un appel par date (15 requêtes `date=<jour>` non filtrables par
- * compétition côté API, qui auraient aussi nécessité un filtrage manuel de
- * bien plus de fixtures). Coût : 13 requêtes par chargement/rafraîchissement
- * ⇒ ~7 rafraîchissements/jour max sur le plan gratuit (100 req/jour).
- * Une compétition en erreur (quota, réseau, ID invalide) ne fait pas
+ * `league=<id>&season=<saison>&from=<J-7>&to=<J+7>`), plutôt qu'un appel par
+ * date (15 requêtes `date=<jour>` non filtrables par compétition côté API,
+ * qui auraient aussi nécessité un filtrage manuel de bien plus de fixtures).
+ * Coût : 13 requêtes par chargement/rafraîchissement ⇒ ~7 rafraîchissements/
+ * jour max sur le plan gratuit (100 req/jour). Ces 13 appels sont
+ * **séquentiels et espacés** (voir `DELAI_ENTRE_APPELS_MS` plus bas) : le
+ * plan gratuit limite aussi à 10 requêtes/minute, et une rafale de 13 appels
+ * en parallèle dépasse cette limite et fait échouer la quasi-totalité des
+ * appels (429) même très loin du quota journalier — observé en conditions
+ * réelles. Une compétition en erreur (429, réseau, ID invalide) ne fait pas
  * échouer la page entière : elle est simplement absente des résultats et
  * son erreur remontée dans `erreursPartielles`.
  */
@@ -91,11 +104,11 @@ export async function getResultatsFootFenetre(): Promise<ResultatsFoot> {
   const to = dates[dates.length - 1];
   const saison = saisonCourante();
 
-  const resultats = await Promise.all(
-    COMPETITIONS_FOOT.map((competition) =>
-      chargerFixturesCompetition(competition.id, competition.nom, cle, saison, from, to)
-    )
-  );
+  const resultats: ResultatCompetition[] = [];
+  for (const [index, competition] of COMPETITIONS_FOOT.entries()) {
+    if (index > 0) await attendre(DELAI_ENTRE_APPELS_MS);
+    resultats.push(await chargerFixturesCompetition(competition.id, competition.nom, cle, saison, from, to));
+  }
 
   const erreursPartielles = resultats.map((r) => r.erreur).filter((e): e is string => e !== null);
 
