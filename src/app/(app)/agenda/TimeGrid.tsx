@@ -145,15 +145,33 @@ export function HourLines({ zoom }: { zoom: number }) {
   );
 }
 
+// Hauteur minimale en dessous de laquelle le libellé d'horaire n'est pas
+// affiché (créneau trop court pour accueillir une ligne de texte lisible
+// sans déborder) : la bande reste alors un simple aplat de couleur, comme
+// avant l'ajout du libellé.
+const MIN_LABEL_HEIGHT = 16;
+
+// "18:00:00" (ou "18:00") -> "18h00", format horaire français attendu sur
+// les blocs de créneaux.
+function formatCreneauHeure(heure: string): string {
+  const [h, m] = heure.split(":");
+  return `${h}h${m}`;
+}
+
 // Bande "heures de travail" : un <div> par créneau du jour (pause déjeuner
-// = deux créneaux disjoints), couleur dédiée --accent-planning-travail bien
-// visible à ~30% d'opacité. Un jour sans créneau ne dessine aucune bande.
+// = deux créneaux disjoints), couleur dédiée --accent-planning-travail-soft
+// (déjà à ~30% d'opacité) avec le libellé "HHhMM - HHhMM" affiché en
+// surimpression, en couleur pleine --accent-planning-travail pour rester
+// lisible. `compact` réduit la taille de police pour les colonnes étroites
+// de WeekView. Un jour sans créneau ne dessine aucune bande.
 export function WorkHoursBand({
   creneaux,
   zoom,
+  compact = false,
 }: {
   creneaux: CreneauDuJour[];
   zoom: number;
+  compact?: boolean;
 }) {
   return (
     <>
@@ -162,17 +180,26 @@ export function WorkHoursBand({
         const end = heureToMinutes(creneau.heure_fin);
         if (start === null || end === null || end <= start) return null;
 
+        const height = durationToPx(end - start, zoom);
+
         return (
           <div
             key={creneau.id}
-            className="pointer-events-none absolute inset-x-0 rounded-md"
+            className="pointer-events-none absolute inset-x-0 flex items-center overflow-hidden rounded-md px-1.5"
             style={{
               top: minutesToPx(start, zoom),
-              height: durationToPx(end - start, zoom),
-              backgroundColor: "var(--accent-planning-travail)",
-              opacity: 0.3,
+              height,
+              backgroundColor: "var(--accent-planning-travail-soft)",
             }}
-          />
+          >
+            {height >= MIN_LABEL_HEIGHT && (
+              <span
+                className={`truncate font-semibold text-planning-travail ${compact ? "text-[9px]" : "text-[11px]"}`}
+              >
+                {formatCreneauHeure(creneau.heure_debut)} - {formatCreneauHeure(creneau.heure_fin)}
+              </span>
+            )}
+          </div>
         );
       })}
     </>

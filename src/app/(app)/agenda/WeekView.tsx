@@ -205,7 +205,7 @@ export function WeekView({
                     aria-label={`Voir le ${format(day, "EEEE d MMMM", { locale: fr })}`}
                   >
                     <HourLines zoom={zoom} />
-                    <WorkHoursBand creneaux={creneauxJour} zoom={zoom} />
+                    <WorkHoursBand creneaux={creneauxJour} zoom={zoom} compact />
                     {dayTachesAvecHeure.map((t) => (
                       <TacheBlock key={t.id} tache={t} zoom={zoom} />
                     ))}
