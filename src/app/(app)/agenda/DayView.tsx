@@ -80,6 +80,7 @@ export function DayView({
   const dayTachesArchivees = dayTachesJour.filter((t) => t.fait).sort(sortByHeure);
 
   const dayTachesAvecHeure = dayTaches.filter((t) => t.heure);
+  const dayTachesSansHeure = dayTachesJour.filter((t) => !t.fait && !t.heure);
 
   const creneauxJour = getCreneauxDuJour(creneaux, selectedDate, exceptions);
   const { zoom, touchHandlers } = useAgendaZoom();
@@ -126,6 +127,18 @@ export function DayView({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+        {dayTachesSansHeure.length > 0 && (
+          <div className="flex flex-wrap gap-1 border-b border-line/60 px-3 py-2">
+            {dayTachesSansHeure.map((t) => (
+              <span
+                key={t.id}
+                className="max-w-[220px] truncate rounded bg-surface-alt px-2 py-1 text-xs text-ink-2"
+              >
+                {t.titre}
+              </span>
+            ))}
+          </div>
+        )}
         <div
           ref={scrollRef}
           className="max-h-[55vh] overflow-auto"
