@@ -70,7 +70,28 @@ export async function getMeteoJour(): Promise<MeteoJour | null> {
 
     const data = (await res.json()) as OpenMeteoResponse;
 
-    const indexHeureActuelle = data.hourly.time.findIndex((t) => t === data.current_weather.time);
+    // On recalcule l'heure actuelle à Paris nous-mêmes plutôt que de comparer
+    // à `current_weather.time` (champ déprécié côté Open-Meteo, pas toujours
+    // aligné avec la grille horaire de `hourly`) : on cherche dans `hourly.time`
+    // l'entrée "YYYY-MM-DDTHH:00" correspondant à l'heure actuelle arrondie.
+    const maintenantParis = new Intl.DateTimeFormat("fr-FR", {
+      timeZone: "Europe/Paris",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(new Date())
+      .reduce<Record<string, string>>((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+      }, {});
+    // `hour12: false` peut renvoyer "24" pour minuit selon l'environnement JS.
+    const heureActuelle = maintenantParis.hour === "24" ? "00" : maintenantParis.hour;
+    const heureActuelleISO = `${maintenantParis.year}-${maintenantParis.month}-${maintenantParis.day}T${heureActuelle}:00`;
+
+    const indexHeureActuelle = data.hourly.time.indexOf(heureActuelleISO);
     const debutAujourdhui = indexHeureActuelle === -1 ? 0 : indexHeureActuelle;
 
     // `hourly` couvre les `NB_JOURS` jours en continu à partir de minuit :
