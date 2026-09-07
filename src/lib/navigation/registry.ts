@@ -115,6 +115,16 @@ const REGLAGES_ICON = (c: string) =>
     })
   );
 
+const CARBURANTS_ICON = (c: string) =>
+  createElement(
+    "svg",
+    { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: c, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" },
+    createElement("rect", { x: 4.5, y: 4.5, width: 9.5, height: 15, rx: 2 }),
+    createElement("path", { d: "M7 8.5h4.5" }),
+    createElement("path", { d: "M14 10.5h2.3a1.7 1.7 0 0 1 1.7 1.7v4.3a1.5 1.5 0 0 0 3 0v-6l-2.2-2.2" }),
+    createElement("path", { d: "M18.5 10.5v-1a1 1 0 0 0-1-1h-.5" })
+  );
+
 // Ordre canonique : les 4 modules primaires (épinglés en barre du bas par
 // défaut) puis les 7 modules secondaires. La grille "Plus" liste TOUJOURS
 // les 11 items (voir resolveOrdreGrillePlus dans
@@ -202,6 +212,13 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Profil, apparence et préférences",
     accentVar: "var(--accent-reglages)",
     icon: REGLAGES_ICON,
+  },
+  {
+    href: "/carburants",
+    label: "Carburants",
+    description: "Stations sans plomb les moins chères autour de toi",
+    accentVar: "var(--accent-carburants)",
+    icon: CARBURANTS_ICON,
   },
 ];
 
