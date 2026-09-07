@@ -30,6 +30,7 @@ import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, listCard, metaText, pillTag } from "@/lib/ui";
 import { CheckToggle } from "@/components/CheckToggle";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { useBackClose } from "@/hooks/useBackClose";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
@@ -264,6 +265,7 @@ export function TaskCard({
   highlighted?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  useBackClose(editing, () => setEditing(false));
   const [expanded, setExpanded] = useState(false);
   const queryClient = useQueryClient();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
