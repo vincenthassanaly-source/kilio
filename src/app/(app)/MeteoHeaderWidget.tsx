@@ -4,10 +4,12 @@ import { useState } from "react";
 import { pillTag } from "@/lib/ui";
 import { interpreterCodeMeteo } from "@/lib/meteo/compute";
 import type { MeteoJour } from "@/app/actions/meteo";
+import { useBackClose } from "@/hooks/useBackClose";
 import { MeteoDetailModal } from "./MeteoDetailModal";
 
 export function MeteoHeaderWidget({ meteo }: { meteo: MeteoJour }) {
   const [isOpen, setIsOpen] = useState(false);
+  useBackClose(isOpen, () => setIsOpen(false));
   const aujourdhui = meteo.journees[0];
   const { label, icone } = interpreterCodeMeteo(meteo.codeMeteoActuel);
 
