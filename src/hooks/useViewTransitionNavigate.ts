@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { isModuleRootPath } from "@/lib/navigation/registry";
 
 export type NavDirection = "avance" | "recule";
 
@@ -82,6 +83,22 @@ export function useViewTransitionNavigate() {
 
   return useCallback(
     (href: string, direction?: NavDirection) => {
+      const target = href.split("?")[0].split("#")[0];
+
+      // Transition entre deux routes racine de module (ex. /nutrition ->
+      // /taches, ou /plus -> /agenda) : `replace` au lieu de `push`, pour ne
+      // jamais empiler plus d'une entrée "module racine" au-dessus de
+      // l'accueil — la flèche retour matérielle revient donc toujours
+      // directement à l'accueil en un seul geste, quel que soit le nombre de
+      // modules racine visités entretemps. Quitter l'accueil elle-même reste
+      // un `push` : son entrée doit rester dans l'historique comme point
+      // d'ancrage, sinon plus aucune entrée "/" n'y subsisterait pour que la
+      // flèche retour puisse y revenir. La navigation en profondeur dans un
+      // module (drill-down, ex. /taches -> /taches/listes/abc) n'est jamais
+      // concernée : ni pathname ni target n'y correspond à une racine.
+      const useReplace = pathname !== "/" && isModuleRootPath(pathname) && isModuleRootPath(target);
+      const push = (h: string) => (useReplace ? router.replace(h) : router.push(h));
+
       if (typeof document !== "undefined" && "startViewTransition" in document) {
         const root = document.documentElement;
         const resolved = direction ?? deriveDirection(pathname, href);
@@ -89,14 +106,12 @@ export function useViewTransitionNavigate() {
         if (resolved) root.dataset[NAV_DIRECTION_ATTR] = resolved;
         else delete root.dataset[NAV_DIRECTION_ATTR];
 
-        const target = href.split("?")[0].split("#")[0];
-
         const transition = (
           document as Document & {
             startViewTransition: (callback: () => void | Promise<void>) => { finished: Promise<void> };
           }
         ).startViewTransition(() => {
-          router.push(href);
+          push(href);
 
           // Même pathname que l'actuel (query/hash seuls diffèrent, ou
           // onglet déjà actif) : `usePathname()` ne changera jamais, rien à
@@ -122,7 +137,7 @@ export function useViewTransitionNavigate() {
             delete root.dataset[NAV_DIRECTION_ATTR];
           });
       } else {
-        router.push(href);
+        push(href);
       }
     },
     [router, pathname]

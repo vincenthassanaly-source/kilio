@@ -209,6 +209,18 @@ export function findNavItem(href: string): NavItem | undefined {
   return NAV_ITEMS.find((item) => item.href === href);
 }
 
+// Routes "racine" de module au sens de la navigation top-level (voir
+// useViewTransitionNavigate) : les 11 items du registre, plus /plus elle-même
+// — pas un module au sens strict, mais un écran de même niveau que les autres
+// dans la barre du bas, d'où l'on peut aussi rejoindre n'importe quel module
+// non épinglé. Match exact uniquement (pas de sous-route type /taches/abc),
+// pour ne jamais transformer un drill-down en racine-à-racine.
+const ROOT_MODULE_PATHS = new Set<string>([...NAV_ITEMS.map((item) => item.href), "/plus"]);
+
+export function isModuleRootPath(pathname: string): boolean {
+  return ROOT_MODULE_PATHS.has(pathname);
+}
+
 // Résout le href navigable le plus spécifique pour un pathname donné
 // (ex. "/taches/123" -> "/taches"), pour déterminer quel onglet mettre en
 // surbrillance dans BottomNav quel que soit l'emplacement où un module est
