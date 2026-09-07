@@ -105,6 +105,15 @@ const NOTES_ICON = (c: string) =>
     createElement("path", { d: "M9 9.5h6M9 13h6M9 16.5h3.5" })
   );
 
+const ACTU_ICON = (c: string) =>
+  createElement(
+    "svg",
+    { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: c, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" },
+    createElement("path", { d: "M4.5 5.5h13a1.5 1.5 0 0 1 1.5 1.5v11a2 2 0 0 1-2 2h-11a1.5 1.5 0 0 1-1.5-1.5v-13z" }),
+    createElement("path", { d: "M19 8.5h1a1 1 0 0 1 1 1V17a1.5 1.5 0 0 1-1.5 1.5" }),
+    createElement("path", { d: "M7 9h7M7 12h7M7 15h4" })
+  );
+
 const REGLAGES_ICON = (c: string) =>
   createElement(
     "svg",
@@ -195,6 +204,13 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Notes libres",
     accentVar: "var(--accent-protein)",
     icon: NOTES_ICON,
+  },
+  {
+    href: "/actualite",
+    label: "Actu",
+    description: "Actu générale et pharma, par flux RSS",
+    accentVar: "var(--accent-actu)",
+    icon: ACTU_ICON,
   },
   {
     href: "/reglages",
