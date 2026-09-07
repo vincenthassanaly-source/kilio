@@ -122,11 +122,12 @@ export function useInitialScroll(
 // ne dépend pas de `zoom` non plus), pas une proximité temporelle.
 const MIN_GUTTER_MARK_GAP_PX = 10;
 
-// "18:00:00" (ou "18:00") -> "18h00", format horaire français attendu sur
-// les repères de début/fin de créneau dans TimeGutter.
+// "08:30:00" (ou "08:30") -> "8h30", format horaire attendu sur les repères
+// de début/fin de créneau dans TimeGutter — sans zéro de tête sur l'heure,
+// inutile et un peu tronqué dans la gouttière étroite.
 function formatCreneauHeure(heure: string): string {
   const [h, m] = heure.split(":");
-  return `${h}h${m}`;
+  return `${Number(h)}h${m}`;
 }
 
 // Repères verts (début/fin de créneau) à afficher dans la gouttière :

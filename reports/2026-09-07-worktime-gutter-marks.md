@@ -187,3 +187,11 @@ Retour de Vincent : les repères verts n'ont de sens qu'en Vue Jour. En Vue Sema
 ### Vérifications
 
 `npx tsc --noEmit`, `npx eslint .` et `npm run build` : tous verts.
+
+## Révision 3 — zéro de tête retiré sur l'heure des repères verts
+
+Retour de Vincent : "08h30" était un peu tronqué dans l'étroite gouttière (34px) et le zéro de tête est inutile. `formatCreneauHeure` produit désormais `${Number(h)}h${m}` au lieu de `${h}h${m}` — "08:30:00" devient "8h30" (et non "08h30"), seulement pour les repères verts de créneau. Les heures pleines noires (`06h`...`23h`, toujours affichées avec zéro de tête via `padStart(2, "0")`) ne sont pas concernées — elles n'ont jamais posé ce problème d'espace, `06h`...`09h` étant systématiquement à 2 chiffres.
+
+### Vérifications
+
+`npx tsc --noEmit`, `npx eslint .` et `npm run build` : tous verts.
