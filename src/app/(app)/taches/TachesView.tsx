@@ -11,7 +11,7 @@ import { AddTaskToggle } from "./AddTaskToggle";
 import { TasksList } from "./TasksList";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 import { Skeleton } from "@/components/skeletons/Skeleton";
-import { errorText } from "@/lib/ui";
+import { errorText, input } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 const LISTE_ICON = (
@@ -19,6 +19,19 @@ const LISTE_ICON = (
     <path d="M4 6h16" />
     <path d="M4 12h16" />
     <path d="M4 18h16" />
+  </svg>
+);
+
+const SEARCH_ICON = (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <path d="M20 20l-4.5-4.5" />
+  </svg>
+);
+
+const CLEAR_ICON = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 6l12 12M18 6L6 18" />
   </svg>
 );
 
@@ -33,6 +46,7 @@ const VUES: { key: VueKey; label: string }[] = [
 export function TachesView() {
   const [vue, setVue] = useState<VueKey>("toutes");
   const [listeId, setListeId] = useState<string>("toutes");
+  const [recherche, setRecherche] = useState("");
   const queryClient = useQueryClient();
 
   const { data: taches, isLoading: tachesLoading, isError: tachesError } = useQuery({
@@ -46,16 +60,22 @@ export function TachesView() {
     if (!taches) return [];
     const today = aujourdhuiISO();
     const dansSeptJours = format(addDays(new Date(`${today}T00:00:00`), 7), "yyyy-MM-dd");
+    const rechercheNormalisee = recherche.trim().toLowerCase();
 
     return taches.filter((tache) => {
       if (listeId !== "toutes" && tache.liste_id !== listeId) return false;
-      if (vue === "aujourdhui") return tache.echeance === today;
+      if (vue === "aujourdhui" && tache.echeance !== today) return false;
       if (vue === "semaine") {
-        return !!tache.echeance && tache.echeance >= today && tache.echeance <= dansSeptJours;
+        if (!tache.echeance || tache.echeance < today || tache.echeance > dansSeptJours) return false;
+      }
+      if (rechercheNormalisee) {
+        const titreMatch = tache.titre.toLowerCase().includes(rechercheNormalisee);
+        const notesMatch = tache.notes?.toLowerCase().includes(rechercheNormalisee) ?? false;
+        if (!titreMatch && !notesMatch) return false;
       }
       return true;
     });
-  }, [taches, vue, listeId]);
+  }, [taches, vue, listeId, recherche]);
 
   function invalidateTaches() {
     queryClient.invalidateQueries({ queryKey: queryKeys.taches });
@@ -121,6 +141,27 @@ export function TachesView() {
         ))}
       </div>
 
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">{SEARCH_ICON}</span>
+        <input
+          type="text"
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          placeholder="Rechercher une tâche…"
+          className={`${input} w-full pl-10 ${recherche ? "pr-9" : ""}`}
+        />
+        {recherche && (
+          <button
+            type="button"
+            onClick={() => setRecherche("")}
+            aria-label="Effacer la recherche"
+            className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-surface-alt"
+          >
+            {CLEAR_ICON}
+          </button>
+        )}
+      </div>
+
       <AddTaskToggle
         listes={listes}
         tags={tags}
@@ -134,6 +175,10 @@ export function TachesView() {
         </div>
       ) : tachesError ? (
         <p className={errorText}>Erreur de chargement des tâches. Réessaie.</p>
+      ) : recherche.trim() && filtered.length === 0 ? (
+        <p className="py-6 text-center text-[13.5px] text-ink-2">
+          Aucune tâche ne correspond à « {recherche.trim()} ».
+        </p>
       ) : (
         <TasksList taches={filtered} listes={listes} tags={tags} reordonnable={vue === "toutes"} />
       )}
