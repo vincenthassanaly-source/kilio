@@ -175,3 +175,15 @@ Comme dans la première version, deux repères verts distincts à quelques minut
 ### Vérifications
 
 `npx tsc --noEmit`, `npx eslint .` et `npm run build` repassés après cette révision : tous verts (mêmes résultats que la première passe, aucune nouvelle erreur).
+
+## Révision 2 — repères réservés à la Vue Jour
+
+Retour de Vincent : les repères verts n'ont de sens qu'en Vue Jour. En Vue Semaine, la gouttière (`TimeGutter`) est unique et partagée entre les 7 colonnes de jours, dont les horaires de travail diffèrent souvent d'un jour à l'autre (ex. mercredi 08h30-12h/13h-17h30, jeudi/vendredi 08h30-12h/13h-19h30, samedi 09h-19h30) — un repère vert agrégé sur toute la semaine (ex. "17h30") ne correspond en réalité qu'à certains jours et induit en erreur pour les autres.
+
+**Changement** : `WeekView.tsx` revient à `<TimeGutter zoom={zoom} />` sans `creneaux`, et l'agrégation `creneauxSemaine` (introduite en Révision 1) est supprimée — la gouttière de la Vue Semaine redevient de simples heures pleines, comme avant ce chantier. `DayView.tsx` est inchangé (`<TimeGutter zoom={zoom} creneaux={creneauxJour} />`), seul contexte où un repère vert a un sens univoque (un seul jour affiché à la fois).
+
+`compact` disparaît de `TimeGutter` (il ne servait qu'à réduire la taille des repères verts pour la gouttière partagée de WeekView, désormais sans repères verts — plus aucun appelant ne l'utilisait).
+
+### Vérifications
+
+`npx tsc --noEmit`, `npx eslint .` et `npm run build` : tous verts.

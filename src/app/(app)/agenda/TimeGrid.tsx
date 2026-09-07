@@ -162,18 +162,12 @@ function computeWorkHourMarks(
 // Gouttière des heures : une heure pleine (06h, 07h, ...) par ligne, sauf
 // au niveau d'un début/fin de créneau de travail (`creneaux`), où l'heure
 // pleine est remplacée par l'heure précise du créneau en vert — jamais les
-// deux superposées. `compact` réduit la taille de police des repères verts
-// pour la gouttière partagée de WeekView (les heures pleines gardent
-// toujours la même taille).
-export function TimeGutter({
-  zoom,
-  creneaux = [],
-  compact = false,
-}: {
-  zoom: number;
-  creneaux?: CreneauDuJour[];
-  compact?: boolean;
-}) {
+// deux superposées. `creneaux` n'a de sens que pour un seul jour à la fois
+// (Vue Jour) : en Vue Semaine, la gouttière est partagée entre 7 colonnes
+// dont les horaires de travail diffèrent d'un jour à l'autre, donc aucun
+// créneau n'y est passé (TimeGutter reste alors la gouttière d'heures
+// pleines telle qu'avant ce composant).
+export function TimeGutter({ zoom, creneaux = [] }: { zoom: number; creneaux?: CreneauDuJour[] }) {
   const workMarks = computeWorkHourMarks(creneaux, zoom);
   const hours = HOURS.map((h) => ({ hour: h, top: minutesToPx(h * 60, zoom) })).filter(
     ({ top }) => !workMarks.some((mark) => Math.abs(mark.top - top) < MIN_GUTTER_MARK_GAP_PX)
@@ -193,9 +187,7 @@ export function TimeGutter({
       {workMarks.map((mark) => (
         <span
           key={`w-${mark.minutes}`}
-          className={`absolute right-1 -translate-y-1/2 whitespace-nowrap font-semibold text-planning-travail ${
-            compact ? "text-[9px]" : "text-[10px]"
-          }`}
+          className="absolute right-1 -translate-y-1/2 whitespace-nowrap text-[10px] font-semibold text-planning-travail"
           style={{ top: mark.top }}
         >
           {mark.label}
