@@ -19,8 +19,9 @@ import {
   TimeGutter,
   useInitialScroll,
   WorkHoursBand,
+  WorkHoursGutterMarks,
 } from "./TimeGrid";
-import { useAgendaZoom } from "./useAgendaZoom";
+import { useAgendaZoom, GUTTER_WIDTH } from "./useAgendaZoom";
 
 const PRIORITE_BLOCK_CLASS: Record<TacheAvecRelations["priorite"], string> = {
   aucune: "bg-surface-alt text-ink",
@@ -133,7 +134,10 @@ export function DayView({
           {...touchHandlers}
         >
           <div className="flex">
-            <TimeGutter zoom={zoom} />
+            <div className="relative shrink-0" style={{ width: GUTTER_WIDTH, height: gridHeight(zoom) }}>
+              <TimeGutter zoom={zoom} />
+              <WorkHoursGutterMarks creneaux={creneauxJour} zoom={zoom} />
+            </div>
             <div className="relative flex-1" style={{ height: gridHeight(zoom) }}>
               <HourLines zoom={zoom} />
               <WorkHoursBand creneaux={creneauxJour} zoom={zoom} />

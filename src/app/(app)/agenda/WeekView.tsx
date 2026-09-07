@@ -25,6 +25,7 @@ import {
   UNSCHEDULED_BAND_HEIGHT,
   useInitialScroll,
   WorkHoursBand,
+  WorkHoursGutterMarks,
 } from "./TimeGrid";
 import {
   BASE_DAY_COLUMN_WIDTH,
@@ -113,6 +114,11 @@ export function WeekView({
     zoom
   );
 
+  // Gouttière unique et partagée entre toutes les colonnes de jours : les
+  // repères d'horaire doivent agréger les créneaux de toute la semaine
+  // affichée, pas seulement ceux du jour sélectionné.
+  const creneauxSemaine = days.flatMap((day) => getCreneauxDuJour(creneaux, day, exceptions));
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
@@ -149,7 +155,10 @@ export function WeekView({
             <div className="sticky left-0 z-20 bg-surface">
               <div className="h-11 border-b border-line" />
               <div className="border-b border-line/60" style={{ height: UNSCHEDULED_BAND_HEIGHT }} />
-              <TimeGutter zoom={zoom} />
+              <div className="relative" style={{ width: GUTTER_WIDTH, height: gridHeight(zoom) }}>
+                <TimeGutter zoom={zoom} />
+                <WorkHoursGutterMarks creneaux={creneauxSemaine} zoom={zoom} compact />
+              </div>
             </div>
 
             {days.map((day) => {
@@ -205,7 +214,7 @@ export function WeekView({
                     aria-label={`Voir le ${format(day, "EEEE d MMMM", { locale: fr })}`}
                   >
                     <HourLines zoom={zoom} />
-                    <WorkHoursBand creneaux={creneauxJour} zoom={zoom} compact />
+                    <WorkHoursBand creneaux={creneauxJour} zoom={zoom} />
                     {dayTachesAvecHeure.map((t) => (
                       <TacheBlock key={t.id} tache={t} zoom={zoom} />
                     ))}
