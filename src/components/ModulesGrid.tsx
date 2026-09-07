@@ -60,7 +60,7 @@ function ModuleTile({ href, isEditing }: { href: string; isEditing: boolean }) {
       </span>
       <div>
         <p className="font-display text-[15px] font-semibold text-ink">{mod.label}</p>
-        <p className="text-[12.5px] text-ink-2">{mod.description}</p>
+        {mod.description && <p className="text-[12.5px] text-ink-2">{mod.description}</p>}
       </div>
     </TransitionLink>
   );

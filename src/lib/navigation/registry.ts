@@ -216,7 +216,6 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/carburants",
     label: "Carburants",
-    description: "Stations sans plomb les moins chères autour de toi",
     accentVar: "var(--accent-carburants)",
     icon: CARBURANTS_ICON,
   },

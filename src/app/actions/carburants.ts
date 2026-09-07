@@ -1,21 +1,37 @@
 "use server";
 
-import { meilleurPrixSansPlomb, trierParPrixCroissant, type TypeCarburantSansPlomb } from "@/lib/carburants/compute";
+import {
+  exclureSansPrixSansPlomb,
+  meilleurPrixSansPlomb,
+  trierParPrixCroissant,
+  type TypeCarburantSansPlomb,
+} from "@/lib/carburants/compute";
 
 // Dataset officiel du Ministère de l'Économie (OpenDataSoft, Explore API
 // v2.1), gratuit et sans clé. Le schéma exact des champs (noms des prix par
 // carburant, forme du champ géographique) n'a pas pu être vérifié par un
-// appel de test en environnement de développement (accès réseau sortant
-// bloqué par la politique d'égress de la session Claude Code) : les noms
+// appel de test réel : l'accès réseau sortant vers data.economie.gouv.fr est
+// bloqué par la politique d'égress de la session Claude Code (403 confirmé à
+// deux reprises, sur deux sessions différentes — voir reports/). Les noms
 // utilisés ci-dessous (`sp95_prix`, `sp98_prix`, `e10_prix`, `*_maj`,
 // `geom`/`geo_point_2d`, `adresse`, `ville`, `nom`) sont ceux documentés
-// publiquement pour ce dataset. Le parsing reste volontairement tolérant
+// publiquement pour ce dataset, avec un parsing volontairement tolérant
 // (champs optionnels, plusieurs variantes essayées) pour ne jamais planter
-// si un nom diffère légèrement en prod — voir reports/ pour le détail à
-// vérifier lors du premier chargement réel.
+// si un nom diffère légèrement en prod. Le vrai filet de sécurité est
+// `distanceMetres` recalculée nous-mêmes à partir des coordonnées
+// effectivement extraites, puis filtrée ci-dessous : la fiabilité du module
+// ne dépend donc plus de la syntaxe exacte de `geofilter.distance` côté API
+// (voir "Filtrage défensif" plus bas) — seule l'extraction du point
+// géographique (`extraireGeoPoint`) reste critique et non vérifiée en live.
 const DATASET_URL =
   "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records";
 const LIMITE_RESULTATS = 50;
+// Marge appliquée au filtrage défensif par distance, pour absorber les
+// petits écarts entre notre calcul haversine et une éventuelle imprécision
+// de géocodage de l'API (pas pour couvrir un `geofilter.distance` défaillant
+// à grande échelle : une station à 671 km reste exclue quel que soit le rayon
+// demandé).
+const MARGE_DISTANCE = 1.1;
 
 export type StationCarburant = {
   id: string;
@@ -144,9 +160,11 @@ export async function getStationsProches(lat: number, lon: number, rayonKm: numb
         station.id !== null && station.point !== null
     );
 
-    const triees = trierParPrixCroissant(utilisables);
+    // Exclusion des stations sans prix sans plomb, une seule fois, avant de
+    // construire la forme finale (plate) exposée au client.
+    const avecPrix = exclureSansPrixSansPlomb(utilisables);
 
-    const stations: StationCarburant[] = triees.map((station) => ({
+    const stationsAvecDistance = avecPrix.map((station) => ({
       id: station.id,
       nom: station.nom,
       adresse: station.adresse,
@@ -158,6 +176,16 @@ export async function getStationsProches(lat: number, lon: number, rayonKm: numb
       lat: station.point.lat,
       lon: station.point.lon,
     }));
+
+    // Filtrage défensif : `geofilter.distance` n'a pas pu être vérifié en
+    // conditions réelles (voir commentaire en tête de fichier). On exclut
+    // nous-mêmes toute station au-delà du rayon demandé (+ marge), quel que
+    // soit ce que l'API a réellement renvoyé côté serveur — c'est ce qui
+    // évite d'afficher une station à 671 km pour un rayon de 10 km.
+    const rayonMaxMetres = rayonMetres * MARGE_DISTANCE;
+    const dansLeRayon = stationsAvecDistance.filter((station) => station.distanceMetres <= rayonMaxMetres);
+
+    const stations: StationCarburant[] = trierParPrixCroissant(dansLeRayon);
 
     return { ok: true, stations };
   } catch {

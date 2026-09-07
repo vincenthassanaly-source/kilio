@@ -28,14 +28,25 @@ export function meilleurPrixSansPlomb(prix: PrixParCarburant): MeilleurPrix | nu
   return candidats.reduce((min, candidat) => (candidat.prix < min.prix ? candidat : min));
 }
 
-/** Trie par prix croissant en excluant les stations sans aucun prix sans
- * plomb disponible (`meilleurPrix` nul). */
-export function trierParPrixCroissant<T extends { meilleurPrix: MeilleurPrix | null }>(
+/** Exclut les stations sans aucun prix sans plomb disponible (`meilleurPrix`
+ * nul) — à appliquer une seule fois, avant tri, sur la liste "brute" issue du
+ * parsing (voir `getStationsProches`). Les deux fonctions de tri ci-dessous
+ * opèrent ensuite sur des stations déjà résolues (prix numérique garanti),
+ * qu'elles soient appelées côté serveur ou pour un re-tri côté client. */
+export function exclureSansPrixSansPlomb<T extends { meilleurPrix: MeilleurPrix | null }>(
   stations: T[]
 ): Array<T & { meilleurPrix: MeilleurPrix }> {
-  return stations
-    .filter((station): station is T & { meilleurPrix: MeilleurPrix } => station.meilleurPrix !== null)
-    .sort((a, b) => a.meilleurPrix.prix - b.meilleurPrix.prix);
+  return stations.filter((station): station is T & { meilleurPrix: MeilleurPrix } => station.meilleurPrix !== null);
+}
+
+/** Trie par prix croissant (ne filtre rien : voir `exclureSansPrixSansPlomb`). */
+export function trierParPrixCroissant<T extends { meilleurPrix: number }>(stations: T[]): T[] {
+  return [...stations].sort((a, b) => a.meilleurPrix - b.meilleurPrix);
+}
+
+/** Trie par distance croissante (ne filtre rien : voir `exclureSansPrixSansPlomb`). */
+export function trierParDistanceCroissante<T extends { distanceMetres: number }>(stations: T[]): T[] {
+  return [...stations].sort((a, b) => a.distanceMetres - b.distanceMetres);
 }
 
 /** "800 m" en dessous d'1 km, "3,2 km" au-delà (une décimale, virgule française). */
