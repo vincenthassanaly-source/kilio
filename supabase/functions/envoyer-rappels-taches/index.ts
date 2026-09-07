@@ -139,7 +139,7 @@ Deno.serve(async () => {
     const payload = JSON.stringify({
       title: tache.titre,
       body: `dans ${tache.rappel_minutes} min`,
-      url: "/agenda",
+      url: `/agenda?tache=${tache.id}`,
     });
 
     for (const sub of subscriptions ?? []) {

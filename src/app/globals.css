@@ -276,9 +276,37 @@ html[data-nav-direction="recule"]::view-transition-new(root) {
   animation: plus-tuile-tremble-b 160ms ease-in-out infinite;
 }
 
+/* Mise en surbrillance temporaire de la TaskCard ciblée par un deep-link de
+   notification (clic sur le rappel d'une tâche, cf. DayView/TasksList.tsx) :
+   un anneau qui pulse deux fois puis s'efface, sans JS pour le retirer
+   ensuite (`animation-fill-mode: both` conserve l'état final transparent de
+   la dernière étape). */
+@keyframes tache-surbrillance-anim {
+  0%, 20%, 40% {
+    box-shadow: 0 0 0 3px var(--accent-agenda);
+  }
+  10%, 30% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+  70% {
+    box-shadow: 0 0 0 3px var(--accent-agenda);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.tache-surbrillance {
+  animation: tache-surbrillance-anim 2.6s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agenda-glisse-suivant,
   .agenda-glisse-precedent {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+
+  .tache-surbrillance {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
   }

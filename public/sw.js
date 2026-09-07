@@ -78,11 +78,27 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const url = event.notification.data?.url || "/agenda";
+  // Comparaison sur le pathname (pas l'URL complète) : une fenêtre déjà
+  // ouverte sur /agenda est réutilisée même si son ?tache= diffère (ou est
+  // absent) de celui de la notification cliquée, plutôt que d'ouvrir une
+  // nouvelle fenêtre à chaque notification.
+  const path = new URL(url, self.location.origin).pathname;
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((clients) => {
-      const url = event.notification.data?.url || "/agenda";
-      const existing = clients.find((c) => c.url.includes(url));
-      if (existing) return existing.focus();
+    self.clients.matchAll({ type: "window" }).then(async (clients) => {
+      const existing = clients.find((c) => new URL(c.url).pathname === path);
+      if (existing) {
+        if ("navigate" in existing) {
+          try {
+            await existing.navigate(url);
+          } catch {
+            // navigate() peut échouer selon le navigateur : la fenêtre
+            // existante est quand même mise au premier plan ci-dessous,
+            // simplement pas repositionnée sur la bonne tâche/jour.
+          }
+        }
+        return existing.focus();
+      }
       return self.clients.openWindow(url);
     })
   );

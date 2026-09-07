@@ -11,12 +11,19 @@ export function ArchivedTasksSection({
   taches,
   listes,
   tags,
+  tacheEnSurbrillanceId = null,
 }: {
   taches: TacheAvecRelations[];
   listes: Tables<"listes_taches">[];
   tags: Tables<"tags">[];
+  // Cf. DayView : si la tâche ciblée par le deep-link de notification est
+  // archivée, la section (repliée par défaut) s'ouvre déjà dépliée pour
+  // qu'elle soit visible et scrollable en vue.
+  tacheEnSurbrillanceId?: string | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(
+    () => tacheEnSurbrillanceId !== null && taches.some((t) => t.id === tacheEnSurbrillanceId)
+  );
 
   if (taches.length === 0) return null;
 
@@ -48,7 +55,14 @@ export function ArchivedTasksSection({
             <ul className="mt-2.5 flex flex-col gap-2.5">
               <AnimatePresence initial={false}>
                 {taches.map((tache) => (
-                  <TaskCard key={tache.id} tache={tache} listes={listes} tags={tags} colorByListe />
+                  <TaskCard
+                    key={tache.id}
+                    tache={tache}
+                    listes={listes}
+                    tags={tags}
+                    colorByListe
+                    highlighted={tache.id === tacheEnSurbrillanceId}
+                  />
                 ))}
               </AnimatePresence>
             </ul>

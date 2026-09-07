@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   addDays,
   addMonths,
@@ -20,7 +21,7 @@ import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { ListView } from "./ListView";
-import { toISODate } from "./date-utils";
+import { parseISODate, toISODate } from "./date-utils";
 
 const AddTaskForm = dynamic(() => import("../taches/AddTaskForm").then((m) => m.AddTaskForm), {
   ssr: false,
@@ -65,9 +66,38 @@ export function AgendaView({
   creneaux: Tables<"horaires_travail_creneaux">[];
   exceptions: Tables<"horaires_travail_exceptions">[];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // Tâche ciblée par un deep-link de notification (?tache=<id>, cf.
+  // envoyer-rappels-taches) : la vue Jour est déjà la vue par défaut, donc
+  // seules la date affichée et la tâche à surligner ont besoin d'être
+  // dérivées de l'URL — calculé ici (pas dans un effet) pour que l'état
+  // initial soit déjà correct dès le tout premier rendu.
+  const tacheDeepLinkId = searchParams.get("tache");
+  const tacheCibleeParURL = tacheDeepLinkId
+    ? taches.find((t) => t.id === tacheDeepLinkId && t.echeance)
+    : undefined;
+
   const [view, setView] = useState<ViewKey>("jour");
-  const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    tacheCibleeParURL ? parseISODate(tacheCibleeParURL.echeance!) : startOfToday()
+  );
   const [fabOpen, setFabOpen] = useState(false);
+  // Tâche introuvable (supprimée entretemps, etc.) : reste `null`, ignoré
+  // silencieusement. Pas de setter : valeur figée à l'état initial calculé
+  // depuis l'URL, jamais modifiée ensuite dans la session.
+  const [tacheEnSurbrillanceId] = useState<string | null>(() => tacheCibleeParURL?.id ?? null);
+
+  // Nettoie le paramètre ?tache= de l'URL une fois lu ci-dessus, pour éviter
+  // que le comportement se répète à chaque re-render/navigation ultérieure
+  // dans la session (ex. retour en arrière, refetch de `taches`).
+  useEffect(() => {
+    if (!searchParams.get("tache")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tache");
+    router.replace(params.toString() ? `/agenda?${params.toString()}` : "/agenda", { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Sens du dernier changement de période (1 = vers la suivante, -1 = vers
   // la précédente), pilote le sens de la transition CSS ci-dessous. Mis à
   // jour aussi bien par le swipe que par les flèches ‹/› déjà existantes
@@ -215,6 +245,7 @@ export function AgendaView({
                 exceptions={exceptions}
                 selectedDate={selectedDate}
                 onChangeDate={handleChangeDate}
+                tacheEnSurbrillanceId={tacheEnSurbrillanceId}
               />
             )}
             {view === "semaine" && (

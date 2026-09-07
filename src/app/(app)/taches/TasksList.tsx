@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -238,6 +238,7 @@ export function TaskCard({
   tags,
   reorderable = false,
   colorByListe = false,
+  highlighted = false,
 }: {
   tache: TacheAvecRelations;
   listes: Tables<"listes_taches">[];
@@ -258,6 +259,9 @@ export function TaskCard({
   // confondait avec celui de l'écran en thème sombre. La page /taches garde
   // son rendu neutre habituel (valeur par défaut `false`).
   colorByListe?: boolean;
+  // Tâche ciblée par un deep-link de notification (cf. AgendaView/DayView) :
+  // scrollée en vue et mise en surbrillance temporairement à l'apparition.
+  highlighted?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -265,6 +269,12 @@ export function TaskCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tache.id,
   });
+  const highlightRef = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (highlighted) {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlighted]);
 
   function invalidateTaches() {
     queryClient.invalidateQueries({ queryKey: queryKeys.taches });
@@ -457,12 +467,14 @@ export function TaskCard({
   if (!reorderable) {
     return (
       <motion.li
+        ref={highlightRef}
+        id={highlighted ? `tache-${tache.id}` : undefined}
         layout
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.18 }}
-        className={listCard}
+        className={`${listCard} ${highlighted ? "tache-surbrillance" : ""}`}
         style={accentStyle}
       >
         {content}

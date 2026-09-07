@@ -55,6 +55,7 @@ export function DayView({
   exceptions,
   selectedDate,
   onChangeDate,
+  tacheEnSurbrillanceId = null,
 }: {
   taches: TacheAvecRelations[];
   listes: Tables<"listes_taches">[];
@@ -63,6 +64,10 @@ export function DayView({
   exceptions: Tables<"horaires_travail_exceptions">[];
   selectedDate: Date;
   onChangeDate: (date: Date) => void;
+  // Tâche visée par un deep-link de notification (cf. AgendaView) : mise en
+  // surbrillance + scrollée en vue, qu'elle soit dans la liste active ou
+  // archivée du jour. `null` en usage normal (aucune mise en surbrillance).
+  tacheEnSurbrillanceId?: string | null;
 }) {
   // Les tâches sans heure sont regroupées après celles ayant une heure
   // (cohérent avec le tri "échéance nullsFirst: false" déjà utilisé par la
@@ -152,12 +157,24 @@ export function DayView({
       ) : (
         <ul className="flex flex-col gap-2.5">
           {dayTaches.map((tache) => (
-            <TaskCard key={tache.id} tache={tache} listes={listes} tags={tags} colorByListe />
+            <TaskCard
+              key={tache.id}
+              tache={tache}
+              listes={listes}
+              tags={tags}
+              colorByListe
+              highlighted={tache.id === tacheEnSurbrillanceId}
+            />
           ))}
         </ul>
       )}
 
-      <ArchivedTasksSection taches={dayTachesArchivees} listes={listes} tags={tags} />
+      <ArchivedTasksSection
+        taches={dayTachesArchivees}
+        listes={listes}
+        tags={tags}
+        tacheEnSurbrillanceId={tacheEnSurbrillanceId}
+      />
     </div>
   );
 }
