@@ -145,3 +145,33 @@ export function WorkHoursGutterMarks({ creneaux, zoom, compact = false }) {
 - `npx tsc --noEmit` : aucune erreur imputable au changement (une seule erreur pré-existante et non liée, `LayoutProps` dans `src/app/layout.tsx`, confirmée présente à l'identique avant modification via `git stash`).
 - `npx eslint .` : aucune erreur ni avertissement.
 - `npm run build` : build de production réussi (Next.js 16.3.3 / Turbopack), TypeScript strict (avec types de routes générés) passé sans erreur.
+
+## Révision — retour de Vincent après premier déploiement
+
+Après premier test réel, deux retours :
+
+1. **"La Vue Jour n'affiche aucun repère"** — vérifié en base (`horaires_travail_creneaux` du projet Supabase `kilio`) : lundi (jour_semaine=1) et mardi (2) n'ont aucun créneau configuré (créneaux existants uniquement sur jour_semaine 3/4/5/6 — mer/jeu/ven/sam). La capture montrait justement un lundi : absence de repère cohérente avec l'absence de créneau ce jour-là, pas un bug — même code, même donnée vide que pour la bande verte (elle aussi absente ce jour-là en Vue Semaine). Aucune modification nécessaire sur ce point.
+2. **Design à revoir** : le petit trait/tick était jugé superflu, et l'ajout d'un second texte (le repère vert) à côté du texte d'heure pleine existant ("08h" en noir juste à côté de "08h30" en vert) créait un doublon visuel non voulu — Vincent voulait qu'un seul texte soit affiché par ligne, l'heure précise de créneau remplaçant l'heure pleine quand les deux sont proches, plutôt que de superposer deux repères distincts.
+
+### Décision (confirmée par Vincent via question à choix multiple)
+
+Entre garder l'heure précise du créneau en vert (ex. "08h30") à sa position exacte, ou arrondir à l'heure pleine existante la plus proche (perte de précision, ex. "08h" vert), Vincent a choisi de **garder l'heure précise**.
+
+### Changement d'architecture
+
+`WorkHoursGutterMarks` est supprimé en tant que composant séparé : sa logique est fusionnée directement dans `TimeGutter`, qui accepte désormais deux props optionnelles `creneaux` (défaut `[]`) et `compact` (défaut `false`). Raison : le comportement demandé ("l'heure précise en vert remplace l'heure pleine quand elles sont proches") nécessite que le rendu des heures pleines *sache* quels repères verts existent pour se supprimer lui-même à leur niveau — impossible à faire proprement avec deux composants indépendants superposés en `absolute inset-0` sans dupliquer toute la logique de collision dans les deux sens.
+
+**Nouveau `TimeGutter`** :
+- `computeWorkHourMarks(creneaux, zoom)` : dédoublonnage par minute (inchangé) + anti-collision entre repères verts entre eux (inchangé, seuil `MIN_GUTTER_MARK_GAP_PX = 10`, toujours en px constants non scalés par `zoom`, cf. décision de la première passe).
+- Les heures pleines (`06h`...`23h`) sont filtrées : une heure pleine n'est **pas rendue** si un repère vert tombe à moins de 10px de sa position — c'est l'heure précise en vert qui "prend sa place" plutôt que l'inverse (première version : c'était le repère vert qui s'effaçait au profit de l'heure pleine noire). Ce renversement de priorité est le cœur du changement demandé.
+- Rendu : un seul type d'élément par repère, un `<span>` texte positionné exactement comme l'étaient déjà les heures pleines (`right-1 -translate-y-1/2`), sans trait/tick — noir (`text-ink-2`) pour une heure pleine, vert (`text-planning-travail`, `font-semibold`) pour un repère de créneau. Plus aucun élément de type trait/ligne.
+
+`DayView.tsx` et `WeekView.tsx` sont simplifiés en conséquence : le conteneur `relative` supplémentaire ajouté pour superposer `TimeGutter` et `WorkHoursGutterMarks` est retiré, `<TimeGutter zoom={zoom} creneaux={...} />` (et `compact` en Vue Semaine) suffit désormais.
+
+### Limitation reconduite
+
+Comme dans la première version, deux repères verts distincts à quelques minutes d'écart (moins de 10px rendus) ne sont pas fusionnés visuellement : seul le premier rencontré (le plus haut) reste affiché, l'autre disparaît plutôt que d'être combiné en un seul libellé.
+
+### Vérifications
+
+`npx tsc --noEmit`, `npx eslint .` et `npm run build` repassés après cette révision : tous verts (mêmes résultats que la première passe, aucune nouvelle erreur).

@@ -115,16 +115,90 @@ export function useInitialScroll(
   }, []);
 }
 
-export function TimeGutter({ zoom }: { zoom: number }) {
+// Distance minimale, en px réellement rendus (constante, non affectée par
+// `zoom`), en dessous de laquelle deux repères de la gouttière (heure
+// pleine, ou repère vert de créneau) sont considérés en collision : c'est
+// un seuil de lisibilité à l'écran (la taille du texte, text-[9px]/[10px],
+// ne dépend pas de `zoom` non plus), pas une proximité temporelle.
+const MIN_GUTTER_MARK_GAP_PX = 10;
+
+// "18:00:00" (ou "18:00") -> "18h00", format horaire français attendu sur
+// les repères de début/fin de créneau dans TimeGutter.
+function formatCreneauHeure(heure: string): string {
+  const [h, m] = heure.split(":");
+  return `${h}h${m}`;
+}
+
+// Repères verts (début/fin de créneau) à afficher dans la gouttière :
+// dédoublonnés par minute (plusieurs créneaux, ex. jours différents agrégés
+// en Vue Semaine, peuvent partager la même heure de début/fin), triés par
+// position, puis filtrés entre eux pour ne jamais empiler deux textes trop
+// proches (le premier rencontré, le plus haut, l'emporte).
+function computeWorkHourMarks(
+  creneaux: CreneauDuJour[],
+  zoom: number
+): { minutes: number; top: number; label: string }[] {
+  const labelParMinute = new Map<number, string>();
+  for (const creneau of creneaux) {
+    const start = heureToMinutes(creneau.heure_debut);
+    const end = heureToMinutes(creneau.heure_fin);
+    if (start === null || end === null || end <= start) continue;
+    if (!labelParMinute.has(start)) labelParMinute.set(start, formatCreneauHeure(creneau.heure_debut));
+    if (!labelParMinute.has(end)) labelParMinute.set(end, formatCreneauHeure(creneau.heure_fin));
+  }
+
+  const marks = [...labelParMinute.entries()]
+    .map(([minutes, label]) => ({ minutes, label, top: minutesToPx(minutes, zoom) }))
+    .sort((a, b) => a.top - b.top);
+
+  const visibleTops: number[] = [];
+  return marks.filter((mark) => {
+    if (visibleTops.some((top) => Math.abs(top - mark.top) < MIN_GUTTER_MARK_GAP_PX)) return false;
+    visibleTops.push(mark.top);
+    return true;
+  });
+}
+
+// Gouttière des heures : une heure pleine (06h, 07h, ...) par ligne, sauf
+// au niveau d'un début/fin de créneau de travail (`creneaux`), où l'heure
+// pleine est remplacée par l'heure précise du créneau en vert — jamais les
+// deux superposées. `compact` réduit la taille de police des repères verts
+// pour la gouttière partagée de WeekView (les heures pleines gardent
+// toujours la même taille).
+export function TimeGutter({
+  zoom,
+  creneaux = [],
+  compact = false,
+}: {
+  zoom: number;
+  creneaux?: CreneauDuJour[];
+  compact?: boolean;
+}) {
+  const workMarks = computeWorkHourMarks(creneaux, zoom);
+  const hours = HOURS.map((h) => ({ hour: h, top: minutesToPx(h * 60, zoom) })).filter(
+    ({ top }) => !workMarks.some((mark) => Math.abs(mark.top - top) < MIN_GUTTER_MARK_GAP_PX)
+  );
+
   return (
     <div className="relative shrink-0" style={{ width: GUTTER_WIDTH, height: gridHeight(zoom) }}>
-      {HOURS.map((h) => (
+      {hours.map(({ hour, top }) => (
         <span
-          key={h}
+          key={`h-${hour}`}
           className="absolute right-1 -translate-y-1/2 text-[10px] font-medium text-ink-2"
-          style={{ top: minutesToPx(h * 60, zoom) }}
+          style={{ top }}
         >
-          {String(h).padStart(2, "0")}h
+          {String(hour).padStart(2, "0")}h
+        </span>
+      ))}
+      {workMarks.map((mark) => (
+        <span
+          key={`w-${mark.minutes}`}
+          className={`absolute right-1 -translate-y-1/2 whitespace-nowrap font-semibold text-planning-travail ${
+            compact ? "text-[9px]" : "text-[10px]"
+          }`}
+          style={{ top: mark.top }}
+        >
+          {mark.label}
         </span>
       ))}
     </div>
@@ -145,19 +219,13 @@ export function HourLines({ zoom }: { zoom: number }) {
   );
 }
 
-// "18:00:00" (ou "18:00") -> "18h00", format horaire français attendu sur
-// les repères d'horaire (WorkHoursGutterMarks).
-function formatCreneauHeure(heure: string): string {
-  const [h, m] = heure.split(":");
-  return `${h}h${m}`;
-}
-
 // Bande "heures de travail" : un <div> par créneau du jour (pause déjeuner
 // = deux créneaux disjoints), simple aplat de couleur dédiée
 // --accent-planning-travail-soft (déjà à ~30% d'opacité). Le libellé
-// d'horaire ne vit plus ici (voir WorkHoursGutterMarks) : un bloc de tâche
-// positionné sur ce créneau peut recouvrir toute la bande sans jamais
-// masquer d'information. Un jour sans créneau ne dessine aucune bande.
+// d'horaire ne vit plus ici mais dans TimeGutter (voir computeWorkHourMarks
+// ci-dessus) : un bloc de tâche positionné sur ce créneau peut recouvrir
+// toute la bande sans jamais masquer d'information. Un jour sans créneau ne
+// dessine aucune bande.
 export function WorkHoursBand({ creneaux, zoom }: { creneaux: CreneauDuJour[]; zoom: number }) {
   return (
     <>
@@ -179,84 +247,5 @@ export function WorkHoursBand({ creneaux, zoom }: { creneaux: CreneauDuJour[]; z
         );
       })}
     </>
-  );
-}
-
-// Distance minimale, en px réellement rendus (constante, non affectée par
-// `zoom`), en dessous de laquelle deux repères de la gouttière (heure
-// pleine noire de TimeGutter, ou repère vert de créneau) sont considérés en
-// collision : le second n'est alors pas affiché plutôt que de superposer
-// deux textes illisibles. Non scalée par `zoom` car la taille du texte
-// (text-[9px]/[10px]) ne l'est pas non plus — c'est un seuil de lisibilité
-// à l'écran, pas une proximité temporelle.
-const MIN_GUTTER_MARK_GAP_PX = 10;
-
-// Repères d'horaire de travail dans la gouttière des heures : un petit
-// trait + le libellé "HHhMM" au niveau de chaque début/fin de créneau,
-// affichés dans TimeGutter (jamais recouverts par un bloc de tâche,
-// contrairement à l'ancien libellé dans WorkHoursBand). `compact` réduit la
-// taille de police pour la gouttière partagée de WeekView.
-export function WorkHoursGutterMarks({
-  creneaux,
-  zoom,
-  compact = false,
-}: {
-  creneaux: CreneauDuJour[];
-  zoom: number;
-  compact?: boolean;
-}) {
-  // Dédoublonnage : plusieurs créneaux (jours différents en Vue Semaine, ou
-  // fin de matinée / début d'après-midi coïncidant) peuvent partager la même
-  // minute de début ou de fin — un seul repère par position arrondie à la
-  // minute.
-  const labelParMinute = new Map<number, string>();
-  for (const creneau of creneaux) {
-    const start = heureToMinutes(creneau.heure_debut);
-    const end = heureToMinutes(creneau.heure_fin);
-    if (start === null || end === null || end <= start) continue;
-    if (!labelParMinute.has(start)) labelParMinute.set(start, formatCreneauHeure(creneau.heure_debut));
-    if (!labelParMinute.has(end)) labelParMinute.set(end, formatCreneauHeure(creneau.heure_fin));
-  }
-
-  const marks = [...labelParMinute.entries()]
-    .map(([minutes, label]) => ({ minutes, label, top: minutesToPx(minutes, zoom) }))
-    .sort((a, b) => a.top - b.top);
-
-  // Anti-collision : un repère d'heure pleine (noir, TimeGutter) est
-  // toujours prioritaire ; entre repères verts, le premier rencontré
-  // (le plus haut) l'emporte.
-  const hourTops = HOURS.map((h) => minutesToPx(h * 60, zoom));
-  const visibleTops: number[] = [];
-  const visibleMarks = marks.filter((mark) => {
-    const collision =
-      hourTops.some((top) => Math.abs(top - mark.top) < MIN_GUTTER_MARK_GAP_PX) ||
-      visibleTops.some((top) => Math.abs(top - mark.top) < MIN_GUTTER_MARK_GAP_PX);
-    if (collision) return false;
-    visibleTops.push(mark.top);
-    return true;
-  });
-
-  return (
-    <div
-      className="pointer-events-none absolute inset-0"
-      style={{ width: GUTTER_WIDTH, height: gridHeight(zoom) }}
-    >
-      {visibleMarks.map((mark) => (
-        <div key={mark.minutes} className="absolute inset-x-0" style={{ top: mark.top }}>
-          <span
-            className={`absolute right-1 whitespace-nowrap font-semibold text-planning-travail ${
-              compact ? "text-[9px]" : "text-[10px]"
-            }`}
-            style={{ transform: "translateY(calc(-100% - 2px))" }}
-          >
-            {mark.label}
-          </span>
-          <span
-            className="absolute right-0 h-[2px] w-2 -translate-y-1/2"
-            style={{ backgroundColor: "var(--accent-planning-travail)" }}
-          />
-        </div>
-      ))}
-    </div>
   );
 }

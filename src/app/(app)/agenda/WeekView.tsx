@@ -25,7 +25,6 @@ import {
   UNSCHEDULED_BAND_HEIGHT,
   useInitialScroll,
   WorkHoursBand,
-  WorkHoursGutterMarks,
 } from "./TimeGrid";
 import {
   BASE_DAY_COLUMN_WIDTH,
@@ -155,10 +154,7 @@ export function WeekView({
             <div className="sticky left-0 z-20 bg-surface">
               <div className="h-11 border-b border-line" />
               <div className="border-b border-line/60" style={{ height: UNSCHEDULED_BAND_HEIGHT }} />
-              <div className="relative" style={{ width: GUTTER_WIDTH, height: gridHeight(zoom) }}>
-                <TimeGutter zoom={zoom} />
-                <WorkHoursGutterMarks creneaux={creneauxSemaine} zoom={zoom} compact />
-              </div>
+              <TimeGutter zoom={zoom} creneaux={creneauxSemaine} compact />
             </div>
 
             {days.map((day) => {
