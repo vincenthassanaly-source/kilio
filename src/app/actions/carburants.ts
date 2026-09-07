@@ -8,21 +8,33 @@ import {
 } from "@/lib/carburants/compute";
 
 // Dataset officiel du Ministère de l'Économie (OpenDataSoft, Explore API
-// v2.1), gratuit et sans clé. Le schéma exact des champs (noms des prix par
-// carburant, forme du champ géographique) n'a pas pu être vérifié par un
-// appel de test réel : l'accès réseau sortant vers data.economie.gouv.fr est
-// bloqué par la politique d'égress de la session Claude Code (403 confirmé à
-// deux reprises, sur deux sessions différentes — voir reports/). Les noms
-// utilisés ci-dessous (`sp95_prix`, `sp98_prix`, `e10_prix`, `*_maj`,
-// `geom`/`geo_point_2d`, `adresse`, `ville`, `nom`) sont ceux documentés
-// publiquement pour ce dataset, avec un parsing volontairement tolérant
-// (champs optionnels, plusieurs variantes essayées) pour ne jamais planter
-// si un nom diffère légèrement en prod. Le vrai filet de sécurité est
-// `distanceMetres` recalculée nous-mêmes à partir des coordonnées
-// effectivement extraites, puis filtrée ci-dessous : la fiabilité du module
-// ne dépend donc plus de la syntaxe exacte de `geofilter.distance` côté API
-// (voir "Filtrage défensif" plus bas) — seule l'extraction du point
-// géographique (`extraireGeoPoint`) reste critique et non vérifiée en live.
+// v2.1), gratuit et sans clé.
+//
+// Cause racine du bug des distances aberrantes (ex. 671 km pour un rayon de
+// 10 km) : l'appel utilisait `geofilter.distance=lat,lon,rayonMetres`, un
+// paramètre de l'API Search v1 d'OpenDataSoft — inexistant sur l'Explore API
+// v2.1 utilisée ici. Silencieusement ignoré par le serveur, il ne filtrait
+// donc rien : l'API renvoyait ses `limit` premiers résultats dans un ordre
+// non géographique. Confirmé par la doc officielle OpenDataSoft (changelog
+// v2.0 → v2.1, help.opendatasoft.com/apis/ods-explore-v2/) : le filtre
+// géographique passe désormais par le langage ODSQL, paramètre `where`, via
+// `within_distance(<champ_geo>, geom'POINT(<lon> <lat>)', <distance>km)` —
+// syntaxe utilisée ci-dessous.
+//
+// Le nom exact du champ géographique (`geom`, hypothèse retenue vu l'export
+// GeoJSON du dataset) et les noms des champs de prix (`sp95_prix`, etc.)
+// n'ont en revanche toujours pas pu être vérifiés par un appel de test réel :
+// l'accès réseau sortant vers data.economie.gouv.fr est bloqué par la
+// politique d'égress de la session Claude Code (403 confirmé à trois
+// reprises désormais, sur trois sessions différentes — voir reports/). Le
+// parsing reste donc volontairement tolérant (champs optionnels, plusieurs
+// variantes de forme essayées) pour ne jamais planter si un nom diffère
+// légèrement en prod, et le filtrage défensif par distance ci-dessous (voir
+// `MARGE_DISTANCE`) reste en place comme garde-fou final : même si
+// `within_distance` échouait à son tour ou visait le mauvais champ, aucune
+// station hors du rayon demandé ne peut être affichée, la distance étant
+// systématiquement recalculée nous-mêmes à partir du point géographique
+// effectivement extrait par `extraireGeoPoint`.
 const DATASET_URL =
   "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records";
 const LIMITE_RESULTATS = 50;
@@ -118,7 +130,11 @@ function distanceMetres(lat1: number, lon1: number, lat2: number, lon2: number):
 export async function getStationsProches(lat: number, lon: number, rayonKm: number): Promise<ResultatStationsProches> {
   try {
     const rayonMetres = Math.round(rayonKm * 1000);
-    const url = `${DATASET_URL}?limit=${LIMITE_RESULTATS}&geofilter.distance=${lat},${lon},${rayonMetres}`;
+    // ODSQL (Explore API v2.1) : `geom'POINT(lon lat)'` — ordre lon/lat, pas
+    // lat/lon. `encodeURIComponent` porte uniquement sur la clause `where`,
+    // pas sur l'URL entière, pour ne pas casser `limit`.
+    const where = `within_distance(geom, geom'POINT(${lon} ${lat})', ${rayonKm}km)`;
+    const url = `${DATASET_URL}?limit=${LIMITE_RESULTATS}&where=${encodeURIComponent(where)}`;
 
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
@@ -177,10 +193,11 @@ export async function getStationsProches(lat: number, lon: number, rayonKm: numb
       lon: station.point.lon,
     }));
 
-    // Filtrage défensif : `geofilter.distance` n'a pas pu être vérifié en
-    // conditions réelles (voir commentaire en tête de fichier). On exclut
-    // nous-mêmes toute station au-delà du rayon demandé (+ marge), quel que
-    // soit ce que l'API a réellement renvoyé côté serveur — c'est ce qui
+    // Filtrage défensif : `within_distance` n'a pas pu être vérifié en
+    // conditions réelles (voir commentaire en tête de fichier — accès réseau
+    // toujours bloqué). On exclut nous-mêmes toute station au-delà du rayon
+    // demandé (+ marge), quel que soit ce que l'API a réellement renvoyé côté
+    // serveur — c'est ce garde-fou, indépendant de la clause `where`, qui
     // évite d'afficher une station à 671 km pour un rayon de 10 km.
     const rayonMaxMetres = rayonMetres * MARGE_DISTANCE;
     const dansLeRayon = stationsAvecDistance.filter((station) => station.distanceMetres <= rayonMaxMetres);
