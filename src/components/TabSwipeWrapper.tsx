@@ -12,10 +12,18 @@ import { useNavigationEdit } from "@/lib/navigation/NavigationEditContext";
 // React bubblent jusqu'à `<main>`, donc attacher aussi les handlers de swipe
 // entre onglets sur ces routes exactes déclencherait les deux détections
 // pour un même geste et casserait le swipe interne (constaté sur Agenda).
-// Exclues du swipe entre onglets même si épinglées en barre du bas — on peut
-// toujours y arriver en swipant depuis un onglet voisin, seule la détection
-// *sur* la route elle-même est désactivée.
+// Exclues du swipe entre onglets sur `<main>` même si épinglées en barre du
+// bas — mais une bande dédiée tout en haut de l'écran (`ZoneSwipeHaut`
+// ci-dessous, au-dessus du sélecteur de vues Jour/Semaine/Mois/Liste sur
+// Agenda) réactive quand même le swipe entre onglets sur ces routes, sans
+// conflit puisque `<main>` n'y a aucun handler attaché.
 const ROUTES_SWIPE_INTERNE = ["/agenda"];
+
+// Hauteur (hors safe-area) de la bande vide en haut de `<main>`, au-dessus
+// du contenu de page : sert à la fois de `paddingTop` de `<main>` et de
+// hauteur pour `ZoneSwipeHaut`, pour que les deux valeurs ne divergent
+// jamais.
+const HAUTEUR_ZONE_HAUT_PX = 64;
 
 /**
  * Enrobe le `<main>` commun à toutes les pages de `(app)` pour détecter un
@@ -45,7 +53,10 @@ export function TabSwipeWrapper({ children }: { children: ReactNode }) {
   const actif = indexOngletActif !== -1 && !ROUTES_SWIPE_INTERNE.includes(pathname);
 
   function handleSwipe(sens: SensSwipe) {
-    if (!actif) return;
+    // Garde sur `indexOngletActif` (pas `actif`) : `actif` ne vaut jamais
+    // `true` sur les routes de `ROUTES_SWIPE_INTERNE`, alors que
+    // `ZoneSwipeHaut` a justement besoin d'y déclencher la navigation.
+    if (indexOngletActif === -1) return;
     const prochainIndex = indexOngletActif + (sens === "suivant" ? 1 : -1);
     if (prochainIndex < 0 || prochainIndex >= modulesBarreBasse.length) return;
     navigate(modulesBarreBasse[prochainIndex], sens === "suivant" ? "avance" : "recule");
@@ -53,21 +64,37 @@ export function TabSwipeWrapper({ children }: { children: ReactNode }) {
 
   const swipeHandlers = useSwipeHorizontal(handleSwipe);
 
+  // Deuxième instance dédiée à `ZoneSwipeHaut` : indépendante de
+  // `swipeHandlers` ci-dessus (qui reste, elle, réservée à `<main>`) mais
+  // réutilise la même `handleSwipe`, donc la même logique de navigation.
+  const swipeHandlersZoneHaut = useSwipeHorizontal(handleSwipe);
+  const estOngletEpingle = modulesBarreBasse.includes(pathname);
+  const zoneSwipeHautActive = ROUTES_SWIPE_INTERNE.includes(pathname) && estOngletEpingle;
+
   const mainRef = useRef<HTMLElement>(null);
   useScrollRestoration(mainRef);
 
   return (
-    <main
-      ref={mainRef}
-      className="flex-1 overflow-x-hidden overflow-y-auto px-4"
-      style={{
-        paddingTop: "calc(env(safe-area-inset-top) + 64px)",
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 112px)",
-        overscrollBehaviorY: "contain",
-      }}
-      {...(actif ? swipeHandlers : {})}
-    >
-      {children}
-    </main>
+    <>
+      {zoneSwipeHautActive && (
+        <div
+          className="fixed inset-x-0 top-0 z-30"
+          style={{ height: `calc(env(safe-area-inset-top) + ${HAUTEUR_ZONE_HAUT_PX}px)` }}
+          {...swipeHandlersZoneHaut}
+        />
+      )}
+      <main
+        ref={mainRef}
+        className="flex-1 overflow-x-hidden overflow-y-auto px-4"
+        style={{
+          paddingTop: `calc(env(safe-area-inset-top) + ${HAUTEUR_ZONE_HAUT_PX}px)`,
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 112px)",
+          overscrollBehaviorY: "contain",
+        }}
+        {...(actif ? swipeHandlers : {})}
+      >
+        {children}
+      </main>
+    </>
   );
 }
