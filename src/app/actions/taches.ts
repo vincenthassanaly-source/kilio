@@ -17,7 +17,7 @@ const FREQUENCES: readonly Enums<"frequence_recurrence">[] = [
 ];
 
 const HEURE_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const RAPPEL_MINUTES_VALEURS = [5, 15, 30] as const;
+const RAPPEL_MINUTES_VALEURS = [5, 15, 30, 60, 1440] as const;
 
 function revalidateTachesPaths() {
   revalidatePath("/taches");
@@ -76,13 +76,27 @@ function parseTacheInput(formData: FormData): ParseResult {
     ? (recurrence_frequence as Enums<"frequence_recurrence">)
     : null;
 
-  // Un rappel n'a de sens qu'avec une heure précise : toute valeur hors
-  // 5/15/30 (y compris vide) est silencieusement ramenée à null, plutôt que
-  // rejetée comme une erreur de formulaire.
+  // Un rappel n'a de sens qu'avec une heure précise (ou, pour une tâche
+  // toute la journée, avec la valeur 1440 ancrée sur 18h la veille) : toute
+  // autre valeur (y compris vide) est silencieusement ramenée à null,
+  // plutôt que rejetée comme une erreur de formulaire.
   const rappel_minutes_parse = Number(rappel_minutes_brut);
-  const rappel_minutes =
-    rappel_minutes_brut && RAPPEL_MINUTES_VALEURS.includes(rappel_minutes_parse as 5 | 15 | 30)
+  const rappel_minutes_valide =
+    rappel_minutes_brut &&
+    RAPPEL_MINUTES_VALEURS.includes(rappel_minutes_parse as (typeof RAPPEL_MINUTES_VALEURS)[number])
       ? rappel_minutes_parse
+      : null;
+  // Toute la journée : seule 1440 (la veille) a un sens sans heure précise —
+  // jamais de défaut automatique, Vincent la sélectionne manuellement.
+  // Avec heure précise : rappel n'a de sens que si heure est renseignée,
+  // même si le client envoyait une valeur (défensif, la même règle que
+  // toute_la_journee ci-dessous pour heure/heure_fin).
+  const rappel_minutes = toute_la_journee
+    ? rappel_minutes_valide === 1440
+      ? 1440
+      : null
+    : heure
+      ? rappel_minutes_valide
       : null;
 
   return {
@@ -104,7 +118,7 @@ function parseTacheInput(formData: FormData): ParseResult {
       // unite/valeur_cible pour les objectifs de type "valeur").
       recurrence_fin: frequence && recurrence_fin ? recurrence_fin : null,
       toute_la_journee,
-      rappel_minutes: toute_la_journee ? null : rappel_minutes,
+      rappel_minutes,
     },
   };
 }

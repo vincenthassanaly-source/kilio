@@ -229,7 +229,15 @@ export function AddTaskForm({
           type="checkbox"
           name="toute_la_journee"
           checked={touteLaJournee}
-          onChange={(e) => setTouteLaJournee(e.target.checked)}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            // Les valeurs 5/15/30/60 n'existent pas dans le select "toute la
+            // journée" (seul "" ou "1440" y a un sens) : on les efface pour
+            // ne pas les soumettre silencieusement si elles restent d'une
+            // saisie précédente avec heure.
+            if (checked && rappelMinutes !== "" && rappelMinutes !== "1440") setRappelMinutes("");
+            setTouteLaJournee(checked);
+          }}
           className="h-4 w-4 rounded border-line"
         />
         Toute la journée
@@ -287,6 +295,26 @@ export function AddTaskForm({
             <option value="5">5 min avant</option>
             <option value="15">15 min avant</option>
             <option value="30">30 min avant</option>
+            <option value="60">1h avant</option>
+            <option value="1440">1 jour avant (la veille)</option>
+          </select>
+        </div>
+      )}
+
+      {touteLaJournee && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="rappel_minutes" className={labelClass}>
+            Rappel
+          </label>
+          <select
+            id="rappel_minutes"
+            name="rappel_minutes"
+            value={rappelMinutes}
+            onChange={(e) => setRappelMinutes(e.target.value)}
+            className={input}
+          >
+            <option value="">Aucun</option>
+            <option value="1440">La veille à 18h</option>
           </select>
         </div>
       )}

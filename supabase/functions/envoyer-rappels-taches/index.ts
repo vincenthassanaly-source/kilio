@@ -35,9 +35,14 @@ type TacheCandidate = {
   id: string;
   titre: string;
   echeance: string; // YYYY-MM-DD
-  heure: string; // HH:MM:SS
+  heure: string | null; // HH:MM:SS, null pour une tâche toute la journée
   rappel_minutes: number;
 };
+
+// Ancrage horaire d'un rappel "toute la journée" (rappel_minutes = 1440,
+// seule valeur possible pour ces tâches) : faute d'heure précise sur la
+// tâche, la notification part la veille à 18h00 (Paris).
+const RAPPEL_JOURNEE_HEURE_ANCRAGE = "18:00:00";
 
 // L'app est mono-utilisateur (Vincent, en France) et echeance/heure sont
 // saisies via des <input date>/<input time> qui reflètent l'heure locale
@@ -72,7 +77,7 @@ function parisOffsetMinutes(approxUtc: Date): number {
 
 function tacheHeureUtcMs(tache: TacheCandidate): number {
   const [year, month, day] = tache.echeance.split("-").map(Number);
-  const [hour, minute, second] = tache.heure.split(":").map(Number);
+  const [hour, minute, second] = (tache.heure ?? RAPPEL_JOURNEE_HEURE_ANCRAGE).split(":").map(Number);
   const approxUtcMs = Date.UTC(year, month - 1, day, hour, minute, second ?? 0);
   const offsetMinutes = parisOffsetMinutes(new Date(approxUtcMs));
   return approxUtcMs - offsetMinutes * 60_000;
@@ -95,7 +100,7 @@ Deno.serve(async () => {
 
   const nowMs = Date.now();
 
-  const { data: candidates, error: fetchError } = await supabase
+  const { data: candidatesAvecHeure, error: fetchErrorAvecHeure } = await supabase
     .from("taches")
     .select("id, titre, echeance, heure, rappel_minutes")
     .eq("fait", false)
@@ -104,16 +109,33 @@ Deno.serve(async () => {
     .not("rappel_minutes", "is", null)
     .is("rappel_envoye_le", null);
 
-  if (fetchError) {
-    return new Response(JSON.stringify({ error: fetchError.message }), {
+  if (fetchErrorAvecHeure) {
+    return new Response(JSON.stringify({ error: fetchErrorAvecHeure.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const dues = (candidates ?? []).filter((t): t is TacheCandidate =>
-    isDue(t as TacheCandidate, nowMs)
-  );
+  // Tâches toute la journée : pas de filtre sur heure (forcément null pour
+  // elles), seul rappel_minutes = 1440 (la veille) est proposé côté client.
+  const { data: candidatesJournee, error: fetchErrorJournee } = await supabase
+    .from("taches")
+    .select("id, titre, echeance, heure, rappel_minutes")
+    .eq("fait", false)
+    .eq("toute_la_journee", true)
+    .eq("rappel_minutes", 1440)
+    .is("rappel_envoye_le", null);
+
+  if (fetchErrorJournee) {
+    return new Response(JSON.stringify({ error: fetchErrorJournee.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const candidates = [...(candidatesAvecHeure ?? []), ...(candidatesJournee ?? [])];
+
+  const dues = candidates.filter((t): t is TacheCandidate => isDue(t as TacheCandidate, nowMs));
 
   if (dues.length === 0) {
     return new Response(JSON.stringify({ sent: 0 }), {
@@ -136,9 +158,15 @@ Deno.serve(async () => {
   let expired = 0;
 
   for (const tache of dues) {
+    const body =
+      tache.rappel_minutes === 1440
+        ? "demain"
+        : tache.rappel_minutes === 60
+          ? "dans 1h"
+          : `dans ${tache.rappel_minutes} min`;
     const payload = JSON.stringify({
       title: tache.titre,
-      body: `dans ${tache.rappel_minutes} min`,
+      body,
       url: `/agenda?tache=${tache.id}`,
     });
 
