@@ -5,6 +5,7 @@ import { getStationsProches } from "@/app/actions/carburants";
 import type { ResultatStationsProches, StationCarburant } from "@/app/actions/carburants";
 import { formaterDistance, trierParDistanceCroissante, trierParPrixCroissant } from "@/lib/carburants/compute";
 import { card, screenTitle, secondaryButton, errorText, linkButton } from "@/lib/ui";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const RAYON_DEFAUT_KM = 10;
 const RAYONS_DISPONIBLES = [5, 10, 20, 50] as const;
@@ -136,6 +137,7 @@ export function CarburantsView() {
       : [];
 
   return (
+    <PullToRefresh onRefresh={localiser}>
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className={screenTitle}>Carburants</h1>
@@ -212,6 +214,7 @@ export function CarburantsView() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }
 

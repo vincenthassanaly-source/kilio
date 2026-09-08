@@ -110,6 +110,18 @@ body {
   color: var(--ink);
 }
 
+/* Désactive le pull-to-refresh natif du navigateur/WebView (rechargement
+   complet et incontrôlé de la page, hors de toute logique React) sur toute
+   l'app PWA installée en standalone sur mobile. `contain` (pas `none`)
+   pour ne bloquer que la propagation du geste vers le document — le
+   rebond élastique normal d'un scroll interne (ex: <main>, cf.
+   TabSwipeWrapper.tsx qui porte déjà cette même valeur) n'est pas affecté.
+   Voir reports/2026-09-08-fix-pull-to-refresh-carburants.md. */
+html,
+body {
+  overscroll-behavior-y: contain;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: var(--ink-3);
