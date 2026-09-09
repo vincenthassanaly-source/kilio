@@ -27,7 +27,9 @@
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
-      "files": [{ "name": "photos", "accept": ["image/*"] }]
+      "files": [{ "name": "photos", "accept": ["image/*"] }],
+      "text": "text",
+      "url": "url"
     }
   },
   "shortcuts": [

@@ -10,9 +10,11 @@ const initialState: RattacherPhotoFormState = { error: null };
 export function ChoisirCollectionForm({
   collections,
   photos,
+  tiktok,
 }: {
   collections: Tables<"collections">[];
   photos: string[];
+  tiktok?: { url: string; thumbnailUrl: string; titre: string } | null;
 }) {
   const [state, formAction, pending] = useActionState(rattacherPhotoACollection, initialState);
   const [collectionId, setCollectionId] = useState<string | null>(null);
@@ -23,6 +25,13 @@ export function ChoisirCollectionForm({
       {photos.map((url) => (
         <input key={url} type="hidden" name="url" value={url} />
       ))}
+      {tiktok && (
+        <>
+          <input type="hidden" name="tiktok_url" value={tiktok.url} />
+          <input type="hidden" name="tiktok_thumbnail" value={tiktok.thumbnailUrl} />
+          <input type="hidden" name="tiktok_titre" value={tiktok.titre} />
+        </>
+      )}
       <input type="hidden" name="collection_id" value={collectionId ?? ""} />
 
       {collections.length > 0 && (

@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { uploadCollectionPhotos } from "@/app/actions/collections";
-import { errorText } from "@/lib/ui";
+import { ajouterLienTiktok, uploadCollectionPhotos } from "@/app/actions/collections";
+import { errorText, input, primaryButton } from "@/lib/ui";
 
 const ADD_PHOTO_BUTTON =
   "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-dashed border-kcal/50 py-3 text-[13px] font-semibold text-kcal transition-colors hover:bg-kcal-soft";
@@ -26,6 +26,15 @@ function GalerieIcon() {
   );
 }
 
+function TiktokIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 4v10.2a3.3 3.3 0 1 1-2.6-3.23" />
+      <path d="M14 4c.3 2.2 1.9 3.8 4 4" />
+    </svg>
+  );
+}
+
 // Deux points d'entrée distincts plutôt qu'un seul input `capture` : sur pas
 // mal de navigateurs mobiles, l'attribut `capture` fait sauter directement à
 // l'appareil photo sans proposer la galerie. Un input dédié par usage
@@ -35,6 +44,11 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
   const galerieInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const [tiktokOpen, setTiktokOpen] = useState(false);
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [tiktokPending, startTiktokTransition] = useTransition();
+  const [tiktokError, setTiktokError] = useState<string | null>(null);
 
   function handleFiles(files: FileList | null, inputRef: React.RefObject<HTMLInputElement | null>) {
     if (!files || files.length === 0) return;
@@ -50,6 +64,23 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
         setError(err instanceof Error ? err.message : "Erreur lors de l'envoi.");
       } finally {
         if (inputRef.current) inputRef.current.value = "";
+      }
+    });
+  }
+
+  function handleAjouterTiktok(e: React.FormEvent) {
+    e.preventDefault();
+    const lien = tiktokUrl.trim();
+    if (!lien) return;
+
+    setTiktokError(null);
+    startTiktokTransition(async () => {
+      try {
+        await ajouterLienTiktok(collectionId, lien);
+        setTiktokUrl("");
+        setTiktokOpen(false);
+      } catch (err) {
+        setTiktokError(err instanceof Error ? err.message : "Erreur lors de l'ajout.");
       }
     });
   }
@@ -89,9 +120,36 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
         />
       </div>
 
-      {error && (
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setTiktokOpen((v) => !v)}
+          className={`${ADD_PHOTO_BUTTON} ${tiktokPending ? "opacity-60" : ""}`}
+        >
+          <TiktokIcon />
+          Lien TikTok
+        </button>
+      </div>
+
+      {tiktokOpen && (
+        <form onSubmit={handleAjouterTiktok} className="flex gap-2">
+          <input
+            autoFocus
+            value={tiktokUrl}
+            onChange={(e) => setTiktokUrl(e.target.value)}
+            placeholder="https://www.tiktok.com/..."
+            disabled={tiktokPending}
+            className={`${input} flex-1`}
+          />
+          <button type="submit" disabled={tiktokPending} className={primaryButton}>
+            {tiktokPending ? "..." : "OK"}
+          </button>
+        </form>
+      )}
+
+      {(error || tiktokError) && (
         <p className={errorText} role="alert">
-          {error}
+          {error ?? tiktokError}
         </p>
       )}
     </div>

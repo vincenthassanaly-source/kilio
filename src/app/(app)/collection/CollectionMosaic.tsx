@@ -1,4 +1,5 @@
 import { FadeInImage } from "@/components/FadeInImage";
+import type { ApercuItem } from "@/app/actions/collections";
 
 function PhotoPlaceholderIcon() {
   return (
@@ -16,7 +17,7 @@ export function CollectionMosaic({
   photos,
   viewTransitionName,
 }: {
-  photos: string[];
+  photos: ApercuItem[];
   viewTransitionName?: string;
 }) {
   if (photos.length === 0) {
@@ -31,10 +32,11 @@ export function CollectionMosaic({
     return (
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-surface-alt">
         <FadeInImage
-          src={photos[0]}
+          src={photos[0].url}
           alt=""
           fill
           sizes="50vw"
+          unoptimized={photos[0].type === "tiktok"}
           style={{ viewTransitionName }}
           className="object-cover"
         />
@@ -45,13 +47,14 @@ export function CollectionMosaic({
   if (photos.length === 2) {
     return (
       <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
-        {photos.map((src, i) => (
+        {photos.map((photo, i) => (
           <div key={i} className="relative h-full w-full">
             <FadeInImage
-              src={src}
+              src={photo.url}
               alt=""
               fill
               sizes="25vw"
+              unoptimized={photo.type === "tiktok"}
               style={i === 0 ? { viewTransitionName } : undefined}
               className="object-cover"
             />
@@ -66,20 +69,35 @@ export function CollectionMosaic({
       <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
         <div className="relative row-span-2 h-full w-full">
           <FadeInImage
-            src={photos[0]}
+            src={photos[0].url}
             alt=""
             fill
             sizes="25vw"
+            unoptimized={photos[0].type === "tiktok"}
             style={{ viewTransitionName }}
             className="object-cover"
           />
         </div>
         <div className="grid grid-rows-2 gap-0.5">
           <div className="relative h-full w-full">
-            <FadeInImage src={photos[1]} alt="" fill sizes="25vw" className="object-cover" />
+            <FadeInImage
+              src={photos[1].url}
+              alt=""
+              fill
+              sizes="25vw"
+              unoptimized={photos[1].type === "tiktok"}
+              className="object-cover"
+            />
           </div>
           <div className="relative h-full w-full">
-            <FadeInImage src={photos[2]} alt="" fill sizes="25vw" className="object-cover" />
+            <FadeInImage
+              src={photos[2].url}
+              alt=""
+              fill
+              sizes="25vw"
+              unoptimized={photos[2].type === "tiktok"}
+              className="object-cover"
+            />
           </div>
         </div>
       </div>
@@ -88,13 +106,14 @@ export function CollectionMosaic({
 
   return (
     <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
-      {photos.slice(0, 4).map((src, i) => (
+      {photos.slice(0, 4).map((photo, i) => (
         <div key={i} className="relative h-full w-full">
           <FadeInImage
-            src={src}
+            src={photo.url}
             alt=""
             fill
             sizes="25vw"
+            unoptimized={photo.type === "tiktok"}
             style={i === 0 ? { viewTransitionName } : undefined}
             className="object-cover"
           />

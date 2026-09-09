@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import sharp from "sharp";
+import { recupererMetadonneesTiktok } from "@/lib/collection/tiktok";
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/types";
+import type { Tables, TablesInsert } from "@/lib/supabase/types";
 
 const COLLECTION_IMAGES_BUCKET = "collection-images";
 const COLLECTION_IMAGE_MAX_DIMENSION = 1600;
@@ -62,8 +63,10 @@ function extraireCheminStorage(url: string): string | null {
 
 // --- Collections ---
 
+export type ApercuItem = { url: string; type: string };
+
 export type CollectionAvecApercu = Tables<"collections"> & {
-  photos_apercu: string[];
+  photos_apercu: ApercuItem[];
   nb_photos: number;
 };
 
@@ -72,7 +75,7 @@ export async function getCollectionsAvecApercu(): Promise<CollectionAvecApercu[]
 
   const { data, error } = await supabase
     .from("collections")
-    .select("*, collection_items(url, ordre)")
+    .select("*, collection_items(url, thumbnail_url, type, ordre)")
     .order("ordre", { ascending: true })
     .order("created_at", { ascending: false })
     .order("ordre", { referencedTable: "collection_items", ascending: true });
@@ -81,7 +84,10 @@ export async function getCollectionsAvecApercu(): Promise<CollectionAvecApercu[]
 
   return (data ?? []).map(({ collection_items, ...collection }) => ({
     ...collection,
-    photos_apercu: collection_items.slice(0, APERCU_PHOTOS_LIMIT).map((item) => item.url),
+    photos_apercu: collection_items.slice(0, APERCU_PHOTOS_LIMIT).map((item) => ({
+      url: item.thumbnail_url ?? item.url,
+      type: item.type,
+    })),
     nb_photos: collection_items.length,
   }));
 }
@@ -213,6 +219,41 @@ export async function uploadCollectionPhotos(collectionId: string, formData: For
   revalidateCollectionsPaths(collectionId);
 }
 
+// Ajoute un lien vidéo TikTok à une collection : récupère ses métadonnées
+// (miniature, titre) via oEmbed puis insère un collection_items de type
+// 'tiktok'. Suit le même pattern (throw + gestion d'erreur côté composant)
+// que uploadCollectionPhotos, plutôt qu'un useActionState : c'est le champ
+// d'ajout inline le plus proche dans AddPhotoButton.
+export async function ajouterLienTiktok(collectionId: string, url: string) {
+  const lien = url.trim();
+  if (!lien) throw new Error("Le lien est requis.");
+
+  const metadonnees = await recupererMetadonneesTiktok(lien);
+  if (!metadonnees) throw new Error("Lien TikTok invalide ou introuvable.");
+
+  const supabase = await createClient();
+
+  const { data: derniere } = await supabase
+    .from("collection_items")
+    .select("ordre")
+    .eq("collection_id", collectionId)
+    .order("ordre", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase.from("collection_items").insert({
+    collection_id: collectionId,
+    type: "tiktok",
+    url: metadonnees.url,
+    thumbnail_url: metadonnees.thumbnailUrl,
+    titre: metadonnees.titre || null,
+    ordre: (derniere?.ordre ?? -1) + 1,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidateCollectionsPaths(collectionId);
+}
+
 export async function deleteCollectionItem(itemId: string) {
   const supabase = await createClient();
 
@@ -249,14 +290,21 @@ export async function uploaderPhotosPartagees(fichiers: File[]): Promise<string[
   return urls;
 }
 
+// Équivalent de uploaderPhotosPartagees pour un lien TikTok partagé : récupère
+// ses métadonnées immédiatement (sans les rattacher à une collection), pour
+// que route.ts les propage en query params vers /collection/partage/choisir.
+export async function recupererLienTiktokPartage(url: string) {
+  return recupererMetadonneesTiktok(url);
+}
+
 export type RattacherPhotoFormState = { error: string | null };
 
-// Rattache une ou plusieurs photos déjà uploadées (partage natif) à une
-// collection existante ou à une nouvelle collection créée à la volée, puis
-// redirige vers la vue de la collection. Signature (prevState, formData)
-// pour être pilotée par useActionState, comme le reste du repo (cf.
-// createCollection/createNote) : redirect() est appelé après la mutation et
-// n'a donc jamais besoin de renvoyer un état de succès.
+// Rattache une ou plusieurs photos et/ou un lien TikTok déjà résolus
+// (partage natif) à une collection existante ou à une nouvelle collection
+// créée à la volée, puis redirige vers la vue de la collection. Signature
+// (prevState, formData) pour être pilotée par useActionState, comme le reste
+// du repo (cf. createCollection/createNote) : redirect() est appelé après la
+// mutation et n'a donc jamais besoin de renvoyer un état de succès.
 export async function rattacherPhotoACollection(
   _prevState: RattacherPhotoFormState,
   formData: FormData
@@ -264,8 +312,11 @@ export async function rattacherPhotoACollection(
   const collectionIdChoisie = String(formData.get("collection_id") ?? "").trim();
   const nouvelleCollectionNom = String(formData.get("nouvelle_collection") ?? "").trim();
   const urls = formData.getAll("url").map(String).filter(Boolean);
+  const tiktokUrl = String(formData.get("tiktok_url") ?? "").trim();
+  const tiktokThumbnail = String(formData.get("tiktok_thumbnail") ?? "").trim();
+  const tiktokTitre = String(formData.get("tiktok_titre") ?? "").trim();
 
-  if (urls.length === 0) return { error: "Aucune photo à rattacher." };
+  if (urls.length === 0 && !tiktokUrl) return { error: "Rien à rattacher." };
   if (!collectionIdChoisie && !nouvelleCollectionNom) {
     return { error: "Choisis une collection ou crée-en une nouvelle." };
   }
@@ -286,9 +337,24 @@ export async function rattacherPhotoACollection(
 
     let ordre = (derniere?.ordre ?? -1) + 1;
 
-    const { error } = await supabase
-      .from("collection_items")
-      .insert(urls.map((url) => ({ collection_id: collectionId, url, ordre: ordre++ })));
+    const items: TablesInsert<"collection_items">[] = urls.map((url) => ({
+      collection_id: collectionId,
+      url,
+      ordre: ordre++,
+    }));
+
+    if (tiktokUrl) {
+      items.push({
+        collection_id: collectionId,
+        type: "tiktok",
+        url: tiktokUrl,
+        thumbnail_url: tiktokThumbnail || null,
+        titre: tiktokTitre || null,
+        ordre: ordre++,
+      });
+    }
+
+    const { error } = await supabase.from("collection_items").insert(items);
     if (error) throw new Error(error.message);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Erreur lors de l'ajout." };
