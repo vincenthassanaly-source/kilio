@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { findNavItem } from "@/lib/navigation/registry";
+import { findNavItem, NAV_ITEMS } from "@/lib/navigation/registry";
 import { updateModulesBarreBasse, updateOrdreGrillePlus } from "@/app/actions/preferences-navigation";
 import { showToast } from "@/components/toast/toast-store";
 import { card } from "@/lib/ui";
@@ -54,10 +54,28 @@ export function NavigationEditProvider({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [ordreGrillePlus, setOrdreGrillePlus] = useState(initialOrdreGrillePlus);
   const [modulesBarreBasse, setModulesBarreBasse] = useState(initialModulesBarreBasse);
   const [isEditingRaw, setIsEditingRaw] = useState(false);
   const [activeHref, setActiveHref] = useState<string | null>(null);
+
+  // Prefetch anticipé de tous les modules non épinglés en barre du bas (ex.
+  // Courses) dès le montage de ce Provider (donc dès la première page de
+  // `(app)` visitée, sans attendre que Vincent passe par `/plus`) : sans ça,
+  // seuls les 4 modules épinglés restent prefetchés en continu (leurs <Link>
+  // de BottomNav restant toujours montés), et taper sur une tuile de
+  // ModulesGrid pour un module jamais visité déclenche un fetch RSC à froid
+  // (voir reports/2026-09-09-lenteur-ouverture-courses.md), visible comme un
+  // écran figé le temps du fetch (la View Transition masque tout retour
+  // visuel tant que `usePathname()` n'a pas rejoint la cible — voir
+  // useViewTransitionNavigate). Ré-exécuté si `modulesBarreBasse` change
+  // (re-épinglage) : `router.prefetch` est un no-op si déjà en cache.
+  useEffect(() => {
+    for (const item of NAV_ITEMS) {
+      if (!modulesBarreBasse.includes(item.href)) router.prefetch(item.href);
+    }
+  }, [router, modulesBarreBasse]);
 
   // Le mode édition ne fait sens que sur /plus (grille visible) : dérivé du
   // pathname plutôt que synchronisé via un effet, pour qu'il redevienne

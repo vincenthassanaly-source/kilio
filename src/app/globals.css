@@ -314,9 +314,35 @@ html[data-nav-direction="recule"]::view-transition-new(root) {
   animation: tache-surbrillance-anim 2.6s ease-out both;
 }
 
+/* Barre de progression indéterminée affichée par TabSwipeWrapper quand
+   `useNavigationEnCours()` (useViewTransitionNavigate.ts) passe à vrai : une
+   navigation a dépassé le court seuil `SEUIL_INDICATEUR_MS` sans avoir
+   atteint sa cible. Rendue hors de toute View Transition (la transition en
+   cours est justement résolue à cet instant précis pour la révéler), donc
+   son animation continue tourne normalement, contrairement à un simple
+   changement de DOM survenant pendant qu'une transition reste en attente
+   (masqué par l'instantané figé de l'ancienne page tant que la promesse du
+   callback n'est pas résolue). */
+@keyframes kilio-barre-navigation-progression-anim {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+.kilio-barre-navigation-progression {
+  animation: kilio-barre-navigation-progression-anim 900ms ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agenda-glisse-suivant,
   .agenda-glisse-precedent {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+
+  .kilio-barre-navigation-progression {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
   }

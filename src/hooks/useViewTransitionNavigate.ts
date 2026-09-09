@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { flushSync } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { isModuleRootPath } from "@/lib/navigation/registry";
 
@@ -20,9 +21,50 @@ const NAV_DIRECTION_ATTR = "navDirection";
 // bloquer la transition indéfiniment.
 const TIMEOUT_NAVIGATION_MS = 3000;
 
+// Au-delà de ce (court) délai sans que le pathname cible n'ait été atteint,
+// on ne laisse plus l'écran totalement figé sans retour visuel : la
+// transition en cours est résolue immédiatement (voir plus bas), révélant
+// tel quel l'état courant du DOM (déjà le skeleton `loading.tsx` de la route
+// cible si elle a eu le temps de commencer à streamer, sinon encore
+// l'ancienne page) surmonté d'un indicateur discret (`useNavigationEnCours`,
+// lu par ex. par TabSwipeWrapper). La navigation réelle continue en tâche de
+// fond, hors View Transition dès cet instant, donc visible en direct dès
+// qu'elle aboutit — sans attendre le filet de sécurité `TIMEOUT_NAVIGATION_MS`.
+const SEUIL_INDICATEUR_MS = 180;
+
+type Listener = () => void;
+
+// Store externe minimal (pas de Context) : `navigate()` peut être déclenché
+// depuis n'importe quel composant (TransitionLink, BottomNav,
+// TabSwipeWrapper...) sans lien de parenté React garanti avec celui qui
+// affiche l'indicateur de chargement.
+let navigationEnCours = false;
+const listenersNavigationEnCours = new Set<Listener>();
+
+function setNavigationEnCours(value: boolean) {
+  if (navigationEnCours === value) return;
+  navigationEnCours = value;
+  listenersNavigationEnCours.forEach((listener) => listener());
+}
+
+/** Vrai tant qu'une navigation déclenchée par `useViewTransitionNavigate` a
+ * dépassé `SEUIL_INDICATEUR_MS` sans avoir atteint sa cible : sert à afficher
+ * un indicateur de chargement discret (voir TabSwipeWrapper). */
+export function useNavigationEnCours(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      listenersNavigationEnCours.add(listener);
+      return () => listenersNavigationEnCours.delete(listener);
+    },
+    () => navigationEnCours,
+    () => false
+  );
+}
+
 type NavigationEnAttente = {
   target: string;
   resolve: () => void;
+  seuilId: ReturnType<typeof setTimeout>;
   timeoutId: ReturnType<typeof setTimeout>;
 };
 
@@ -75,8 +117,10 @@ export function useViewTransitionNavigate() {
   useEffect(() => {
     const enAttente = enAttenteRef.current;
     if (enAttente && enAttente.target === pathname) {
+      clearTimeout(enAttente.seuilId);
       clearTimeout(enAttente.timeoutId);
       enAttenteRef.current = null;
+      setNavigationEnCours(false);
       enAttente.resolve();
     }
   }, [pathname]);
@@ -122,8 +166,19 @@ export function useViewTransitionNavigate() {
             const enAttente: NavigationEnAttente = {
               target,
               resolve,
+              seuilId: setTimeout(() => {
+                if (enAttenteRef.current !== enAttente) return;
+                // `flushSync` garantit que l'indicateur est bien peint avant
+                // que `resolve()` ne fasse capturer l'état "new" par la View
+                // Transition : sans ça, la mise à jour (planifiée via un
+                // `setTimeout`, donc batchée par React 18) risquerait de ne
+                // pas encore être dans le DOM au moment de la capture.
+                flushSync(() => setNavigationEnCours(true));
+                resolve();
+              }, SEUIL_INDICATEUR_MS),
               timeoutId: setTimeout(() => {
                 if (enAttenteRef.current === enAttente) enAttenteRef.current = null;
+                setNavigationEnCours(false);
                 resolve();
               }, TIMEOUT_NAVIGATION_MS),
             };

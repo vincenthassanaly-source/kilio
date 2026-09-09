@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useRef, type ReactNode } from "react";
 import { useSwipeHorizontal, type SensSwipe } from "@/hooks/useSwipeHorizontal";
-import { useViewTransitionNavigate } from "@/hooks/useViewTransitionNavigate";
+import { useViewTransitionNavigate, useNavigationEnCours } from "@/hooks/useViewTransitionNavigate";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { useNavigationEdit } from "@/lib/navigation/NavigationEditContext";
 
@@ -47,6 +47,7 @@ const HAUTEUR_ZONE_HAUT_PX = 64;
 export function TabSwipeWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const navigate = useViewTransitionNavigate();
+  const navigationEnCours = useNavigationEnCours();
   const { modulesBarreBasse } = useNavigationEdit();
 
   const indexOngletActif = modulesBarreBasse.indexOf(pathname);
@@ -76,6 +77,14 @@ export function TabSwipeWrapper({ children }: { children: ReactNode }) {
 
   return (
     <>
+      {navigationEnCours && (
+        <div
+          className="fixed inset-x-0 z-50 h-[3px] overflow-hidden"
+          style={{ top: "env(safe-area-inset-top)" }}
+        >
+          <div className="kilio-barre-navigation-progression h-full w-1/3" style={{ background: "var(--accent-kcal)" }} />
+        </div>
+      )}
       {zoneSwipeHautActive && (
         <div
           className="fixed inset-x-0 top-0 z-30"
