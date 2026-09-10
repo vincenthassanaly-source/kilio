@@ -334,6 +334,68 @@ export type Database = {
         }
         Relationships: []
       }
+      documents_dossiers: {
+        Row: {
+          document_id: string
+          dossier_id: string
+        }
+        Insert: {
+          document_id: string
+          dossier_id: string
+        }
+        Update: {
+          document_id?: string
+          dossier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_dossiers_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_dossiers_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dossiers: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossiers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habitude_entries: {
         Row: {
           created_at: string

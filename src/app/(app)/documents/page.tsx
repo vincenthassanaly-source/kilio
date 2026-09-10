@@ -1,18 +1,16 @@
-import { getDocuments } from "@/app/actions/documents";
+import { getDocuments, getDossiers } from "@/app/actions/documents";
 import { screenTitle } from "@/lib/ui";
-import { AddDocumentToggle } from "./AddDocumentToggle";
-import { DocumentsList } from "./DocumentsList";
+import { DocumentsBrowser } from "./DocumentsBrowser";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default async function DocumentsPage() {
-  const documents = await getDocuments();
+  const [documents, dossiers] = await Promise.all([getDocuments(), getDossiers()]);
 
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">
         <h1 className={screenTitle}>Documents</h1>
-        <AddDocumentToggle />
-        <DocumentsList documents={documents} />
+        <DocumentsBrowser documents={documents} dossiers={dossiers} />
       </div>
     </PullToRefresh>
   );

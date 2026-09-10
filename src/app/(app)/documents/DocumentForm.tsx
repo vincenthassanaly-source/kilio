@@ -8,8 +8,9 @@ import {
   type DocumentAvecFichiers,
   type DocumentFormState,
 } from "@/app/actions/documents";
+import { aplatirDossiers, libelleDossier } from "./dossiers-tree";
 import type { Tables } from "@/lib/supabase/types";
-import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { errorText, input, label as labelClass, pillTag, primaryButton } from "@/lib/ui";
 
 const initialState: DocumentFormState = { error: null };
 
@@ -72,14 +73,23 @@ function FichierThumb({
 
 export function DocumentForm({
   document,
+  dossiers,
   onDone,
 }: {
   document?: DocumentAvecFichiers;
+  dossiers: Tables<"dossiers">[];
   onDone?: () => void;
 }) {
   const action = document ? updateDocument : createDocument;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
+
+  const [dossierIds, setDossierIds] = useState<string[]>(document?.dossiers.map((d) => d.id) ?? []);
+  const dossiersAplatis = useMemo(() => aplatirDossiers(dossiers), [dossiers]);
+
+  function toggleDossier(id: string) {
+    setDossierIds((ids) => (ids.includes(id) ? ids.filter((d) => d !== id) : [...ids, id]));
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -125,6 +135,9 @@ export function DocumentForm({
   return (
     <form action={formAction} className="flex flex-col gap-3">
       {document && <input type="hidden" name="id" value={document.id} />}
+      {dossierIds.map((id) => (
+        <input key={id} type="hidden" name="dossier_ids" value={id} />
+      ))}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="nom" className={labelClass}>
@@ -210,6 +223,28 @@ export function DocumentForm({
           )}
         </div>
       </div>
+
+      {dossiersAplatis.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className={labelClass}>Dossiers (optionnel)</span>
+          <div className="flex flex-wrap gap-1.5">
+            {dossiersAplatis.map((dossier) => (
+              <button
+                key={dossier.id}
+                type="button"
+                onClick={() => toggleDossier(dossier.id)}
+                className={
+                  dossierIds.includes(dossier.id)
+                    ? `${pillTag} bg-kcal-soft font-bold text-kcal`
+                    : pillTag
+                }
+              >
+                {libelleDossier(dossier)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="notes" className={labelClass}>

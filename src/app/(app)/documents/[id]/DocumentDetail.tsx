@@ -6,6 +6,7 @@ import { DocumentForm } from "../DocumentForm";
 import { formatEcheance, niveauAlerte } from "../echeance";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
+import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, errorText, ghostButton, linkButton, pillTag } from "@/lib/ui";
 
 function PdfIcon() {
@@ -17,7 +18,13 @@ function PdfIcon() {
   );
 }
 
-export function DocumentDetail({ document }: { document: DocumentAvecFichiers }) {
+export function DocumentDetail({
+  document,
+  dossiers,
+}: {
+  document: DocumentAvecFichiers;
+  dossiers: Tables<"dossiers">[];
+}) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +33,7 @@ export function DocumentDetail({ document }: { document: DocumentAvecFichiers })
   if (editing) {
     return (
       <div className={card}>
-        <DocumentForm document={document} onDone={() => setEditing(false)} />
+        <DocumentForm document={document} dossiers={dossiers} onDone={() => setEditing(false)} />
         <button type="button" onClick={() => setEditing(false)} className="mt-2 text-sm text-ink-2 underline">
           Annuler
         </button>
@@ -81,6 +88,16 @@ export function DocumentDetail({ document }: { document: DocumentAvecFichiers })
         >
           Échéance : {formatEcheance(document.date_echeance)}
         </span>
+      )}
+
+      {document.dossiers.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {document.dossiers.map((dossier) => (
+            <span key={dossier.id} className={pillTag}>
+              {dossier.nom}
+            </span>
+          ))}
+        </div>
       )}
 
       {document.notes && <p className="whitespace-pre-wrap text-sm text-ink">{document.notes}</p>}

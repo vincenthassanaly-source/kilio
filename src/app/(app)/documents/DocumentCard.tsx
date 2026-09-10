@@ -6,6 +6,7 @@ import { DocumentForm } from "./DocumentForm";
 import { formatEcheance, niveauAlerte } from "./echeance";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
+import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 
 function PdfIcon() {
@@ -17,7 +18,13 @@ function PdfIcon() {
   );
 }
 
-export function DocumentCard({ document }: { document: DocumentAvecFichiers }) {
+export function DocumentCard({
+  document,
+  dossiers,
+}: {
+  document: DocumentAvecFichiers;
+  dossiers: Tables<"dossiers">[];
+}) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -25,7 +32,7 @@ export function DocumentCard({ document }: { document: DocumentAvecFichiers }) {
   if (editing) {
     return (
       <li className={card}>
-        <DocumentForm document={document} onDone={() => setEditing(false)} />
+        <DocumentForm document={document} dossiers={dossiers} onDone={() => setEditing(false)} />
         <button
           type="button"
           onClick={() => setEditing(false)}
@@ -80,6 +87,15 @@ export function DocumentCard({ document }: { document: DocumentAvecFichiers }) {
             >
               Échéance : {formatEcheance(document.date_echeance)}
             </span>
+          )}
+          {document.dossiers.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {document.dossiers.map((dossier) => (
+                <span key={dossier.id} className={pillTag}>
+                  {dossier.nom}
+                </span>
+              ))}
+            </div>
           )}
         </TransitionLink>
       </div>
