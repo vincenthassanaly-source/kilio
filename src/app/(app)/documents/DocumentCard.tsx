@@ -7,7 +7,7 @@ import { formatEcheance, niveauAlerte } from "./echeance";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
-import { card, dangerButton, ghostButton, listCard, metaText, nameText, pillTag } from "@/lib/ui";
+import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 
 function PdfIcon() {
   return (
@@ -21,9 +21,11 @@ function PdfIcon() {
 export function DocumentCard({
   document,
   dossiers,
+  etiquettes,
 }: {
   document: DocumentAvecFichiers;
   dossiers: Tables<"dossiers">[];
+  etiquettes: Tables<"etiquettes">[];
 }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -32,7 +34,12 @@ export function DocumentCard({
   if (editing) {
     return (
       <li className={card}>
-        <DocumentForm document={document} dossiers={dossiers} onDone={() => setEditing(false)} />
+        <DocumentForm
+          document={document}
+          dossiers={dossiers}
+          etiquettes={etiquettes}
+          onDone={() => setEditing(false)}
+        />
         <button
           type="button"
           onClick={() => setEditing(false)}
@@ -75,7 +82,10 @@ export function DocumentCard({
         <TransitionLink href={`/documents/${document.id}`} className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
             <p className={nameText}>{document.nom}</p>
-            {document.categorie && <span className={pillTag}>{document.categorie}</span>}
+            <div className="flex shrink-0 gap-1.5">
+              {document.etiquette && <span className={kcalPillTag}>{document.etiquette.nom}</span>}
+              {document.categorie && <span className={pillTag}>{document.categorie}</span>}
+            </div>
           </div>
           {document.date_echeance && (
             <span

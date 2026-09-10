@@ -307,6 +307,7 @@ export type Database = {
           created_at: string
           date_echeance: string | null
           derniere_alerte_envoyee_le: string | null
+          etiquette_id: string | null
           id: string
           nom: string
           notes: string | null
@@ -317,6 +318,7 @@ export type Database = {
           created_at?: string
           date_echeance?: string | null
           derniere_alerte_envoyee_le?: string | null
+          etiquette_id?: string | null
           id?: string
           nom: string
           notes?: string | null
@@ -327,12 +329,21 @@ export type Database = {
           created_at?: string
           date_echeance?: string | null
           derniere_alerte_envoyee_le?: string | null
+          etiquette_id?: string | null
           id?: string
           nom?: string
           notes?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documents_etiquette_id_fkey"
+            columns: ["etiquette_id"]
+            isOneToOne: false
+            referencedRelation: "etiquettes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents_dossiers: {
         Row: {
@@ -395,6 +406,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      etiquettes: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       habitude_entries: {
         Row: {

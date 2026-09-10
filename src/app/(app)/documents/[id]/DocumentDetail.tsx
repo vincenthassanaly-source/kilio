@@ -7,7 +7,7 @@ import { formatEcheance, niveauAlerte } from "../echeance";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
-import { card, dangerButton, errorText, ghostButton, linkButton, pillTag } from "@/lib/ui";
+import { card, dangerButton, errorText, ghostButton, kcalPillTag, linkButton, pillTag } from "@/lib/ui";
 
 function PdfIcon() {
   return (
@@ -21,9 +21,11 @@ function PdfIcon() {
 export function DocumentDetail({
   document,
   dossiers,
+  etiquettes,
 }: {
   document: DocumentAvecFichiers;
   dossiers: Tables<"dossiers">[];
+  etiquettes: Tables<"etiquettes">[];
 }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -33,7 +35,12 @@ export function DocumentDetail({
   if (editing) {
     return (
       <div className={card}>
-        <DocumentForm document={document} dossiers={dossiers} onDone={() => setEditing(false)} />
+        <DocumentForm
+          document={document}
+          dossiers={dossiers}
+          etiquettes={etiquettes}
+          onDone={() => setEditing(false)}
+        />
         <button type="button" onClick={() => setEditing(false)} className="mt-2 text-sm text-ink-2 underline">
           Annuler
         </button>
@@ -52,7 +59,10 @@ export function DocumentDetail({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">{document.nom}</h1>
-          {document.categorie && <span className={pillTag}>{document.categorie}</span>}
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {document.etiquette && <span className={kcalPillTag}>{document.etiquette.nom}</span>}
+            {document.categorie && <span className={pillTag}>{document.categorie}</span>}
+          </div>
         </div>
         <div className="flex shrink-0 gap-2">
           <button type="button" onClick={() => setEditing(true)} className={ghostButton}>

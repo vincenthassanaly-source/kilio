@@ -74,10 +74,12 @@ function FichierThumb({
 export function DocumentForm({
   document,
   dossiers,
+  etiquettes,
   onDone,
 }: {
   document?: DocumentAvecFichiers;
   dossiers: Tables<"dossiers">[];
+  etiquettes: Tables<"etiquettes">[];
   onDone?: () => void;
 }) {
   const action = document ? updateDocument : createDocument;
@@ -144,6 +146,25 @@ export function DocumentForm({
           Nom
         </label>
         <input id="nom" name="nom" required defaultValue={document?.nom} className={input} />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="etiquette_id" className={labelClass}>
+          Étiquette (optionnel)
+        </label>
+        <select
+          id="etiquette_id"
+          name="etiquette_id"
+          defaultValue={document?.etiquette?.id ?? ""}
+          className={input}
+        >
+          <option value="">—</option>
+          {etiquettes.map((etiquette) => (
+            <option key={etiquette.id} value={etiquette.id}>
+              {etiquette.nom}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="flex gap-3">

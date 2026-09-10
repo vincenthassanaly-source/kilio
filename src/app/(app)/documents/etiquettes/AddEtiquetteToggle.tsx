@@ -1,19 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { DocumentForm } from "./DocumentForm";
+import { AddEtiquetteForm } from "./AddEtiquetteForm";
 import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
-import type { Tables } from "@/lib/supabase/types";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 
-export function AddDocumentToggle({
-  dossiers,
-  etiquettes,
-}: {
-  dossiers: Tables<"dossiers">[];
-  etiquettes: Tables<"etiquettes">[];
-}) {
+export function AddEtiquetteToggle() {
   const [open, setOpen] = useState(false);
   useBackClose(open, () => setOpen(false));
 
@@ -23,17 +16,17 @@ export function AddDocumentToggle({
         className={addCardIcon}
         style={{
           background:
-            "linear-gradient(150deg, color-mix(in oklch, var(--color-kcal) 85%, white 15%), var(--color-kcal))",
-          boxShadow: "0 3px 8px color-mix(in oklch, var(--color-kcal) 45%, transparent)",
+            "linear-gradient(150deg, color-mix(in oklch, var(--color-documents) 85%, white 15%), var(--color-documents))",
+          boxShadow: "0 3px 8px color-mix(in oklch, var(--color-documents) 45%, transparent)",
         }}
       >
         +
       </div>
       <div className="flex flex-col gap-[1px]">
         <span className="font-display text-[14.5px] font-bold tracking-tight text-ink">
-          Ajouter un document
+          Ajouter une étiquette
         </span>
-        <span className="text-xs font-medium text-ink-3">Photo ou PDF, échéance optionnelle</span>
+        <span className="text-xs font-medium text-ink-3">Nouveau type de document</span>
       </div>
     </button>
   );
@@ -41,8 +34,12 @@ export function AddDocumentToggle({
   return (
     <AnimatedAddCard open={open} trigger={trigger}>
       <div className={card}>
-        <DocumentForm dossiers={dossiers} etiquettes={etiquettes} onDone={() => setOpen(false)} />
-        <button type="button" onClick={() => setOpen(false)} className="mt-2 text-sm text-ink-2 underline">
+        <AddEtiquetteForm onDone={() => setOpen(false)} />
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="mt-2 text-sm text-ink-2 underline"
+        >
           Annuler
         </button>
       </div>

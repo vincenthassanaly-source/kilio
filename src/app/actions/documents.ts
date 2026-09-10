@@ -230,9 +230,70 @@ function parseDossierIds(formData: FormData): string[] {
   return formData.getAll("dossier_ids").map(String).filter(Boolean);
 }
 
+// --- Étiquettes ---
+// Liste gérable (contrairement aux dossiers : pas de hiérarchie, affectation
+// exclusive — un document a au plus une étiquette, comme listes_taches pour
+// les tâches). Complète la catégorie large existante par un type précis
+// (ex. "Permis de conduire"), choisi à la création du document.
+
+export type EtiquetteFormState = { error: string | null };
+
+function revalidateEtiquettesPaths() {
+  revalidatePath("/documents");
+  revalidatePath("/documents/etiquettes");
+}
+
+export async function getEtiquettes(): Promise<Tables<"etiquettes">[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("etiquettes").select("*").order("nom", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function createEtiquette(
+  _prevState: EtiquetteFormState,
+  formData: FormData
+): Promise<EtiquetteFormState> {
+  const nom = String(formData.get("nom") ?? "").trim();
+  if (!nom) return { error: "Le nom est requis." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("etiquettes").insert({ nom });
+
+  if (error) return { error: error.message };
+
+  revalidateEtiquettesPaths();
+  return { error: null };
+}
+
+export async function renameEtiquette(id: string, nom: string) {
+  const trimmed = nom.trim();
+  if (!trimmed) throw new Error("Le nom est requis.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("etiquettes").update({ nom: trimmed }).eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidateEtiquettesPaths();
+}
+
+// Les documents portant cette étiquette la perdent (`on delete set null`)
+// sans être supprimés.
+export async function deleteEtiquette(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("etiquettes").delete().eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidateEtiquettesPaths();
+}
+
 type DocumentInput = {
   nom: string;
   categorie: DocumentCategorie | null;
+  etiquette_id: string | null;
   date_echeance: string | null;
   notes: string | null;
 };
@@ -242,6 +303,7 @@ type ParseResult = { ok: true; value: DocumentInput } | { ok: false; error: stri
 function parseDocumentInput(formData: FormData): ParseResult {
   const nom = String(formData.get("nom") ?? "").trim();
   const categorie = String(formData.get("categorie") ?? "").trim();
+  const etiquette_id = String(formData.get("etiquette_id") ?? "").trim();
   const date_echeance = String(formData.get("date_echeance") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
@@ -255,6 +317,7 @@ function parseDocumentInput(formData: FormData): ParseResult {
     value: {
       nom,
       categorie: categorie ? (categorie as DocumentCategorie) : null,
+      etiquette_id: etiquette_id || null,
       date_echeance: date_echeance || null,
       notes: notes || null,
     },
@@ -380,22 +443,25 @@ export async function deleteDocument(id: string) {
 export type DocumentAvecFichiers = Tables<"documents"> & {
   fichiers: Tables<"document_fichiers">[];
   dossiers: Tables<"dossiers">[];
+  etiquette: Tables<"etiquettes"> | null;
 };
 
 const SELECT_DOCUMENT_AVEC_RELATIONS =
-  "*, document_fichiers(*), documents_dossiers(dossier:dossiers(*))";
+  "*, document_fichiers(*), documents_dossiers(dossier:dossiers(*)), etiquette:etiquettes(*)";
 
 function mapDocumentAvecRelations(
   row: Tables<"documents"> & {
     document_fichiers: Tables<"document_fichiers">[];
     documents_dossiers: { dossier: Tables<"dossiers"> | null }[];
+    etiquette: Tables<"etiquettes"> | null;
   }
 ): DocumentAvecFichiers {
-  const { document_fichiers, documents_dossiers, ...document } = row;
+  const { document_fichiers, documents_dossiers, etiquette, ...document } = row;
   return {
     ...document,
     fichiers: document_fichiers,
     dossiers: documents_dossiers.map((dd) => dd.dossier).filter((d): d is Tables<"dossiers"> => d !== null),
+    etiquette,
   };
 }
 

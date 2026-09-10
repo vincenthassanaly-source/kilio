@@ -7,14 +7,15 @@ import { aplatirDossiers, libelleDossier } from "./dossiers-tree";
 import type { Tables } from "@/lib/supabase/types";
 import { AddDocumentToggle } from "./AddDocumentToggle";
 import { DocumentsList } from "./DocumentsList";
-import { input, pillTag } from "@/lib/ui";
+import { input, kcalPillTag, pillTag } from "@/lib/ui";
 
-type TriCle = "echeance" | "nom" | "recent";
+type TriCle = "echeance" | "nom" | "recent" | "etiquette";
 
 const TRI_LABELS: Record<TriCle, string> = {
   echeance: "Échéance la plus proche",
   nom: "Nom (A → Z)",
   recent: "Ajout le plus récent",
+  etiquette: "Étiquette (A → Z)",
 };
 
 function DossierIcon() {
@@ -25,15 +26,27 @@ function DossierIcon() {
   );
 }
 
+function EtiquetteIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11.5 3.5h6a2 2 0 0 1 2 2v6a2 2 0 0 1-.6 1.4l-8 8a2 2 0 0 1-2.8 0l-6-6a2 2 0 0 1 0-2.8l8-8a2 2 0 0 1 1.4-.6z" />
+      <circle cx="15.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function DocumentsBrowser({
   documents,
   dossiers,
+  etiquettes,
 }: {
   documents: DocumentAvecFichiers[];
   dossiers: Tables<"dossiers">[];
+  etiquettes: Tables<"etiquettes">[];
 }) {
   const [search, setSearch] = useState("");
   const [dossierFilter, setDossierFilter] = useState<string[]>([]);
+  const [etiquetteFilter, setEtiquetteFilter] = useState<string[]>([]);
   const [tri, setTri] = useState<TriCle>("echeance");
 
   const dossiersAplatis = useMemo(() => aplatirDossiers(dossiers), [dossiers]);
@@ -42,9 +55,13 @@ export function DocumentsBrowser({
     setDossierFilter((ids) => (ids.includes(id) ? ids.filter((d) => d !== id) : [...ids, id]));
   }
 
-  // Recherche client-side (nom, notes, catégorie, dossiers) : même approche
-  // que NotesGrid, le volume mono-utilisateur ne justifie pas une recherche
-  // full-text Postgres.
+  function toggleEtiquetteFilter(id: string) {
+    setEtiquetteFilter((ids) => (ids.includes(id) ? ids.filter((e) => e !== id) : [...ids, id]));
+  }
+
+  // Recherche client-side (nom, notes, catégorie, dossiers, étiquette) :
+  // même approche que NotesGrid, le volume mono-utilisateur ne justifie pas
+  // une recherche full-text Postgres.
   const filtres = useMemo(() => {
     const term = search.toLowerCase().trim();
     return documents.filter((document) => {
@@ -53,13 +70,21 @@ export function DocumentsBrowser({
         document.nom.toLowerCase().includes(term) ||
         (document.notes ?? "").toLowerCase().includes(term) ||
         (document.categorie ?? "").toLowerCase().includes(term) ||
+        (document.etiquette?.nom.toLowerCase().includes(term) ?? false) ||
         document.dossiers.some((d) => d.nom.toLowerCase().includes(term));
+      // Dossiers : un document peut en avoir plusieurs, donc filtre en ET
+      // (doit être dans chaque dossier sélectionné). Étiquette : un document
+      // n'en a qu'une, donc filtre en OU (doit avoir l'une des étiquettes
+      // sélectionnées) — un ET sur plusieurs étiquettes ne matcherait jamais.
       const matchesDossiers =
         dossierFilter.length === 0 ||
         dossierFilter.every((id) => document.dossiers.some((d) => d.id === id));
-      return matchesSearch && matchesDossiers;
+      const matchesEtiquette =
+        etiquetteFilter.length === 0 ||
+        (document.etiquette !== null && etiquetteFilter.includes(document.etiquette.id));
+      return matchesSearch && matchesDossiers && matchesEtiquette;
     });
-  }, [documents, search, dossierFilter]);
+  }, [documents, search, dossierFilter, etiquetteFilter]);
 
   const tries = useMemo(() => {
     const copie = [...filtres];
@@ -68,6 +93,10 @@ export function DocumentsBrowser({
         return copie.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
       case "recent":
         return copie.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      case "etiquette":
+        return copie.sort((a, b) =>
+          (a.etiquette?.nom ?? "").localeCompare(b.etiquette?.nom ?? "", "fr")
+        );
       case "echeance":
       default:
         // L'ordre déjà renvoyé par getDocuments() (échéance croissante,
@@ -83,7 +112,7 @@ export function DocumentsBrowser({
 
   return (
     <div className="flex flex-col gap-4">
-      <AddDocumentToggle dossiers={dossiers} />
+      <AddDocumentToggle dossiers={dossiers} etiquettes={etiquettes} />
 
       {documents.length > 0 && (
         <>
@@ -112,6 +141,31 @@ export function DocumentsBrowser({
             ))}
           </div>
 
+          {etiquettes.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1" data-swipe-ignore>
+              <Link
+                href="/documents/etiquettes"
+                aria-label="Gérer les étiquettes"
+                title="Gérer les étiquettes"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink-2 transition-colors hover:bg-surface-alt"
+              >
+                <EtiquetteIcon />
+              </Link>
+              {etiquettes.map((etiquette) => (
+                <button
+                  key={etiquette.id}
+                  type="button"
+                  onClick={() => toggleEtiquetteFilter(etiquette.id)}
+                  className={
+                    etiquetteFilter.includes(etiquette.id) ? `${kcalPillTag} shrink-0` : `${pillTag} shrink-0`
+                  }
+                >
+                  {etiquette.nom}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex gap-2">
             <input
               type="search"
@@ -137,13 +191,13 @@ export function DocumentsBrowser({
           {filtres.length === 0 ? (
             <p className="py-5 text-center text-sm text-ink-3">Aucun document ne correspond à ta recherche.</p>
           ) : (
-            <DocumentsList documents={tries} dossiers={dossiers} />
+            <DocumentsList documents={tries} dossiers={dossiers} etiquettes={etiquettes} />
           )}
         </>
       )}
 
       {documents.length === 0 && (
-        <DocumentsList documents={documents} dossiers={dossiers} />
+        <DocumentsList documents={documents} dossiers={dossiers} etiquettes={etiquettes} />
       )}
     </div>
   );
