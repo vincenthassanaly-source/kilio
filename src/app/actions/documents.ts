@@ -20,6 +20,8 @@ function revalidateDocumentsPaths(id?: string) {
   if (id) revalidatePath(`/documents/${id}`);
 }
 
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
 // Chemin de stockage attendu : `${uuid}.jpg` ou `${uuid}.pdf`, sous
 // `/storage/v1/object/public/documents-fichiers/`. Même logique que
 // extraireCheminStorage dans src/app/actions/collections.ts.
@@ -30,13 +32,12 @@ function extraireCheminStorage(url: string): string | null {
   return url.slice(index + marqueur.length);
 }
 
-export type FichierUploade = { url: string; fichier_type: "image" | "pdf" };
+type FichierUploade = { url: string; fichier_type: "image" | "pdf" };
 
 // Compresse les images (même pattern que compresserEtUploaderPhoto dans
 // collections.ts) ; les PDF sont uploadés tels quels, sharp ne les
 // supportant pas.
-export async function uploadDocumentFichier(fichier: File): Promise<FichierUploade> {
-  const supabase = await createClient();
+async function uploaderFichier(supabase: SupabaseClient, fichier: File): Promise<FichierUploade> {
   const estImage = fichier.type.startsWith("image/");
 
   if (estImage) {
@@ -83,6 +84,68 @@ export async function uploadDocumentFichier(fichier: File): Promise<FichierUploa
   return { url: publicUrl, fichier_type: "pdf" };
 }
 
+// Upload un ou plusieurs fichiers (recto/verso d'une pièce d'identité, par
+// exemple) sous la clé "fichiers" du formData et insère une ligne
+// document_fichiers par fichier — même pattern que uploadTacheImages dans
+// src/app/actions/taches.ts. Ne fait rien si aucun fichier n'est fourni (cas
+// normal en édition, la plupart des soumissions n'ajoutent pas de fichier).
+export async function uploadDocumentFichiers(documentId: string, formData: FormData) {
+  const fichiers = formData.getAll("fichiers").filter((f): f is File => f instanceof File && f.size > 0);
+  if (fichiers.length === 0) return;
+
+  const supabase = await createClient();
+
+  const { data: derniere } = await supabase
+    .from("document_fichiers")
+    .select("ordre")
+    .eq("document_id", documentId)
+    .order("ordre", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let ordre = (derniere?.ordre ?? -1) + 1;
+
+  for (const fichier of fichiers) {
+    const uploade = await uploaderFichier(supabase, fichier);
+
+    const { error: insertError } = await supabase.from("document_fichiers").insert({
+      document_id: documentId,
+      url: uploade.url,
+      fichier_type: uploade.fichier_type,
+      ordre,
+    });
+    if (insertError) throw new Error(insertError.message);
+
+    ordre++;
+  }
+
+  revalidateDocumentsPaths(documentId);
+}
+
+export async function deleteDocumentFichier(fichierId: string) {
+  const supabase = await createClient();
+
+  const { data: fichier, error: fetchError } = await supabase
+    .from("document_fichiers")
+    .select("url, document_id")
+    .eq("id", fichierId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  const chemin = extraireCheminStorage(fichier.url);
+  if (chemin) {
+    const { error: removeError } = await supabase.storage
+      .from(DOCUMENTS_FICHIERS_BUCKET)
+      .remove([chemin]);
+    if (removeError) throw new Error(removeError.message);
+  }
+
+  const { error } = await supabase.from("document_fichiers").delete().eq("id", fichierId);
+  if (error) throw new Error(error.message);
+
+  revalidateDocumentsPaths(fichier.document_id);
+}
+
 type DocumentInput = {
   nom: string;
   categorie: DocumentCategorie | null;
@@ -121,26 +184,25 @@ export async function createDocument(
   const parsed = parseDocumentInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    return { error: "Le fichier (photo ou PDF) est requis." };
-  }
-
-  let uploade: FichierUploade;
-  try {
-    uploade = await uploadDocumentFichier(fichier);
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi du fichier." };
+  const fichiers = formData.getAll("fichiers").filter((f): f is File => f instanceof File && f.size > 0);
+  if (fichiers.length === 0) {
+    return { error: "Au moins un fichier (photo ou PDF) est requis." };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("documents").insert({
-    ...parsed.value,
-    fichier_url: uploade.url,
-    fichier_type: uploade.fichier_type,
-  });
+  const { data: document, error } = await supabase
+    .from("documents")
+    .insert(parsed.value)
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  try {
+    await uploadDocumentFichiers(document.id, formData);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi des fichiers." };
+  }
 
   revalidateDocumentsPaths();
   return { error: null };
@@ -158,22 +220,9 @@ export async function updateDocument(
 
   const supabase = await createClient();
 
-  const fichier = formData.get("fichier");
-  const remplaceFichier = fichier instanceof File && fichier.size > 0;
-
-  let fichierFields: { fichier_url: string; fichier_type: "image" | "pdf" } | null = null;
-  if (remplaceFichier) {
-    try {
-      const uploade = await uploadDocumentFichier(fichier);
-      fichierFields = { fichier_url: uploade.url, fichier_type: uploade.fichier_type };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi du fichier." };
-    }
-  }
-
   const { data: existant, error: fetchError } = await supabase
     .from("documents")
-    .select("date_echeance, fichier_url")
+    .select("date_echeance")
     .eq("id", id)
     .single();
   if (fetchError) return { error: fetchError.message };
@@ -187,18 +236,16 @@ export async function updateDocument(
     .from("documents")
     .update({
       ...parsed.value,
-      ...fichierFields,
       ...(echeanceChangee ? { derniere_alerte_envoyee_le: null } : {}),
     })
     .eq("id", id);
 
   if (error) return { error: error.message };
 
-  if (remplaceFichier) {
-    const ancienChemin = extraireCheminStorage(existant.fichier_url);
-    if (ancienChemin) {
-      await supabase.storage.from(DOCUMENTS_FICHIERS_BUCKET).remove([ancienChemin]);
-    }
+  try {
+    await uploadDocumentFichiers(id, formData);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi des fichiers." };
   }
 
   revalidateDocumentsPaths(id);
@@ -208,21 +255,22 @@ export async function updateDocument(
 export async function deleteDocument(id: string) {
   const supabase = await createClient();
 
-  const { data: document, error: fetchError } = await supabase
-    .from("documents")
-    .select("fichier_url")
-    .eq("id", id)
-    .single();
+  const { data: fichiers, error: fetchError } = await supabase
+    .from("document_fichiers")
+    .select("url")
+    .eq("document_id", id);
   if (fetchError) throw new Error(fetchError.message);
 
-  const chemin = extraireCheminStorage(document.fichier_url);
-  if (chemin) {
-    const { error: removeError } = await supabase.storage
-      .from(DOCUMENTS_FICHIERS_BUCKET)
-      .remove([chemin]);
+  const chemins = (fichiers ?? [])
+    .map((f) => extraireCheminStorage(f.url))
+    .filter((c): c is string => c !== null);
+  if (chemins.length > 0) {
+    const { error: removeError } = await supabase.storage.from(DOCUMENTS_FICHIERS_BUCKET).remove(chemins);
     if (removeError) throw new Error(removeError.message);
   }
 
+  // document_fichiers est supprimé en cascade par la contrainte
+  // `on delete cascade` (migration-documents-fichiers-multiples-2026-09-11.sql).
   const { error } = await supabase.from("documents").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
@@ -233,24 +281,41 @@ export async function deleteDocument(id: string) {
   redirect("/documents");
 }
 
-export async function getDocuments(): Promise<Tables<"documents">[]> {
+export type DocumentAvecFichiers = Tables<"documents"> & {
+  fichiers: Tables<"document_fichiers">[];
+};
+
+export async function getDocuments(): Promise<DocumentAvecFichiers[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("documents")
-    .select("*")
+    .select("*, document_fichiers(*)")
     .order("date_echeance", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("ordre", { referencedTable: "document_fichiers", ascending: true });
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+
+  return (data ?? []).map(({ document_fichiers, ...document }) => ({
+    ...document,
+    fichiers: document_fichiers,
+  }));
 }
 
-export async function getDocument(id: string): Promise<Tables<"documents"> | null> {
+export async function getDocument(id: string): Promise<DocumentAvecFichiers | null> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.from("documents").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*, document_fichiers(*)")
+    .eq("id", id)
+    .order("ordre", { referencedTable: "document_fichiers", ascending: true })
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (!data) return null;
+
+  const { document_fichiers, ...document } = data;
+  return { ...document, fichiers: document_fichiers };
 }

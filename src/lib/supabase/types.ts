@@ -266,14 +266,47 @@ export type Database = {
         }
         Relationships: []
       }
+      document_fichiers: {
+        Row: {
+          created_at: string
+          document_id: string
+          fichier_type: string
+          id: string
+          ordre: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          fichier_type: string
+          id?: string
+          ordre?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          fichier_type?: string
+          id?: string
+          ordre?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_fichiers_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           categorie: string | null
           created_at: string
           date_echeance: string | null
           derniere_alerte_envoyee_le: string | null
-          fichier_type: string
-          fichier_url: string
           id: string
           nom: string
           notes: string | null
@@ -284,8 +317,6 @@ export type Database = {
           created_at?: string
           date_echeance?: string | null
           derniere_alerte_envoyee_le?: string | null
-          fichier_type: string
-          fichier_url: string
           id?: string
           nom: string
           notes?: string | null
@@ -296,8 +327,6 @@ export type Database = {
           created_at?: string
           date_echeance?: string | null
           derniere_alerte_envoyee_le?: string | null
-          fichier_type?: string
-          fichier_url?: string
           id?: string
           nom?: string
           notes?: string | null

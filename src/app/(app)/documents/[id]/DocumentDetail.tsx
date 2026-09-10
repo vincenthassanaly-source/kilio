@@ -1,17 +1,27 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteDocument } from "@/app/actions/documents";
+import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "../DocumentForm";
 import { formatEcheance, niveauAlerte } from "../echeance";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
-import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, errorText, ghostButton, linkButton, pillTag } from "@/lib/ui";
 
-export function DocumentDetail({ document }: { document: Tables<"documents"> }) {
+function PdfIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3.5h9l3 3V19a1.5 1.5 0 0 1-1.5 1.5h-10.5A1.5 1.5 0 0 1 4.5 19V5A1.5 1.5 0 0 1 6 3.5z" />
+      <path d="M9 13h6M9 16.5h4" />
+    </svg>
+  );
+}
+
+export function DocumentDetail({ document }: { document: DocumentAvecFichiers }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   if (editing) {
     return (
@@ -75,27 +85,41 @@ export function DocumentDetail({ document }: { document: Tables<"documents"> }) 
 
       {document.notes && <p className="whitespace-pre-wrap text-sm text-ink">{document.notes}</p>}
 
-      <div className={card}>
-        {document.fichier_type === "image" ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL Supabase Storage externe, pas d'optimisation next/image requise pour un aperçu.
-          <img
-            src={document.fichier_url}
-            alt={document.nom}
-            className="mx-auto max-h-[70vh] w-auto rounded-xl object-contain"
-          />
-        ) : (
-          <a
-            href={document.fichier_url}
-            target="_blank"
-            rel="noreferrer"
-            className={linkButton}
-          >
-            Ouvrir le PDF ↗
-          </a>
-        )}
-      </div>
+      {document.fichiers.length > 0 && (
+        <ul className="grid grid-cols-2 gap-2">
+          {document.fichiers.map((fichier) =>
+            fichier.fichier_type === "image" ? (
+              <li key={fichier.id}>
+                <button
+                  type="button"
+                  onClick={() => setLightboxSrc(fichier.url)}
+                  className="relative aspect-square w-full overflow-hidden rounded-2xl bg-surface-alt"
+                  aria-label="Agrandir l'image"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
+                  <img src={fichier.url} alt="" className="h-full w-full object-cover" />
+                </button>
+              </li>
+            ) : (
+              <li key={fichier.id}>
+                <a
+                  href={fichier.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-line text-ink-2"
+                >
+                  <PdfIcon />
+                  <span className="text-xs font-semibold">Ouvrir le PDF</span>
+                </a>
+              </li>
+            )
+          )}
+        </ul>
+      )}
 
       {error && <p className={errorText}>{error}</p>}
+
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }
