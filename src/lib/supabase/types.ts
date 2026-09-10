@@ -266,6 +266,45 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          categorie: string | null
+          created_at: string
+          date_echeance: string | null
+          derniere_alerte_envoyee_le: string | null
+          fichier_type: string
+          fichier_url: string
+          id: string
+          nom: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          categorie?: string | null
+          created_at?: string
+          date_echeance?: string | null
+          derniere_alerte_envoyee_le?: string | null
+          fichier_type: string
+          fichier_url: string
+          id?: string
+          nom: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categorie?: string | null
+          created_at?: string
+          date_echeance?: string | null
+          derniere_alerte_envoyee_le?: string | null
+          fichier_type?: string
+          fichier_url?: string
+          id?: string
+          nom?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       habitude_entries: {
         Row: {
           created_at: string

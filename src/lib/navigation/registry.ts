@@ -125,6 +125,17 @@ const CARBURANTS_ICON = (c: string) =>
     createElement("path", { d: "M18.5 10.5v-1a1 1 0 0 0-1-1h-.5" })
   );
 
+const DOCUMENTS_ICON = (c: string) =>
+  createElement(
+    "svg",
+    { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: c, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" },
+    createElement("path", {
+      d: "M3.5 8.5a2 2 0 0 1 2-2h4.2l2 2.2h6.8a2 2 0 0 1 2 2v7.3a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
+    }),
+    createElement("path", { d: "M9.7 13.2a2.3 2.3 0 1 1 4.6 0v1.3" }),
+    createElement("rect", { x: 9.2, y: 14.5, width: 5.6, height: 4, rx: 1 })
+  );
+
 // Ordre canonique : les 4 modules primaires (épinglés en barre du bas par
 // défaut) puis les 7 modules secondaires. La grille "Plus" liste TOUJOURS
 // les 11 items (voir resolveOrdreGrillePlus dans
@@ -218,6 +229,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Carburants",
     accentVar: "var(--accent-carburants)",
     icon: CARBURANTS_ICON,
+  },
+  {
+    href: "/documents",
+    label: "Documents",
+    description: "Papiers importants et échéances",
+    accentVar: "var(--accent-documents)",
+    icon: DOCUMENTS_ICON,
   },
 ];
 
