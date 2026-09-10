@@ -84,14 +84,30 @@ async function uploaderFichier(supabase: SupabaseClient, fichier: File): Promise
   return { url: publicUrl, fichier_type: "pdf" };
 }
 
-// Upload un ou plusieurs fichiers (recto/verso d'une pièce d'identité, par
-// exemple) sous la clé "fichiers" du formData et insère une ligne
-// document_fichiers par fichier — même pattern que uploadTacheImages dans
-// src/app/actions/taches.ts. Ne fait rien si aucun fichier n'est fourni (cas
-// normal en édition, la plupart des soumissions n'ajoutent pas de fichier).
+// Upload un ou plusieurs fichiers et insère une ligne document_fichiers par
+// fichier — même pattern que uploadTacheImages dans
+// src/app/actions/taches.ts. Deux sources possibles dans le formData :
+// - "fichiers" (multiple) : sélecteur générique (étiquette type_champs
+//   "standard" ou "periode_mensuelle").
+// - "fichier_recto" / "fichier_verso" (un seul fichier chacun) : emplacements
+//   dédiés pour une étiquette de type "recto_verso", marqués via la colonne
+//   `role` pour que l'affichage puisse les distinguer.
+// Ne fait rien si aucun fichier n'est fourni (cas normal en édition, la
+// plupart des soumissions n'ajoutent pas de fichier).
 export async function uploadDocumentFichiers(documentId: string, formData: FormData) {
   const fichiers = formData.getAll("fichiers").filter((f): f is File => f instanceof File && f.size > 0);
-  if (fichiers.length === 0) return;
+
+  const rectoVerso: { role: "recto" | "verso"; fichier: File }[] = [];
+  const rectoFichier = formData.get("fichier_recto");
+  if (rectoFichier instanceof File && rectoFichier.size > 0) {
+    rectoVerso.push({ role: "recto", fichier: rectoFichier });
+  }
+  const versoFichier = formData.get("fichier_verso");
+  if (versoFichier instanceof File && versoFichier.size > 0) {
+    rectoVerso.push({ role: "verso", fichier: versoFichier });
+  }
+
+  if (fichiers.length === 0 && rectoVerso.length === 0) return;
 
   const supabase = await createClient();
 
@@ -104,6 +120,21 @@ export async function uploadDocumentFichiers(documentId: string, formData: FormD
     .maybeSingle();
 
   let ordre = (derniere?.ordre ?? -1) + 1;
+
+  for (const { role, fichier } of rectoVerso) {
+    const uploade = await uploaderFichier(supabase, fichier);
+
+    const { error: insertError } = await supabase.from("document_fichiers").insert({
+      document_id: documentId,
+      url: uploade.url,
+      fichier_type: uploade.fichier_type,
+      ordre,
+      role,
+    });
+    if (insertError) throw new Error(insertError.message);
+
+    ordre++;
+  }
 
   for (const fichier of fichiers) {
     const uploade = await uploaderFichier(supabase, fichier);
@@ -238,6 +269,17 @@ function parseDossierIds(formData: FormData): string[] {
 
 export type EtiquetteFormState = { error: string | null };
 
+// Détermine les champs supplémentaires affichés dans DocumentForm quand
+// cette étiquette est sélectionnée (cf. le pattern déjà utilisé par
+// objectifs.type_suivi pour changer les champs de suivi affichés) :
+// - "standard" : aucun champ en plus (comportement d'origine).
+// - "recto_verso" : deux emplacements de fichier dédiés (Recto/Verso) au
+//   lieu du sélecteur générique multi-fichiers.
+// - "periode_mensuelle" : un champ "mois concerné" en plus (documents.
+//   periode_mois).
+const TYPES_CHAMPS = ["standard", "recto_verso", "periode_mensuelle"] as const;
+export type TypeChampsEtiquette = (typeof TYPES_CHAMPS)[number];
+
 function revalidateEtiquettesPaths() {
   revalidatePath("/documents");
   revalidatePath("/documents/etiquettes");
@@ -251,6 +293,11 @@ export async function getEtiquettes(): Promise<Tables<"etiquettes">[]> {
   return data ?? [];
 }
 
+function parseTypeChamps(formData: FormData): TypeChampsEtiquette | null {
+  const value = String(formData.get("type_champs") ?? "standard");
+  return TYPES_CHAMPS.includes(value as TypeChampsEtiquette) ? (value as TypeChampsEtiquette) : null;
+}
+
 export async function createEtiquette(
   _prevState: EtiquetteFormState,
   formData: FormData
@@ -258,8 +305,11 @@ export async function createEtiquette(
   const nom = String(formData.get("nom") ?? "").trim();
   if (!nom) return { error: "Le nom est requis." };
 
+  const typeChamps = parseTypeChamps(formData);
+  if (!typeChamps) return { error: "Type de champs invalide." };
+
   const supabase = await createClient();
-  const { error } = await supabase.from("etiquettes").insert({ nom });
+  const { error } = await supabase.from("etiquettes").insert({ nom, type_champs: typeChamps });
 
   if (error) return { error: error.message };
 
@@ -267,12 +317,16 @@ export async function createEtiquette(
   return { error: null };
 }
 
-export async function renameEtiquette(id: string, nom: string) {
+export async function updateEtiquette(id: string, nom: string, typeChamps: TypeChampsEtiquette) {
   const trimmed = nom.trim();
   if (!trimmed) throw new Error("Le nom est requis.");
+  if (!TYPES_CHAMPS.includes(typeChamps)) throw new Error("Type de champs invalide.");
 
   const supabase = await createClient();
-  const { error } = await supabase.from("etiquettes").update({ nom: trimmed }).eq("id", id);
+  const { error } = await supabase
+    .from("etiquettes")
+    .update({ nom: trimmed, type_champs: typeChamps })
+    .eq("id", id);
 
   if (error) throw new Error(error.message);
 
@@ -295,6 +349,7 @@ type DocumentInput = {
   categorie: DocumentCategorie | null;
   etiquette_id: string | null;
   date_echeance: string | null;
+  periode_mois: string | null;
   notes: string | null;
 };
 
@@ -305,6 +360,9 @@ function parseDocumentInput(formData: FormData): ParseResult {
   const categorie = String(formData.get("categorie") ?? "").trim();
   const etiquette_id = String(formData.get("etiquette_id") ?? "").trim();
   const date_echeance = String(formData.get("date_echeance") ?? "").trim();
+  // Un <input type="month"> soumet "AAAA-MM" : stocké comme le 1er jour du
+  // mois (documents.periode_mois est une colonne date).
+  const periode_mois_brute = String(formData.get("periode_mois") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
   if (!nom) return { ok: false, error: "Le nom est requis." };
@@ -319,6 +377,7 @@ function parseDocumentInput(formData: FormData): ParseResult {
       categorie: categorie ? (categorie as DocumentCategorie) : null,
       etiquette_id: etiquette_id || null,
       date_echeance: date_echeance || null,
+      periode_mois: periode_mois_brute ? `${periode_mois_brute}-01` : null,
       notes: notes || null,
     },
   };
@@ -332,7 +391,10 @@ export async function createDocument(
   if (!parsed.ok) return { error: parsed.error };
 
   const fichiers = formData.getAll("fichiers").filter((f): f is File => f instanceof File && f.size > 0);
-  if (fichiers.length === 0) {
+  const rectoOuVerso = [formData.get("fichier_recto"), formData.get("fichier_verso")].some(
+    (f) => f instanceof File && f.size > 0
+  );
+  if (fichiers.length === 0 && !rectoOuVerso) {
     return { error: "Au moins un fichier (photo ou PDF) est requis." };
   }
 

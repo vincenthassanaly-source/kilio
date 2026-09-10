@@ -273,6 +273,7 @@ export type Database = {
           fichier_type: string
           id: string
           ordre: number
+          role: string | null
           url: string
         }
         Insert: {
@@ -281,6 +282,7 @@ export type Database = {
           fichier_type: string
           id?: string
           ordre?: number
+          role?: string | null
           url: string
         }
         Update: {
@@ -289,6 +291,7 @@ export type Database = {
           fichier_type?: string
           id?: string
           ordre?: number
+          role?: string | null
           url?: string
         }
         Relationships: [
@@ -311,6 +314,7 @@ export type Database = {
           id: string
           nom: string
           notes: string | null
+          periode_mois: string | null
           updated_at: string
         }
         Insert: {
@@ -322,6 +326,7 @@ export type Database = {
           id?: string
           nom: string
           notes?: string | null
+          periode_mois?: string | null
           updated_at?: string
         }
         Update: {
@@ -333,6 +338,7 @@ export type Database = {
           id?: string
           nom?: string
           notes?: string | null
+          periode_mois?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -412,18 +418,21 @@ export type Database = {
           created_at: string
           id: string
           nom: string
+          type_champs: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           nom: string
+          type_champs?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           nom?: string
+          type_champs?: string
           updated_at?: string
         }
         Relationships: []

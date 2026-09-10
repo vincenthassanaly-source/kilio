@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "./DocumentForm";
 import { formatEcheance, niveauAlerte } from "./echeance";
+import { formatMois } from "./champs";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
@@ -97,6 +98,9 @@ export function DocumentCard({
             >
               Échéance : {formatEcheance(document.date_echeance)}
             </span>
+          )}
+          {document.periode_mois && (
+            <span className={metaText}>Période : {formatMois(document.periode_mois)}</span>
           )}
           {document.dossiers.length > 0 && (
             <div className="flex flex-wrap gap-1">

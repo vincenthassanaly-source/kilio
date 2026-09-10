@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "../DocumentForm";
 import { formatEcheance, niveauAlerte } from "../echeance";
+import { formatMois } from "../champs";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
@@ -100,6 +101,10 @@ export function DocumentDetail({
         </span>
       )}
 
+      {document.periode_mois && (
+        <span className="text-sm text-ink-2">Période : {formatMois(document.periode_mois)}</span>
+      )}
+
       {document.dossiers.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {document.dossiers.map((dossier) => (
@@ -114,9 +119,10 @@ export function DocumentDetail({
 
       {document.fichiers.length > 0 && (
         <ul className="grid grid-cols-2 gap-2">
-          {document.fichiers.map((fichier) =>
-            fichier.fichier_type === "image" ? (
-              <li key={fichier.id}>
+          {document.fichiers.map((fichier) => {
+            const caption = fichier.role === "recto" ? "Recto" : fichier.role === "verso" ? "Verso" : null;
+            return fichier.fichier_type === "image" ? (
+              <li key={fichier.id} className="flex flex-col gap-1">
                 <button
                   type="button"
                   onClick={() => setLightboxSrc(fichier.url)}
@@ -126,9 +132,10 @@ export function DocumentDetail({
                   {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
                   <img src={fichier.url} alt="" className="h-full w-full object-cover" />
                 </button>
+                {caption && <span className="text-center text-xs text-ink-3">{caption}</span>}
               </li>
             ) : (
-              <li key={fichier.id}>
+              <li key={fichier.id} className="flex flex-col gap-1">
                 <a
                   href={fichier.url}
                   target="_blank"
@@ -138,9 +145,10 @@ export function DocumentDetail({
                   <PdfIcon />
                   <span className="text-xs font-semibold">Ouvrir le PDF</span>
                 </a>
+                {caption && <span className="text-center text-xs text-ink-3">{caption}</span>}
               </li>
-            )
-          )}
+            );
+          })}
         </ul>
       )}
 
