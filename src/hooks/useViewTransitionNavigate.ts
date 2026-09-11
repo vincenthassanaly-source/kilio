@@ -13,12 +13,13 @@ export type NavDirection = "avance" | "recule";
 // terminée (ou avortée) pour ne jamais laisser une valeur périmée traîner.
 const NAV_DIRECTION_ATTR = "navDirection";
 
-// Délai de sécurité au-delà duquel le callback de `startViewTransition` se
-// résout même si le pathname n'a pas (encore) rejoint la cible : couvre une
-// navigation qui échoue silencieusement ou une cible dont le pathname ne
-// correspond jamais exactement (cas déjà écarté par la comparaison
-// `target === pathname` ci-dessous, mais gardé par sécurité). Ne doit jamais
-// bloquer la transition indéfiniment.
+// Délai de sécurité purement lié à l'animation : au-delà, le callback de
+// `startViewTransition` se résout même si le pathname n'a pas rejoint la
+// cible, pour ne jamais laisser la View Transition elle-même bloquée
+// indéfiniment. En pratique ce filet ne joue quasiment jamais de rôle actif
+// : `SEUIL_INDICATEUR_MS` (largement plus court) a déjà résolu la promesse
+// bien avant. Ne pilote ni l'indicateur de chargement ni `enAttenteRef` —
+// voir `TIMEOUT_ABANDON_MS` pour ça.
 const TIMEOUT_NAVIGATION_MS = 3000;
 
 // Au-delà de ce (court) délai sans que le pathname cible n'ait été atteint,
@@ -31,6 +32,18 @@ const TIMEOUT_NAVIGATION_MS = 3000;
 // fond, hors View Transition dès cet instant, donc visible en direct dès
 // qu'elle aboutit — sans attendre le filet de sécurité `TIMEOUT_NAVIGATION_MS`.
 const SEUIL_INDICATEUR_MS = 180;
+
+// Garde-fou final, bien plus long que les deux délais ci-dessus : si le
+// pathname réel n'a toujours pas rejoint la cible après ce délai (navigation
+// qui échoue silencieusement, panne réseau...), l'indicateur de chargement
+// est coupé pour ne pas laisser un spinner éternel à l'écran. Tant que ce
+// délai n'est pas écoulé, l'indicateur reste affiché même après
+// `TIMEOUT_NAVIGATION_MS` : la latence réseau + Supabase + un éventuel cold
+// start de fonction serverless (Vercel Hobby) dépasse couramment 3s, et
+// couper l'indicateur à ce moment-là — alors que la navigation réelle est
+// toujours en vol — donnait l'impression au tap de n'avoir rien fait,
+// poussant à retaper (voir rapport 2026-09-11).
+const TIMEOUT_ABANDON_MS = 12000;
 
 type Listener = () => void;
 
@@ -66,6 +79,7 @@ type NavigationEnAttente = {
   resolve: () => void;
   seuilId: ReturnType<typeof setTimeout>;
   timeoutId: ReturnType<typeof setTimeout>;
+  abandonId: ReturnType<typeof setTimeout>;
 };
 
 // Déduit le sens avance/recule à partir de la hiérarchie des deux chemins
@@ -102,7 +116,10 @@ function deriveDirection(pathname: string, href: string): NavDirection | undefin
  * route jusqu'à ce que le vrai changement de DOM survienne (bascule brutale
  * sans transition visible). Le callback renvoie donc une Promise qui ne se
  * résout qu'une fois `usePathname()` reflète effectivement `href` (voir
- * l'effet ci-dessous), avec le timeout de sécurité `TIMEOUT_NAVIGATION_MS`.
+ * l'effet ci-dessous) — ou, si la navigation tarde, dès `SEUIL_INDICATEUR_MS`
+ * (l'indicateur de chargement prend le relais, voir plus bas). L'indicateur
+ * reste ensuite affiché jusqu'à l'arrivée réelle ou, en dernier recours,
+ * jusqu'à `TIMEOUT_ABANDON_MS`.
  */
 export function useViewTransitionNavigate() {
   const router = useRouter();
@@ -119,6 +136,7 @@ export function useViewTransitionNavigate() {
     if (enAttente && enAttente.target === pathname) {
       clearTimeout(enAttente.seuilId);
       clearTimeout(enAttente.timeoutId);
+      clearTimeout(enAttente.abandonId);
       enAttenteRef.current = null;
       setNavigationEnCours(false);
       enAttente.resolve();
@@ -128,6 +146,19 @@ export function useViewTransitionNavigate() {
   return useCallback(
     (href: string, direction?: NavDirection) => {
       const target = href.split("?")[0].split("#")[0];
+
+      // Une navigation vers cette même cible est déjà en attente : ignorer
+      // ce tap plutôt que relancer push()/replace() depuis zéro. L'App
+      // Router de Next.js ne fusionne ni n'annule les navigations
+      // concurrentes — dispatchAction (app-router-instance.js) marque
+      // l'action en cours `discarded` dès qu'une nouvelle ACTION_NAVIGATE
+      // est dispatchée puis démarre immédiatement une requête RSC
+      // indépendante — donc retaper pendant l'attente ne fait qu'ajouter
+      // une requête concurrente sans jamais laisser la première aboutir,
+      // ce qui explique qu'il fallait parfois plusieurs tentatives.
+      // L'indicateur de chargement (déjà affiché, voir SEUIL_INDICATEUR_MS)
+      // reste le seul retour visuel nécessaire pendant l'attente.
+      if (enAttenteRef.current?.target === target) return;
 
       // Transition entre deux routes racine de module (ex. /nutrition ->
       // /taches, ou /plus -> /agenda) : `replace` au lieu de `push`, pour ne
@@ -176,11 +207,19 @@ export function useViewTransitionNavigate() {
                 flushSync(() => setNavigationEnCours(true));
                 resolve();
               }, SEUIL_INDICATEUR_MS),
+              // N'abandonne que l'animation (la promesse de la View
+              // Transition) : ne touche ni à l'indicateur ni à
+              // `enAttenteRef`, qui doivent rester tant que la navigation
+              // réelle n'a pas abouti (voir TIMEOUT_ABANDON_MS) ou échoué.
               timeoutId: setTimeout(() => {
-                if (enAttenteRef.current === enAttente) enAttenteRef.current = null;
-                setNavigationEnCours(false);
                 resolve();
               }, TIMEOUT_NAVIGATION_MS),
+              abandonId: setTimeout(() => {
+                if (enAttenteRef.current !== enAttente) return;
+                enAttenteRef.current = null;
+                setNavigationEnCours(false);
+                resolve();
+              }, TIMEOUT_ABANDON_MS),
             };
             enAttenteRef.current = enAttente;
           });
