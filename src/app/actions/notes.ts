@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { estCouleurValide } from "@/lib/notes/palette";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
@@ -43,7 +43,7 @@ function parseNoteInput(formData: FormData): ParseResult {
   };
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = ReturnType<typeof createAdminClient>;
 
 // Même logique que resolveTagIds/syncTachesTags dans src/app/actions/taches.ts
 // (upsert sur nom pour la création à la volée, sync par delete+insert) :
@@ -111,7 +111,7 @@ export async function createNote(
   const parsed = parseNoteInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: note, error } = await supabase
     .from("notes")
     .insert(parsed.value)
@@ -155,7 +155,7 @@ export async function updateNote(
   const parsed = parseNoteInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("notes").update(parsed.value).eq("id", id);
 
   if (error) return { error: error.message };
@@ -176,7 +176,7 @@ export async function updateNote(
 }
 
 export async function deleteNote(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("notes").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -185,7 +185,7 @@ export async function deleteNote(id: string) {
 }
 
 export async function toggleEpingle(id: string, epingle: boolean) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("notes").update({ epingle }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -199,7 +199,7 @@ export async function addNoteItem(noteId: string, libelle: string) {
   const trimmed = libelle.trim();
   if (!trimmed) throw new Error("Le libellé de l'item est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: dernier } = await supabase
     .from("note_items")
@@ -219,7 +219,7 @@ export async function addNoteItem(noteId: string, libelle: string) {
 }
 
 export async function toggleNoteItem(id: string, coche: boolean) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("note_items").update({ coche }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -231,7 +231,7 @@ export async function updateNoteItemLibelle(id: string, libelle: string) {
   const trimmed = libelle.trim();
   if (!trimmed) throw new Error("Le libellé de l'item est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("note_items").update({ libelle: trimmed }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -240,7 +240,7 @@ export async function updateNoteItemLibelle(id: string, libelle: string) {
 }
 
 export async function deleteNoteItem(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("note_items").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -252,7 +252,7 @@ export async function deleteNoteItem(id: string) {
 // note (même pattern que reordonnerSousTaches/reordonnerTaches dans
 // src/app/actions/taches.ts — pas de drag & drop dans le codebase).
 export async function reorderNoteItems(noteId: string, id: string, direction: "haut" | "bas") {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: items, error } = await supabase
     .from("note_items")
@@ -289,7 +289,7 @@ export async function reorderNoteItems(noteId: string, id: string, direction: "h
 // existante sans repasser par tout le formulaire.
 
 export async function attachTagToNote(noteId: string, tagId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("notes_tags").insert({ note_id: noteId, tag_id: tagId });
 
   if (error) throw new Error(error.message);
@@ -298,7 +298,7 @@ export async function attachTagToNote(noteId: string, tagId: string) {
 }
 
 export async function detachTagFromNote(noteId: string, tagId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("notes_tags")
     .delete()
@@ -318,7 +318,7 @@ export type NoteAvecRelations = Tables<"notes"> & {
 };
 
 export async function getNotesAvecRelations(): Promise<NoteAvecRelations[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("notes")

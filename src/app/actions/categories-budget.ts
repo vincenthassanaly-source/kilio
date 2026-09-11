@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type CategorieFormState = { error: string | null };
@@ -36,7 +36,7 @@ export async function creerCategorie(
   const parsed = parseCategorieInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("categories_budget")
     .insert({ ...parsed.value, is_predefinie: false });
@@ -57,7 +57,7 @@ export async function modifierCategorie(
   const parsed = parseCategorieInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("categories_budget").update(parsed.value).eq("id", id);
   if (error) return { error: error.message };
 
@@ -68,7 +68,7 @@ export async function modifierCategorie(
 // Les catégories prédéfinies (is_predefinie = true) ne sont pas supprimables,
 // seulement celles ajoutées par l'utilisateur — cf. prompt Phase 3.
 export async function supprimerCategorie(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existante, error: fetchError } = await supabase
     .from("categories_budget")
@@ -105,7 +105,7 @@ export async function creerSousCategorie(
   if (!nom) return { error: "Le nom est requis." };
   if (!categorie_parent_id) return { error: "Catégorie parente introuvable." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: parent, error: parentError } = await supabase
     .from("categories_budget")
     .select("type, categorie_parent_id")
@@ -133,7 +133,7 @@ export async function creerSousCategorie(
 }
 
 export async function getCategories(): Promise<Tables<"categories_budget">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("categories_budget")
     .select("*")

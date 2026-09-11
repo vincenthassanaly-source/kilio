@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
 export async function getCoursesItems(): Promise<Tables<"courses_items">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("courses_items")
     .select("*")
@@ -20,7 +20,7 @@ export async function createCourseItem(libelle: string) {
   const trimmed = libelle.trim();
   if (!trimmed) throw new Error("Le libellé est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("courses_items").insert({ libelle: trimmed });
 
   if (error) throw new Error(error.message);
@@ -29,7 +29,7 @@ export async function createCourseItem(libelle: string) {
 }
 
 export async function toggleCourseItem(id: string, coche: boolean) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("courses_items").update({ coche }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -38,7 +38,7 @@ export async function toggleCourseItem(id: string, coche: boolean) {
 }
 
 export async function deleteCourseItem(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("courses_items").delete().eq("id", id);
 
   if (error) throw new Error(error.message);

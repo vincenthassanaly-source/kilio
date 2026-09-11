@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums } from "@/lib/supabase/types";
 
 export type IngredientFormState = { error: string | null };
@@ -22,7 +22,7 @@ export async function addIngredient(
     return { error: "La quantité doit être un nombre positif." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("recette_ingredients")
     .insert({ recette_id, aliment_id, quantite, unite });
@@ -49,7 +49,7 @@ export async function updateIngredient(
     throw new Error("La quantité doit être un nombre positif.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recette_ingredients")
     .update({ quantite }, { count: "exact" })
@@ -64,7 +64,7 @@ export async function updateIngredient(
 }
 
 export async function removeIngredient(id: string, recette_id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recette_ingredients")
     .delete({ count: "exact" })

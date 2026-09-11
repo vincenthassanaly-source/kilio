@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums } from "@/lib/supabase/types";
 
 export type ObjectifFormState = { error: string | null };
@@ -29,7 +29,7 @@ export async function upsertObjectif(
     return { error: "Les objectifs doivent être des nombres positifs." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("objectifs_nutritionnels").upsert(
     {
       jour_type: jour_type as Enums<"jour_type_ppl">,

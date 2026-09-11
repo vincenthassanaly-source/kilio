@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
@@ -123,7 +123,7 @@ function parseTacheInput(formData: FormData): ParseResult {
   };
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = ReturnType<typeof createAdminClient>;
 
 async function resolveTagIds(
   supabase: SupabaseClient,
@@ -183,7 +183,7 @@ export async function createTache(
   const parsed = parseTacheInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("taches")
@@ -231,7 +231,7 @@ export async function updateTache(
   const parsed = parseTacheInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existante, error: fetchError } = await supabase
     .from("taches")
@@ -300,7 +300,7 @@ export async function uploadTacheImages(tacheId: string, formData: FormData) {
   const fichiers = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
   if (fichiers.length === 0) return;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("tache_images")
@@ -346,7 +346,7 @@ export async function uploadTacheImages(tacheId: string, formData: FormData) {
 }
 
 export async function deleteTacheImage(imageId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: image, error: fetchError } = await supabase
     .from("tache_images")
@@ -372,7 +372,7 @@ export async function deleteTacheImage(imageId: string) {
 // de fin de récurrence est dépassée par la nouvelle échéance, la récurrence
 // s'arrête et la tâche reste cochée.
 export async function toggleTache(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error: fetchError } = await supabase
     .from("taches")
@@ -403,7 +403,7 @@ export async function toggleTache(id: string) {
 }
 
 export async function deleteTache(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("taches").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -421,7 +421,7 @@ export async function deleteTache(id: string) {
 export async function enregistrerOrdreTaches(updates: { id: string; ordre: number }[]) {
   if (updates.length === 0) return;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const results = await Promise.all(
     updates.map(({ id, ordre }) => supabase.from("taches").update({ ordre }).eq("id", id))
@@ -441,7 +441,7 @@ export type TacheAvecRelations = Tables<"taches"> & {
 };
 
 export async function getTachesAvecRelations(): Promise<TacheAvecRelations[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("taches")
@@ -476,7 +476,7 @@ export async function createListe(
   const couleur = String(formData.get("couleur") ?? "").trim();
   if (!nom) return { error: "Le nom est requis." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("listes_taches")
@@ -508,7 +508,7 @@ export async function updateListe(
   const couleur = String(formData.get("couleur") ?? "").trim();
   if (!nom) return { error: "Le nom est requis." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("listes_taches")
     .update({ nom, couleur: couleur || null })
@@ -525,7 +525,7 @@ export async function updateListe(
 // toute tâche qui y est encore rattachée. Non supprimable, à l'image des
 // catégories prédéfinies du budget (cf. supprimerCategorie).
 export async function deleteListe(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: liste, error: fetchError } = await supabase
     .from("listes_taches")
@@ -546,7 +546,7 @@ export async function deleteListe(id: string) {
 }
 
 export async function reordonnerListes(id: string, direction: "haut" | "bas") {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: listes, error } = await supabase
     .from("listes_taches")
@@ -577,7 +577,7 @@ export async function reordonnerListes(id: string, direction: "haut" | "bas") {
 }
 
 export async function getListes(): Promise<Tables<"listes_taches">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("listes_taches")
     .select("*")
@@ -599,7 +599,7 @@ export async function createTag(
   const couleur = String(formData.get("couleur") ?? "").trim();
   if (!nom) return { error: "Le nom est requis." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("tags").insert({ nom, couleur: couleur || null });
 
   if (error) return { error: error.message };
@@ -609,7 +609,7 @@ export async function createTag(
 }
 
 export async function deleteTag(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("tags").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -618,7 +618,7 @@ export async function deleteTag(id: string) {
 }
 
 export async function associerTag(tacheId: string, tagId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("taches_tags").insert({ tache_id: tacheId, tag_id: tagId });
 
   if (error) throw new Error(error.message);
@@ -627,7 +627,7 @@ export async function associerTag(tacheId: string, tagId: string) {
 }
 
 export async function dissocierTag(tacheId: string, tagId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("taches_tags")
     .delete()
@@ -640,7 +640,7 @@ export async function dissocierTag(tacheId: string, tagId: string) {
 }
 
 export async function getTags(): Promise<Tables<"tags">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase.from("tags").select("*").order("nom", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -653,7 +653,7 @@ export async function createSousTache(tacheId: string, titre: string) {
   const trimmed = titre.trim();
   if (!trimmed) throw new Error("Le titre de la sous-tâche est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("sous_taches")
@@ -675,7 +675,7 @@ export async function createSousTache(tacheId: string, titre: string) {
 }
 
 export async function toggleSousTache(id: string, fait: boolean) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("sous_taches").update({ fait }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -687,7 +687,7 @@ export async function updateSousTache(id: string, titre: string) {
   const trimmed = titre.trim();
   if (!trimmed) throw new Error("Le titre de la sous-tâche est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("sous_taches").update({ titre: trimmed }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -696,7 +696,7 @@ export async function updateSousTache(id: string, titre: string) {
 }
 
 export async function deleteSousTache(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("sous_taches").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -709,7 +709,7 @@ export async function reordonnerSousTaches(
   id: string,
   direction: "haut" | "bas"
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: sousTaches, error } = await supabase
     .from("sous_taches")

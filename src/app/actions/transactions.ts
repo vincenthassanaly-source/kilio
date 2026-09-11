@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { finDuMois } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
@@ -44,7 +44,7 @@ function parseTransactionInput(formData: FormData): ParseResult {
 }
 
 async function getTypeCategorie(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   categorieId: string
 ): Promise<Enums<"type_mouvement"> | null> {
   const { data, error } = await supabase
@@ -71,7 +71,7 @@ export async function creerTransaction(
   const parsed = parseTransactionInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const type = await getTypeCategorie(supabase, parsed.value.categorie_id);
   if (!type) return { error: "Catégorie introuvable." };
 
@@ -92,7 +92,7 @@ export async function modifierTransaction(
   const parsed = parseTransactionInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const type = await getTypeCategorie(supabase, parsed.value.categorie_id);
   if (!type) return { error: "Catégorie introuvable." };
 
@@ -107,7 +107,7 @@ export async function modifierTransaction(
 }
 
 export async function supprimerTransaction(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
@@ -156,7 +156,7 @@ export async function creerVirement(
   const parsed = parseVirementInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("transactions")
     .insert({ ...parsed.value, type: "virement", categorie_id: null });
@@ -176,7 +176,7 @@ export async function modifierVirement(
   const parsed = parseVirementInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("transactions")
     .update({ ...parsed.value, type: "virement", categorie_id: null })
@@ -205,7 +205,7 @@ export async function getTransactions(filtres?: {
   /** Recherche insensible à la casse sur `libelle` (ilike). */
   recherche?: string;
 }): Promise<TransactionAvecRelations[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Deux FK vers `comptes` (compte_id, compte_destination_id) : il faut
   // désambiguïser chaque embed PostgREST avec le nom de la contrainte.
@@ -245,7 +245,7 @@ export type ResumeMois = { totalDepenses: number; totalRevenus: number };
 
 /** @param periode Format "YYYY-MM-01" (premier jour du mois). */
 export async function getResumeMois(periode: string): Promise<ResumeMois> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("transactions")
@@ -276,7 +276,7 @@ export type TotauxParJour = Record<string, { depenses: number; revenus: number }
  * @param periode Format "YYYY-MM-01" (premier jour du mois).
  */
 export async function getTransactionsParJour(periode: string): Promise<TotauxParJour> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("transactions")
@@ -310,7 +310,7 @@ export async function getResumeMoisPlage(
   periodeFin: string,
   nbMois: number
 ): Promise<ResumeMoisPlage[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [anneeFin, moisFin] = periodeFin.split("-").map(Number);
   const debutPlageDate = new Date(anneeFin, moisFin - 1 - (nbMois - 1), 1);

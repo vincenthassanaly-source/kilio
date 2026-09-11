@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type ObjectifFormState = { error: string | null };
@@ -73,7 +73,7 @@ export async function creerObjectif(
   const parsed = parseObjectifInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: dernier } = await supabase
     .from("objectifs")
@@ -103,7 +103,7 @@ export async function modifierObjectif(
   const parsed = parseObjectifInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("objectifs").update(parsed.value).eq("id", id);
 
   if (error) return { error: error.message };
@@ -116,7 +116,7 @@ export async function modifierObjectif(
 export async function changerStatutObjectif(id: string, statut: Enums<"statut_objectif">) {
   if (!STATUTS.includes(statut)) throw new Error("Statut invalide.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("objectifs").update({ statut }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -126,7 +126,7 @@ export async function changerStatutObjectif(id: string, statut: Enums<"statut_ob
 }
 
 export async function supprimerObjectif(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("objectifs").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -136,7 +136,7 @@ export async function supprimerObjectif(id: string) {
 }
 
 export async function getObjectifs(): Promise<Tables<"objectifs">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("objectifs")
@@ -155,7 +155,7 @@ export type ObjectifDetail = {
 };
 
 export async function getObjectif(id: string): Promise<ObjectifDetail | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: objectif, error: objectifError } = await supabase
     .from("objectifs")
@@ -192,7 +192,7 @@ export async function ajouterEtape(objectifId: string, titre: string) {
   const trimmed = titre.trim();
   if (!trimmed) throw new Error("Le titre de l'étape est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("objectif_etapes")
@@ -214,7 +214,7 @@ export async function ajouterEtape(objectifId: string, titre: string) {
 }
 
 export async function toggleEtape(objectifId: string, etapeId: string, fait: boolean) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("objectif_etapes")
     .update({ fait })
@@ -226,7 +226,7 @@ export async function toggleEtape(objectifId: string, etapeId: string, fait: boo
 }
 
 export async function supprimerEtape(objectifId: string, etapeId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("objectif_etapes").delete().eq("id", etapeId);
 
   if (error) throw new Error(error.message);
@@ -242,7 +242,7 @@ export async function deplacerEtape(
   etapeId: string,
   direction: "haut" | "bas"
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: etapes, error } = await supabase
     .from("objectif_etapes")
@@ -284,7 +284,7 @@ export async function enregistrerEntreeObjectif(
     throw new Error("Valeur invalide.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("objectif_entries")
     .upsert({ objectif_id: objectifId, date, valeur }, { onConflict: "objectif_id,date" });

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PushSubscriptionInput = {
   endpoint: string;
@@ -12,7 +12,7 @@ export type PushSubscriptionInput = {
 // accordée, endpoint inchangé) mette juste à jour les clés au lieu de
 // dupliquer la ligne.
 export async function saveSubscription(subscription: PushSubscriptionInput) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("push_subscriptions").upsert(
     {
       endpoint: subscription.endpoint,
@@ -26,7 +26,7 @@ export async function saveSubscription(subscription: PushSubscriptionInput) {
 }
 
 export async function deleteSubscription(endpoint: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
 
   if (error) throw new Error(error.message);

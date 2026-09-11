@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   bornesPeriode,
   premierJourDeLAnnee,
@@ -54,7 +54,7 @@ export async function upsertBudget(
         ? premierJourDeLAnnee(dateReference)
         : premierJourDuMois(dateReference);
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Le budget cible se définit uniquement sur les catégories principales : le
   // suivi (getSuiviCategories) agrège déjà les dépenses des sous-catégories
@@ -84,7 +84,7 @@ export async function upsertBudget(
 }
 
 export async function supprimerBudget(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("budgets").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
@@ -122,7 +122,7 @@ export async function getSuiviCategories(
   periode: string,
   typePeriode: Enums<"type_periode_budget"> = "mensuel"
 ): Promise<SuiviCategorie[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { debut, fin } = bornesPeriode(periode, typePeriode);
 
   const [

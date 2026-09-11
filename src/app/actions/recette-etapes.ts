@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type EtapeFormState = { error: string | null };
 
@@ -24,7 +24,7 @@ export async function addEtape(
     return { error: "La consigne est requise." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("recette_etapes").insert({
     recette_id,
     titre: titre || null,
@@ -51,7 +51,7 @@ export async function updateEtape(
     throw new Error("La consigne est requise.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recette_etapes")
     .update(
@@ -73,7 +73,7 @@ export async function updateEtape(
 }
 
 export async function removeEtape(id: string, recette_id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recette_etapes")
     .delete({ count: "exact" })

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import sharp from "sharp";
 import { recupererMetadonneesTiktok } from "@/lib/collection/tiktok";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables, TablesInsert } from "@/lib/supabase/types";
 
 const COLLECTION_IMAGES_BUCKET = "collection-images";
@@ -20,7 +20,7 @@ function revalidateCollectionsPaths(collectionId?: string) {
   if (collectionId) revalidatePath(`/collection/${collectionId}`);
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = ReturnType<typeof createAdminClient>;
 
 // Compresse et upload chaque fichier (même pattern que uploadTacheImages
 // dans src/app/actions/taches.ts). Le chemin de stockage n'est pas préfixé
@@ -71,7 +71,7 @@ export type CollectionAvecApercu = Tables<"collections"> & {
 };
 
 export async function getCollectionsAvecApercu(): Promise<CollectionAvecApercu[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("collections")
@@ -97,7 +97,7 @@ export type CollectionAvecPhotos = Tables<"collections"> & {
 };
 
 export async function getCollectionAvecPhotos(id: string): Promise<CollectionAvecPhotos | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("collections")
@@ -140,7 +140,7 @@ export async function createCollection(
   const nom = String(formData.get("nom") ?? "").trim();
   if (!nom) return { error: "Le nom est requis." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   try {
     await creerCollection(supabase, nom);
@@ -156,7 +156,7 @@ export async function renameCollection(id: string, nom: string) {
   const trimmed = nom.trim();
   if (!trimmed) throw new Error("Le nom est requis.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("collections").update({ nom: trimmed }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -165,7 +165,7 @@ export async function renameCollection(id: string, nom: string) {
 }
 
 export async function deleteCollection(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: photos, error: fetchError } = await supabase
     .from("collection_items")
@@ -193,7 +193,7 @@ export async function uploadCollectionPhotos(collectionId: string, formData: For
   const fichiers = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   if (fichiers.length === 0) return;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("collection_items")
@@ -231,7 +231,7 @@ export async function ajouterLienTiktok(collectionId: string, url: string) {
   const metadonnees = await recupererMetadonneesTiktok(lien);
   if (!metadonnees) throw new Error("Lien TikTok invalide ou introuvable.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("collection_items")
@@ -255,7 +255,7 @@ export async function ajouterLienTiktok(collectionId: string, url: string) {
 }
 
 export async function deleteCollectionItem(itemId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: item, error: fetchError } = await supabase
     .from("collection_items")
@@ -282,7 +282,7 @@ export async function deleteCollectionItem(itemId: string) {
 // src/app/collection/partage/route.ts, compresse et stocke chaque photo
 // dans le bucket, sans les rattacher à une collection.
 export async function uploaderPhotosPartagees(fichiers: File[]): Promise<string[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const urls: string[] = [];
   for (const fichier of fichiers) {
     urls.push(await compresserEtUploaderPhoto(supabase, fichier));
@@ -321,7 +321,7 @@ export async function rattacherPhotoACollection(
     return { error: "Choisis une collection ou crée-en une nouvelle." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   let collectionId: string;
 
   try {
@@ -365,7 +365,7 @@ export async function rattacherPhotoACollection(
 }
 
 export async function getCollections(): Promise<Tables<"collections">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("collections")
     .select("*")

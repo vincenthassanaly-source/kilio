@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums } from "@/lib/supabase/types";
 
 export type RecetteFormState = { error: string | null };
@@ -107,7 +107,7 @@ export async function createRecette(
   const parsed = parseRecetteInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("recettes")
     .insert(parsed.value)
@@ -130,7 +130,7 @@ export async function updateRecette(
   const parsed = parseRecetteInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recettes")
     .update(parsed.value, { count: "exact" })
@@ -149,7 +149,7 @@ export async function updateRecette(
 }
 
 export async function deleteRecette(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recettes")
     .delete({ count: "exact" })

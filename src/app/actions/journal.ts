@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   addNutrition,
   hasNutritionOverride,
@@ -30,7 +30,7 @@ export async function getResumeNutritionJour(
   date: string,
   jourType: Enums<"jour_type_ppl"> = "repos"
 ): Promise<ResumeNutritionJour> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [{ data: objectif }, { data: entries }] = await Promise.all([
     supabase.from("objectifs_nutritionnels").select("*").eq("jour_type", jourType).maybeSingle(),
@@ -99,7 +99,7 @@ export async function addJournalEntry(
     return { error: "Mode de saisie invalide." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let quantite = quantiteSaisie;
   if (type === "aliment" && saisieMode === "piece") {
@@ -133,7 +133,7 @@ export async function addJournalEntry(
 }
 
 export async function removeJournalEntry(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("journal_repas").delete().eq("id", id);
 
   if (error) throw new Error(error.message);

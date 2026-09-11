@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type IngredientLibreFormState = { error: string | null };
 
@@ -23,7 +23,7 @@ export async function addIngredientLibre(
     return { error: "Nom requis." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("recette_ingredients_libres")
     .insert({ recette_id, nom, quantite: quantiteRaw || null, ordre });
@@ -45,7 +45,7 @@ export async function updateIngredientLibre(
     throw new Error("Le nom est requis.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recette_ingredients_libres")
     .update({ nom: trimmedNom, quantite: quantite.trim() || null }, { count: "exact" })
@@ -60,7 +60,7 @@ export async function updateIngredientLibre(
 }
 
 export async function removeIngredientLibre(id: string, recette_id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error, count } = await supabase
     .from("recette_ingredients_libres")
     .delete({ count: "exact" })
@@ -78,7 +78,7 @@ export async function reorderIngredientsLibres(
   recette_id: string,
   orderedIds: string[]
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   await Promise.all(
     orderedIds.map((id, index) =>
       supabase.from("recette_ingredients_libres").update({ ordre: index }).eq("id", id)

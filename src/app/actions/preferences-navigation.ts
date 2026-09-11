@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_MODULES_BARRE_BASSE, NAV_ITEMS } from "@/lib/navigation/registry";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -12,7 +12,7 @@ const PREFERENCES_ID = 1;
 export type PreferencesNavigation = Tables<"preferences_navigation">;
 
 async function getPreferencesNavigation(): Promise<PreferencesNavigation> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("preferences_navigation")
     .select("*")
@@ -60,7 +60,7 @@ export async function getPreferencesNavigationResolues(): Promise<PreferencesNav
 }
 
 export async function updateOrdreGrillePlus(hrefs: string[]): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("preferences_navigation")
     .update({ ordre_grille_plus: hrefs })
@@ -74,7 +74,7 @@ export async function updateOrdreGrillePlus(hrefs: string[]): Promise<void> {
 export async function updateModulesBarreBasse(hrefs: string[]): Promise<void> {
   if (hrefs.length !== 4) throw new Error("La barre du bas doit contenir exactement 4 emplacements.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("preferences_navigation")
     .update({ modules_barre_basse: hrefs })

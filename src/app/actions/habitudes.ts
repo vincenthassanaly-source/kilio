@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type HabitudeFormState = { error: string | null };
@@ -61,7 +61,7 @@ export async function creerHabitude(
   const parsed = parseHabitudeInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: dernier } = await supabase
     .from("habitudes")
@@ -91,7 +91,7 @@ export async function modifierHabitude(
   const parsed = parseHabitudeInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("habitudes").update(parsed.value).eq("id", id);
 
   if (error) return { error: error.message };
@@ -105,7 +105,7 @@ export async function modifierHabitude(
 // sinon détruirait l'historique/heatmap). Cohérent avec le rôle de la colonne
 // `actif`, prévue explicitement à cet effet dans le schéma demandé.
 export async function supprimerHabitude(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("habitudes").update({ actif: false }).eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -122,7 +122,7 @@ export async function enregistrerEntreeHabitude(
     throw new Error("Valeur invalide.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("habitude_entries")
     .upsert({ habitude_id: habitudeId, date, valeur }, { onConflict: "habitude_id,date" });
@@ -156,7 +156,7 @@ function calculerStreak(entriesParDate: Map<string, number>, date: string): numb
 }
 
 export async function getHabitudesDuJour(date: string): Promise<HabitudeDuJour[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: habitudes, error: habitudesError } = await supabase
     .from("habitudes")
@@ -211,7 +211,7 @@ export async function getHistoriqueHabitude(
   debutMois: string,
   finMois: string
 ): Promise<Tables<"habitude_entries">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("habitude_entries")

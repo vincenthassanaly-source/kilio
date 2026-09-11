@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
 // Table singleton : une seule ligne, id fixé à 1 (voir
@@ -11,7 +11,7 @@ const REGLAGES_ID = 1;
 export type ReglagesNettoyage = Tables<"reglages_nettoyage">;
 
 export async function getReglagesNettoyage(): Promise<ReglagesNettoyage> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("reglages_nettoyage")
     .select("*")
@@ -27,7 +27,7 @@ export async function updateReglagesNettoyage(actif: boolean, delaiJours: number
     throw new Error("Le délai doit être un nombre entier de jours supérieur ou égal à 1.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("reglages_nettoyage")
     .update({ actif, delai_jours: delaiJours })

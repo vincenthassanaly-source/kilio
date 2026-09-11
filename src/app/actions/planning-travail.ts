@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
 export async function getPlanningTravail(): Promise<Tables<"horaires_travail_creneaux">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("horaires_travail_creneaux")
     .select("*")
@@ -19,7 +19,7 @@ export async function getPlanningTravail(): Promise<Tables<"horaires_travail_cre
 export async function getPlanningTravailExceptions(): Promise<
   Tables<"horaires_travail_exceptions">[]
 > {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("horaires_travail_exceptions")
     .select("*")
@@ -39,7 +39,7 @@ export async function ajouterExceptionPlanningTravail(
     throw new Error("L'heure de fin doit être après l'heure de début.");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("horaires_travail_exceptions")
     .insert({ date, heure_debut, heure_fin });

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ModuleRecherche = "notes" | "taches" | "recettes" | "objectifs" | "courses" | "budget";
 
@@ -26,7 +26,7 @@ export async function rechercheGlobale(query: string): Promise<ResultatRecherche
   const q = query.trim();
   if (q.length < 2) return [];
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const like = `%${escapeIlike(q)}%`;
 
   const [notesResult, tachesResult, recettesResult, objectifsResult, coursesResult, transactionsResult] =

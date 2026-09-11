@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
 import type { Enums, Tables, TablesInsert } from "@/lib/supabase/types";
 
@@ -21,7 +21,7 @@ function revalidateRecurrencePaths() {
 }
 
 async function getTypeCategorie(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   categorieId: string
 ): Promise<Enums<"type_mouvement"> | null> {
   const { data, error } = await supabase
@@ -93,7 +93,7 @@ export async function creerRecurrence(
   const parsed = parseRecurrenceInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const type = await getTypeCategorie(supabase, parsed.value.categorie_id);
   if (!type) return { error: "Catégorie introuvable." };
 
@@ -123,7 +123,7 @@ export async function modifierRecurrence(
   const parsed = parseRecurrenceInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const type = await getTypeCategorie(supabase, parsed.value.categorie_id);
   if (!type) return { error: "Catégorie introuvable." };
 
@@ -202,7 +202,7 @@ export async function creerRecurrenceVirement(
   const parsed = parseRecurrenceVirementInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("transactions_recurrentes").insert({
     ...parsed.value,
     type: "virement",
@@ -225,7 +225,7 @@ export async function modifierRecurrenceVirement(
   const parsed = parseRecurrenceVirementInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { compte_id, compte_destination_id, montant, frequence, date_fin, libelle } = parsed.value;
   const { error } = await supabase
     .from("transactions_recurrentes")
@@ -247,7 +247,7 @@ export async function modifierRecurrenceVirement(
 }
 
 export async function supprimerRecurrence(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   // on delete set null sur transactions.transaction_recurrente_id : les
   // transactions déjà générées ne sont pas supprimées, juste détachées.
   const { error } = await supabase.from("transactions_recurrentes").delete().eq("id", id);
@@ -257,7 +257,7 @@ export async function supprimerRecurrence(id: string) {
 }
 
 export async function basculerActive(id: string, active: boolean) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("transactions_recurrentes")
     .update({ active })
@@ -274,7 +274,7 @@ export type RecurrenceAvecRelations = Tables<"transactions_recurrentes"> & {
 };
 
 export async function getRecurrences(): Promise<RecurrenceAvecRelations[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("transactions_recurrentes")
     .select(
@@ -300,7 +300,7 @@ export async function getRecurrences(): Promise<RecurrenceAvecRelations[]> {
  * aujourd'hui.
  */
 export async function genererOccurrencesDues(): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const aujourdhui = aujourdhuiISO();
 
   const { data: recurrences, error } = await supabase

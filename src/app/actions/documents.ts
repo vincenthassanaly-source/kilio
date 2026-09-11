@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import sharp from "sharp";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
 export type DocumentFormState = { error: string | null };
@@ -20,7 +20,7 @@ function revalidateDocumentsPaths(id?: string) {
   if (id) revalidatePath(`/documents/${id}`);
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = ReturnType<typeof createAdminClient>;
 
 // Chemin de stockage attendu : `${uuid}.jpg` ou `${uuid}.pdf`, sous
 // `/storage/v1/object/public/documents-fichiers/`. Même logique que
@@ -109,7 +109,7 @@ export async function uploadDocumentFichiers(documentId: string, formData: FormD
 
   if (fichiers.length === 0 && rectoVerso.length === 0) return;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: derniere } = await supabase
     .from("document_fichiers")
@@ -154,7 +154,7 @@ export async function uploadDocumentFichiers(documentId: string, formData: FormD
 }
 
 export async function deleteDocumentFichier(fichierId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: fichier, error: fetchError } = await supabase
     .from("document_fichiers")
@@ -202,7 +202,7 @@ function revalidateEtiquettesPaths() {
 }
 
 export async function getEtiquettes(): Promise<Tables<"etiquettes">[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase.from("etiquettes").select("*").order("nom", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -224,7 +224,7 @@ export async function createEtiquette(
   const typeChamps = parseTypeChamps(formData);
   if (!typeChamps) return { error: "Type de champs invalide." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("etiquettes").insert({ nom, type_champs: typeChamps });
 
   if (error) return { error: error.message };
@@ -238,7 +238,7 @@ export async function updateEtiquette(id: string, nom: string, typeChamps: TypeC
   if (!trimmed) throw new Error("Le nom est requis.");
   if (!TYPES_CHAMPS.includes(typeChamps)) throw new Error("Type de champs invalide.");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("etiquettes")
     .update({ nom: trimmed, type_champs: typeChamps })
@@ -252,7 +252,7 @@ export async function updateEtiquette(id: string, nom: string, typeChamps: TypeC
 // Les documents portant cette étiquette la perdent (`on delete set null`)
 // sans être supprimés.
 export async function deleteEtiquette(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("etiquettes").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
@@ -314,7 +314,7 @@ export async function createDocument(
     return { error: "Au moins un fichier (photo ou PDF) est requis." };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: document, error } = await supabase
     .from("documents")
     .insert(parsed.value)
@@ -343,7 +343,7 @@ export async function updateDocument(
   const parsed = parseDocumentInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existant, error: fetchError } = await supabase
     .from("documents")
@@ -378,7 +378,7 @@ export async function updateDocument(
 }
 
 export async function deleteDocument(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: fichiers, error: fetchError } = await supabase
     .from("document_fichiers")
@@ -428,7 +428,7 @@ function mapDocumentAvecRelations(
 }
 
 export async function getDocuments(): Promise<DocumentAvecFichiers[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("documents")
@@ -443,7 +443,7 @@ export async function getDocuments(): Promise<DocumentAvecFichiers[]> {
 }
 
 export async function getDocument(id: string): Promise<DocumentAvecFichiers | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("documents")

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type CompteFormState = { error: string | null };
@@ -41,7 +41,7 @@ export async function creerCompte(
   const parsed = parseCompteInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("comptes").insert(parsed.value);
   if (error) return { error: error.message };
 
@@ -60,7 +60,7 @@ export async function modifierCompte(
   const parsed = parseCompteInput(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("comptes").update(parsed.value).eq("id", id);
   if (error) return { error: error.message };
 
@@ -70,7 +70,7 @@ export async function modifierCompte(
 }
 
 export async function supprimerCompte(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("comptes").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
@@ -82,7 +82,7 @@ export async function supprimerCompte(id: string) {
 export type CompteAvecSolde = Tables<"comptes"> & { solde: number };
 
 export async function getComptesAvecSolde(): Promise<CompteAvecSolde[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [
     { data: comptes, error: comptesError },
