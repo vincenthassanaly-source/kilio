@@ -179,8 +179,6 @@ export async function deleteDocumentFichier(fichierId: string) {
 
 // --- Dossiers ---
 
-export type DossierFormState = { error: string | null };
-
 function revalidateDossiersPaths() {
   revalidatePath("/documents");
   revalidatePath("/documents/dossiers");
@@ -192,23 +190,6 @@ export async function getDossiers(): Promise<Tables<"dossiers">[]> {
 
   if (error) throw new Error(error.message);
   return data ?? [];
-}
-
-export async function createDossier(
-  _prevState: DossierFormState,
-  formData: FormData
-): Promise<DossierFormState> {
-  const nom = String(formData.get("nom") ?? "").trim();
-  const parentId = String(formData.get("parent_id") ?? "").trim();
-  if (!nom) return { error: "Le nom est requis." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("dossiers").insert({ nom, parent_id: parentId || null });
-
-  if (error) return { error: error.message };
-
-  revalidateDossiersPaths();
-  return { error: null };
 }
 
 export async function renameDossier(id: string, nom: string) {
