@@ -12,10 +12,10 @@ import { input, kcalPillTag, pillTag } from "@/lib/ui";
 type TriCle = "echeance" | "nom" | "recent" | "etiquette";
 
 const TRI_LABELS: Record<TriCle, string> = {
-  echeance: "Échéance la plus proche",
-  nom: "Nom (A → Z)",
-  recent: "Ajout le plus récent",
-  etiquette: "Étiquette (A → Z)",
+  echeance: "Échéance ↑",
+  nom: "Nom A→Z",
+  recent: "Récent",
+  etiquette: "Étiquette A→Z",
 };
 
 function DossierIcon() {
