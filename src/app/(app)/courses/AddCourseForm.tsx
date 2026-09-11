@@ -36,6 +36,7 @@ export function AddCourseForm({ onDone }: { onDone?: () => void }) {
         id: `temp-${crypto.randomUUID()}`,
         libelle: value,
         coche: false,
+        termine_le: null,
         created_at: now,
         updated_at: now,
       };

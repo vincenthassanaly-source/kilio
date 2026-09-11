@@ -248,6 +248,7 @@ export type Database = {
           created_at: string
           id: string
           libelle: string
+          termine_le: string | null
           updated_at: string
         }
         Insert: {
@@ -255,6 +256,7 @@ export type Database = {
           created_at?: string
           id?: string
           libelle: string
+          termine_le?: string | null
           updated_at?: string
         }
         Update: {
@@ -262,6 +264,7 @@ export type Database = {
           created_at?: string
           id?: string
           libelle?: string
+          termine_le?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -642,6 +645,7 @@ export type Database = {
           libelle: string
           note_id: string
           position: number
+          termine_le: string | null
           updated_at: string
         }
         Insert: {
@@ -651,6 +655,7 @@ export type Database = {
           libelle: string
           note_id: string
           position?: number
+          termine_le?: string | null
           updated_at?: string
         }
         Update: {
@@ -660,6 +665,7 @@ export type Database = {
           libelle?: string
           note_id?: string
           position?: number
+          termine_le?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -774,6 +780,7 @@ export type Database = {
           id: string
           objectif_id: string
           ordre: number
+          termine_le: string | null
           titre: string
         }
         Insert: {
@@ -782,6 +789,7 @@ export type Database = {
           id?: string
           objectif_id: string
           ordre?: number
+          termine_le?: string | null
           titre: string
         }
         Update: {
@@ -790,6 +798,7 @@ export type Database = {
           id?: string
           objectif_id?: string
           ordre?: number
+          termine_le?: string | null
           titre?: string
         }
         Relationships: [
@@ -1124,6 +1133,30 @@ export type Database = {
         }
         Relationships: []
       }
+      reglages_nettoyage: {
+        Row: {
+          actif: boolean
+          delai_jours: number
+          derniere_execution: string | null
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          delai_jours?: number
+          derniere_execution?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          delai_jours?: number
+          derniere_execution?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sous_taches: {
         Row: {
           created_at: string
@@ -1131,6 +1164,7 @@ export type Database = {
           id: string
           ordre: number
           tache_id: string
+          termine_le: string | null
           titre: string
         }
         Insert: {
@@ -1139,6 +1173,7 @@ export type Database = {
           id?: string
           ordre?: number
           tache_id: string
+          termine_le?: string | null
           titre: string
         }
         Update: {
@@ -1147,6 +1182,7 @@ export type Database = {
           id?: string
           ordre?: number
           tache_id?: string
+          termine_le?: string | null
           titre?: string
         }
         Relationships: [
@@ -1209,6 +1245,7 @@ export type Database = {
           recurrence_frequence:
             | Database["public"]["Enums"]["frequence_recurrence"]
             | null
+          termine_le: string | null
           titre: string
           toute_la_journee: boolean
           updated_at: string
@@ -1230,6 +1267,7 @@ export type Database = {
           recurrence_frequence?:
             | Database["public"]["Enums"]["frequence_recurrence"]
             | null
+          termine_le?: string | null
           titre: string
           toute_la_journee?: boolean
           updated_at?: string
@@ -1251,6 +1289,7 @@ export type Database = {
           recurrence_frequence?:
             | Database["public"]["Enums"]["frequence_recurrence"]
             | null
+          termine_le?: string | null
           titre?: string
           toute_la_journee?: boolean
           updated_at?: string

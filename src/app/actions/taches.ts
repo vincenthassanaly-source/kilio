@@ -446,7 +446,7 @@ export async function getTachesAvecRelations(): Promise<TacheAvecRelations[]> {
   const { data, error } = await supabase
     .from("taches")
     .select(
-      "*, liste:listes_taches(id, nom, couleur), sous_taches(id, tache_id, titre, fait, ordre, created_at), taches_tags(tag:tags(id, nom, couleur)), tache_images(id, tache_id, url, ordre, created_at)"
+      "*, liste:listes_taches(id, nom, couleur), sous_taches(id, tache_id, titre, fait, termine_le, ordre, created_at), taches_tags(tag:tags(id, nom, couleur)), tache_images(id, tache_id, url, ordre, created_at)"
     )
     .order("fait", { ascending: true })
     .order("ordre", { ascending: true })

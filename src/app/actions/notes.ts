@@ -323,7 +323,7 @@ export async function getNotesAvecRelations(): Promise<NoteAvecRelations[]> {
   const { data, error } = await supabase
     .from("notes")
     .select(
-      "*, note_items(id, note_id, libelle, coche, position, created_at, updated_at), notes_tags(tag:tags(id, nom, couleur, created_at))"
+      "*, note_items(id, note_id, libelle, coche, termine_le, position, created_at, updated_at), notes_tags(tag:tags(id, nom, couleur, created_at))"
     )
     .order("epingle", { ascending: false })
     .order("created_at", { ascending: false })
