@@ -121,13 +121,13 @@ export function DocumentsBrowser({
               placeholder="Rechercher un document…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={`${input} flex-1`}
+              className={`${input} min-w-0 flex-1`}
             />
             <select
               value={tri}
               onChange={(e) => setTri(e.target.value as TriCle)}
               aria-label="Trier les documents"
-              className={`${input} w-auto shrink-0`}
+              className={`${input} max-w-[152px] shrink-0 truncate`}
             >
               {(Object.keys(TRI_LABELS) as TriCle[]).map((key) => (
                 <option key={key} value={key}>
