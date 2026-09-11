@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { DocumentAvecFichiers } from "@/app/actions/documents";
-import { aplatirDossiers, libelleDossier } from "./dossiers-tree";
 import type { Tables } from "@/lib/supabase/types";
 import { AddDocumentToggle } from "./AddDocumentToggle";
 import { DocumentsList } from "./DocumentsList";
@@ -18,14 +17,6 @@ const TRI_LABELS: Record<TriCle, string> = {
   etiquette: "Étiquette A→Z",
 };
 
-function DossierIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3.5 8.5a2 2 0 0 1 2-2h4.2l2 2.2h6.8a2 2 0 0 1 2 2v7.3a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
-    </svg>
-  );
-}
-
 function EtiquetteIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -37,31 +28,22 @@ function EtiquetteIcon() {
 
 export function DocumentsBrowser({
   documents,
-  dossiers,
   etiquettes,
 }: {
   documents: DocumentAvecFichiers[];
-  dossiers: Tables<"dossiers">[];
   etiquettes: Tables<"etiquettes">[];
 }) {
   const [search, setSearch] = useState("");
-  const [dossierFilter, setDossierFilter] = useState<string[]>([]);
   const [etiquetteFilter, setEtiquetteFilter] = useState<string[]>([]);
   const [tri, setTri] = useState<TriCle>("echeance");
-
-  const dossiersAplatis = useMemo(() => aplatirDossiers(dossiers), [dossiers]);
-
-  function toggleDossierFilter(id: string) {
-    setDossierFilter((ids) => (ids.includes(id) ? ids.filter((d) => d !== id) : [...ids, id]));
-  }
 
   function toggleEtiquetteFilter(id: string) {
     setEtiquetteFilter((ids) => (ids.includes(id) ? ids.filter((e) => e !== id) : [...ids, id]));
   }
 
-  // Recherche client-side (nom, notes, catégorie, dossiers, étiquette) :
-  // même approche que NotesGrid, le volume mono-utilisateur ne justifie pas
-  // une recherche full-text Postgres.
+  // Recherche client-side (nom, notes, catégorie, étiquette) : même approche
+  // que NotesGrid, le volume mono-utilisateur ne justifie pas une recherche
+  // full-text Postgres.
   const filtres = useMemo(() => {
     const term = search.toLowerCase().trim();
     return documents.filter((document) => {
@@ -70,21 +52,13 @@ export function DocumentsBrowser({
         document.nom.toLowerCase().includes(term) ||
         (document.notes ?? "").toLowerCase().includes(term) ||
         (document.categorie ?? "").toLowerCase().includes(term) ||
-        (document.etiquette?.nom.toLowerCase().includes(term) ?? false) ||
-        document.dossiers.some((d) => d.nom.toLowerCase().includes(term));
-      // Dossiers : un document peut en avoir plusieurs, donc filtre en ET
-      // (doit être dans chaque dossier sélectionné). Étiquette : un document
-      // n'en a qu'une, donc filtre en OU (doit avoir l'une des étiquettes
-      // sélectionnées) — un ET sur plusieurs étiquettes ne matcherait jamais.
-      const matchesDossiers =
-        dossierFilter.length === 0 ||
-        dossierFilter.every((id) => document.dossiers.some((d) => d.id === id));
+        (document.etiquette?.nom.toLowerCase().includes(term) ?? false);
       const matchesEtiquette =
         etiquetteFilter.length === 0 ||
         (document.etiquette !== null && etiquetteFilter.includes(document.etiquette.id));
-      return matchesSearch && matchesDossiers && matchesEtiquette;
+      return matchesSearch && matchesEtiquette;
     });
-  }, [documents, search, dossierFilter, etiquetteFilter]);
+  }, [documents, search, etiquetteFilter]);
 
   const tries = useMemo(() => {
     const copie = [...filtres];
@@ -112,35 +86,10 @@ export function DocumentsBrowser({
 
   return (
     <div className="flex flex-col gap-4">
-      <AddDocumentToggle dossiers={dossiers} etiquettes={etiquettes} />
+      <AddDocumentToggle etiquettes={etiquettes} />
 
       {documents.length > 0 && (
         <>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1" data-swipe-ignore>
-            <Link
-              href="/documents/dossiers"
-              aria-label="Gérer les dossiers"
-              title="Gérer les dossiers"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink-2 transition-colors hover:bg-surface-alt"
-            >
-              <DossierIcon />
-            </Link>
-            {dossiersAplatis.map((dossier) => (
-              <button
-                key={dossier.id}
-                type="button"
-                onClick={() => toggleDossierFilter(dossier.id)}
-                className={
-                  dossierFilter.includes(dossier.id)
-                    ? `${pillTag} shrink-0 bg-kcal-soft font-bold text-kcal`
-                    : `${pillTag} shrink-0`
-                }
-              >
-                {libelleDossier(dossier)}
-              </button>
-            ))}
-          </div>
-
           {etiquettes.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1" data-swipe-ignore>
               <Link
@@ -191,14 +140,12 @@ export function DocumentsBrowser({
           {filtres.length === 0 ? (
             <p className="py-5 text-center text-sm text-ink-3">Aucun document ne correspond à ta recherche.</p>
           ) : (
-            <DocumentsList documents={tries} dossiers={dossiers} etiquettes={etiquettes} />
+            <DocumentsList documents={tries} etiquettes={etiquettes} />
           )}
         </>
       )}
 
-      {documents.length === 0 && (
-        <DocumentsList documents={documents} dossiers={dossiers} etiquettes={etiquettes} />
-      )}
+      {documents.length === 0 && <DocumentsList documents={documents} etiquettes={etiquettes} />}
     </div>
   );
 }

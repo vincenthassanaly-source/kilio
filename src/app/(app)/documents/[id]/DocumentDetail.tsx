@@ -21,11 +21,9 @@ function PdfIcon() {
 
 export function DocumentDetail({
   document,
-  dossiers,
   etiquettes,
 }: {
   document: DocumentAvecFichiers;
-  dossiers: Tables<"dossiers">[];
   etiquettes: Tables<"etiquettes">[];
 }) {
   const [editing, setEditing] = useState(false);
@@ -38,7 +36,6 @@ export function DocumentDetail({
       <div className={card}>
         <DocumentForm
           document={document}
-          dossiers={dossiers}
           etiquettes={etiquettes}
           onDone={() => setEditing(false)}
         />
@@ -103,16 +100,6 @@ export function DocumentDetail({
 
       {document.periode_mois && (
         <span className="text-sm text-ink-2">Période : {formatMois(document.periode_mois)}</span>
-      )}
-
-      {document.dossiers.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {document.dossiers.map((dossier) => (
-            <span key={dossier.id} className={pillTag}>
-              {dossier.nom}
-            </span>
-          ))}
-        </div>
       )}
 
       {document.notes && <p className="whitespace-pre-wrap text-sm text-ink">{document.notes}</p>}

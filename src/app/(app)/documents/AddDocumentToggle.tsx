@@ -8,10 +8,8 @@ import type { Tables } from "@/lib/supabase/types";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 
 export function AddDocumentToggle({
-  dossiers,
   etiquettes,
 }: {
-  dossiers: Tables<"dossiers">[];
   etiquettes: Tables<"etiquettes">[];
 }) {
   const [open, setOpen] = useState(false);
@@ -41,7 +39,7 @@ export function AddDocumentToggle({
   return (
     <AnimatedAddCard open={open} trigger={trigger}>
       <div className={card}>
-        <DocumentForm dossiers={dossiers} etiquettes={etiquettes} onDone={() => setOpen(false)} />
+        <DocumentForm etiquettes={etiquettes} onDone={() => setOpen(false)} />
         <button type="button" onClick={() => setOpen(false)} className="mt-2 text-sm text-ink-2 underline">
           Annuler
         </button>

@@ -177,76 +177,11 @@ export async function deleteDocumentFichier(fichierId: string) {
   revalidateDocumentsPaths(fichier.document_id);
 }
 
-// --- Dossiers ---
-
-function revalidateDossiersPaths() {
-  revalidatePath("/documents");
-  revalidatePath("/documents/dossiers");
-}
-
-export async function getDossiers(): Promise<Tables<"dossiers">[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("dossiers").select("*");
-
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
-
-export async function renameDossier(id: string, nom: string) {
-  const trimmed = nom.trim();
-  if (!trimmed) throw new Error("Le nom est requis.");
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("dossiers").update({ nom: trimmed }).eq("id", id);
-
-  if (error) throw new Error(error.message);
-
-  revalidateDossiersPaths();
-}
-
-// Supprime le dossier et, en cascade (contrainte FK), ses sous-dossiers et
-// les affectations documents_dossiers correspondantes. Les documents
-// eux-mêmes ne sont jamais supprimés, juste "dérangés" de ce dossier.
-export async function deleteDossier(id: string) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("dossiers").delete().eq("id", id);
-
-  if (error) throw new Error(error.message);
-
-  revalidateDossiersPaths();
-}
-
-// Sync par delete+insert, même pattern que syncTachesTags/syncNotesTags :
-// un document peut appartenir à plusieurs dossiers (étiquettes), pas un
-// rangement exclusif.
-async function syncDocumentDossiers(
-  supabase: SupabaseClient,
-  documentId: string,
-  dossierIds: string[]
-) {
-  const { error: deleteError } = await supabase
-    .from("documents_dossiers")
-    .delete()
-    .eq("document_id", documentId);
-  if (deleteError) throw new Error(deleteError.message);
-
-  if (dossierIds.length > 0) {
-    const { error: insertError } = await supabase
-      .from("documents_dossiers")
-      .insert(dossierIds.map((dossier_id) => ({ document_id: documentId, dossier_id })));
-    if (insertError) throw new Error(insertError.message);
-  }
-}
-
-function parseDossierIds(formData: FormData): string[] {
-  return formData.getAll("dossier_ids").map(String).filter(Boolean);
-}
-
 // --- Étiquettes ---
-// Liste gérable (contrairement aux dossiers : pas de hiérarchie, affectation
-// exclusive — un document a au plus une étiquette, comme listes_taches pour
-// les tâches). Complète la catégorie large existante par un type précis
-// (ex. "Permis de conduire"), choisi à la création du document.
+// Liste gérable à affectation exclusive — un document a au plus une
+// étiquette, comme listes_taches pour les tâches. Complète la catégorie
+// large existante par un type précis (ex. "Permis de conduire"), choisi à
+// la création du document.
 
 export type EtiquetteFormState = { error: string | null };
 
@@ -389,12 +324,6 @@ export async function createDocument(
   if (error) return { error: error.message };
 
   try {
-    await syncDocumentDossiers(supabase, document.id, parseDossierIds(formData));
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erreur lors de l'affectation aux dossiers." };
-  }
-
-  try {
     await uploadDocumentFichiers(document.id, formData);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi des fichiers." };
@@ -439,12 +368,6 @@ export async function updateDocument(
   if (error) return { error: error.message };
 
   try {
-    await syncDocumentDossiers(supabase, id, parseDossierIds(formData));
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erreur lors de l'affectation aux dossiers." };
-  }
-
-  try {
     await uploadDocumentFichiers(id, formData);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Erreur lors de l'envoi des fichiers." };
@@ -485,25 +408,21 @@ export async function deleteDocument(id: string) {
 
 export type DocumentAvecFichiers = Tables<"documents"> & {
   fichiers: Tables<"document_fichiers">[];
-  dossiers: Tables<"dossiers">[];
   etiquette: Tables<"etiquettes"> | null;
 };
 
-const SELECT_DOCUMENT_AVEC_RELATIONS =
-  "*, document_fichiers(*), documents_dossiers(dossier:dossiers(*)), etiquette:etiquettes(*)";
+const SELECT_DOCUMENT_AVEC_RELATIONS = "*, document_fichiers(*), etiquette:etiquettes(*)";
 
 function mapDocumentAvecRelations(
   row: Tables<"documents"> & {
     document_fichiers: Tables<"document_fichiers">[];
-    documents_dossiers: { dossier: Tables<"dossiers"> | null }[];
     etiquette: Tables<"etiquettes"> | null;
   }
 ): DocumentAvecFichiers {
-  const { document_fichiers, documents_dossiers, etiquette, ...document } = row;
+  const { document_fichiers, etiquette, ...document } = row;
   return {
     ...document,
     fichiers: document_fichiers,
-    dossiers: documents_dossiers.map((dd) => dd.dossier).filter((d): d is Tables<"dossiers"> => d !== null),
     etiquette,
   };
 }

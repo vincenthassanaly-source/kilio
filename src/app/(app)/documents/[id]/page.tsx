@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getDocument, getDossiers, getEtiquettes } from "@/app/actions/documents";
+import { getDocument, getEtiquettes } from "@/app/actions/documents";
 import { DocumentDetail } from "./DocumentDetail";
 
 export default async function DocumentDetailPage({
@@ -8,15 +8,11 @@ export default async function DocumentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [document, dossiers, etiquettes] = await Promise.all([
-    getDocument(id),
-    getDossiers(),
-    getEtiquettes(),
-  ]);
+  const [document, etiquettes] = await Promise.all([getDocument(id), getEtiquettes()]);
 
   if (!document) {
     notFound();
   }
 
-  return <DocumentDetail document={document} dossiers={dossiers} etiquettes={etiquettes} />;
+  return <DocumentDetail document={document} etiquettes={etiquettes} />;
 }

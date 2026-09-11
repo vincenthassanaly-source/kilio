@@ -4,12 +4,10 @@ import { DocumentCard } from "./DocumentCard";
 
 export function DocumentsList({
   documents,
-  dossiers,
   etiquettes,
   emptyMessage = "Aucun document pour l'instant.",
 }: {
   documents: DocumentAvecFichiers[];
-  dossiers: Tables<"dossiers">[];
   etiquettes: Tables<"etiquettes">[];
   emptyMessage?: string;
 }) {
@@ -20,7 +18,7 @@ export function DocumentsList({
   return (
     <ul className="flex flex-col gap-2.5">
       {documents.map((document) => (
-        <DocumentCard key={document.id} document={document} dossiers={dossiers} etiquettes={etiquettes} />
+        <DocumentCard key={document.id} document={document} etiquettes={etiquettes} />
       ))}
     </ul>
   );

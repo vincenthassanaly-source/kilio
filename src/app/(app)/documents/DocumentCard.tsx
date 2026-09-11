@@ -21,11 +21,9 @@ function PdfIcon() {
 
 export function DocumentCard({
   document,
-  dossiers,
   etiquettes,
 }: {
   document: DocumentAvecFichiers;
-  dossiers: Tables<"dossiers">[];
   etiquettes: Tables<"etiquettes">[];
 }) {
   const [editing, setEditing] = useState(false);
@@ -37,7 +35,6 @@ export function DocumentCard({
       <li className={card}>
         <DocumentForm
           document={document}
-          dossiers={dossiers}
           etiquettes={etiquettes}
           onDone={() => setEditing(false)}
         />
@@ -101,15 +98,6 @@ export function DocumentCard({
           )}
           {document.periode_mois && (
             <span className={metaText}>Période : {formatMois(document.periode_mois)}</span>
-          )}
-          {document.dossiers.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {document.dossiers.map((dossier) => (
-                <span key={dossier.id} className={pillTag}>
-                  {dossier.nom}
-                </span>
-              ))}
-            </div>
           )}
         </TransitionLink>
       </div>
