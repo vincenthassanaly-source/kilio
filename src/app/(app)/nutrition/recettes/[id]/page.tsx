@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { RecetteHeader } from "./RecetteHeader";
 import { RecetteMacros } from "./RecetteMacros";
 import { IngredientManager } from "./IngredientManager";
@@ -14,7 +14,7 @@ export default async function RecetteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [{ data: recette }, { data: ingredients }, { data: aliments }, { data: ingredientsLibres }, { data: etapes }] =
     await Promise.all([

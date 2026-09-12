@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AddRecetteToggle } from "./AddRecetteToggle";
 import { RecettesList } from "./RecettesList";
 import {
@@ -11,7 +11,7 @@ import { NutritionSubNav } from "@/components/NutritionSubNav";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default async function RecettesPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: recettes, error } = await supabase
     .from("recettes")

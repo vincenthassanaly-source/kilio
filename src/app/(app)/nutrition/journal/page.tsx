@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ObjectifForm } from "./ObjectifForm";
 import { ResumeJour } from "./ResumeJour";
 import { JournalEntriesList, type JournalEntryView } from "./JournalEntriesList";
@@ -36,7 +36,7 @@ export default async function JournalPage({
   const date = dateParam || todayISO();
   const jourType: Enums<"jour_type_ppl"> = jourParam === "entrainement" ? "entrainement" : "repos";
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [{ data: objectif }, { data: entries }] = await Promise.all([
     supabase
