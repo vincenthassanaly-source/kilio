@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { rattacherPhotoACollection, type RattacherPhotoFormState } from "@/app/actions/collections";
 import type { Tables } from "@/lib/supabase/types";
-import { card, errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { card, checkCircle, errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
 
 const initialState: RattacherPhotoFormState = { error: null };
 
@@ -38,21 +38,41 @@ export function ChoisirCollectionForm({
         <div className="flex flex-col gap-1.5">
           <span className={labelClass}>Collection existante</span>
           <div className="flex flex-col gap-1.5">
-            {collections.map((collection) => (
-              <button
-                key={collection.id}
-                type="button"
-                onClick={() => {
-                  setCollectionId(collection.id);
-                  setNouvelleCollection("");
-                }}
-                className={`${card} w-full text-left transition-colors ${
-                  collectionId === collection.id ? "border-kcal bg-kcal-soft" : ""
-                }`}
-              >
-                {collection.nom}
-              </button>
-            ))}
+            {collections.map((collection) => {
+              const selected = collectionId === collection.id;
+              return (
+                <button
+                  key={collection.id}
+                  type="button"
+                  onClick={() => {
+                    setCollectionId(collection.id);
+                    setNouvelleCollection("");
+                  }}
+                  className={`${card} flex w-full items-center justify-between gap-3 text-left transition-colors ${
+                    selected ? "border-kcal bg-kcal-soft" : "bg-background text-ink-2"
+                  }`}
+                >
+                  <span className={selected ? "font-semibold text-ink" : ""}>{collection.nom}</span>
+                  <span
+                    className={`${checkCircle} ${
+                      selected ? "border-kcal bg-kcal" : "border-line bg-transparent"
+                    }`}
+                  >
+                    {selected && (
+                      <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                        <path
+                          d="M1 6l3.2 3.2L11 2"
+                          stroke="white"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
