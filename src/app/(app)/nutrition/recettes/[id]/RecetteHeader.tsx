@@ -41,7 +41,10 @@ export function RecetteHeader({
       </TransitionLink>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">
+          <h1
+            style={{ viewTransitionName: `recette-title-${recette.id}` }}
+            className="mt-1 truncate font-display text-[22px] font-semibold text-ink"
+          >
             {recette.nom}
           </h1>
           <p className="text-[13px] text-ink-2">

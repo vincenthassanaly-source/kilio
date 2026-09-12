@@ -63,7 +63,12 @@ export function DocumentCard({
             aria-label="Agrandir l'aperçu"
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
-            <img src={apercu.url} alt="" className="h-full w-full object-cover" />
+            <img
+              src={apercu.url}
+              alt=""
+              style={{ viewTransitionName: `document-cover-${document.id}` }}
+              className="h-full w-full object-cover"
+            />
           </button>
         ) : apercu ? (
           <a
@@ -79,7 +84,9 @@ export function DocumentCard({
 
         <TransitionLink href={`/documents/${document.id}`} className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
-            <p className={nameText}>{document.nom}</p>
+            <p className={nameText} style={{ viewTransitionName: `document-title-${document.id}` }}>
+              {document.nom}
+            </p>
             <div className="flex shrink-0 gap-1.5">
               {document.etiquette && <span className={kcalPillTag}>{document.etiquette.nom}</span>}
               {document.categorie && <span className={pillTag}>{document.categorie}</span>}

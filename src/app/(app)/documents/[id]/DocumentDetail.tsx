@@ -56,7 +56,12 @@ export function DocumentDetail({
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">{document.nom}</h1>
+          <h1
+            style={{ viewTransitionName: `document-title-${document.id}` }}
+            className="mt-1 truncate font-display text-[22px] font-semibold text-ink"
+          >
+            {document.nom}
+          </h1>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {document.etiquette && <span className={kcalPillTag}>{document.etiquette.nom}</span>}
             {document.categorie && <span className={pillTag}>{document.categorie}</span>}
@@ -106,7 +111,7 @@ export function DocumentDetail({
 
       {document.fichiers.length > 0 && (
         <ul className="grid grid-cols-2 gap-2">
-          {document.fichiers.map((fichier) => {
+          {document.fichiers.map((fichier, index) => {
             const caption = fichier.role === "recto" ? "Recto" : fichier.role === "verso" ? "Verso" : null;
             return fichier.fichier_type === "image" ? (
               <li key={fichier.id} className="flex flex-col gap-1">
@@ -117,7 +122,12 @@ export function DocumentDetail({
                   aria-label="Agrandir l'image"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
-                  <img src={fichier.url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={fichier.url}
+                    alt=""
+                    style={index === 0 ? { viewTransitionName: `document-cover-${document.id}` } : undefined}
+                    className="h-full w-full object-cover"
+                  />
                 </button>
                 {caption && <span className="text-center text-xs text-ink-3">{caption}</span>}
               </li>

@@ -111,7 +111,9 @@ export function RecettesList({
             <li key={recette.id}>
               <TransitionLink href={`/nutrition/recettes/${recette.id}`} className={listCard}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className={nameText}>{recette.nom}</p>
+                  <p className={nameText} style={{ viewTransitionName: `recette-title-${recette.id}` }}>
+                    {recette.nom}
+                  </p>
                   <span className={kcalPillTag}>{recette.kcalParPortion} kcal/portion</span>
                 </div>
                 <p className={metaText}>

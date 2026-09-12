@@ -78,7 +78,9 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
     <li className={listCard}>
       <TransitionLink href={`/objectifs/${objectif.id}`} className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
-          <p className={nameText}>{objectif.titre}</p>
+          <p className={nameText} style={{ viewTransitionName: `objectif-title-${objectif.id}` }}>
+            {objectif.titre}
+          </p>
           <span className={pillTag}>{TYPE_SUIVI_LABELS[objectif.type_suivi]}</span>
         </div>
         {objectif.description && (

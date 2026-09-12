@@ -62,7 +62,10 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
       </TransitionLink>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="mt-1 truncate font-display text-[22px] font-semibold text-ink">
+          <h1
+            style={{ viewTransitionName: `objectif-title-${objectif.id}` }}
+            className="mt-1 truncate font-display text-[22px] font-semibold text-ink"
+          >
             {objectif.titre}
           </h1>
           <p className="text-[13px] text-ink-2">
