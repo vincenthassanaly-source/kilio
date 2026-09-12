@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supprimerObjectif } from "@/app/actions/objectifs";
+import { queryKeys } from "@/lib/query/keys";
+import { showToast } from "@/components/toast/toast-store";
 import { ObjectifForm } from "./ObjectifForm";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { TransitionLink } from "@/components/TransitionLink";
@@ -23,12 +26,43 @@ function formatEcheance(iso: string) {
 
 export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
   const [editing, setEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.objectifs });
+  }
+
+  // Suppression retirée du cache dans `onMutate`, avant l'appel serveur : la
+  // Server Action se termine par un `redirect("/objectifs")` (partagé avec
+  // ObjectifHeader, cf. page détail), qui interrompt l'exécution en jetant —
+  // tout code placé après un simple `await supprimerObjectif(...)` ne
+  // s'exécuterait donc jamais.
+  const deleteMutation = useMutation({
+    mutationFn: () => supprimerObjectif(objectif.id),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.objectifs });
+      const previous = queryClient.getQueryData<Tables<"objectifs">[]>(queryKeys.objectifs);
+      queryClient.setQueryData<Tables<"objectifs">[]>(queryKeys.objectifs, (old) =>
+        old?.filter((o) => o.id !== objectif.id)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.objectifs, context.previous);
+      showToast("Impossible de supprimer l'objectif.");
+    },
+  });
 
   if (editing) {
     return (
       <li className={card}>
-        <ObjectifForm objectif={objectif} onDone={() => setEditing(false)} />
+        <ObjectifForm
+          objectif={objectif}
+          onDone={() => {
+            setEditing(false);
+            invalidate();
+          }}
+        />
         <button
           type="button"
           onClick={() => setEditing(false)}
@@ -60,8 +94,8 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
         </button>
         <button
           type="button"
-          disabled={isPending}
-          onClick={() => startTransition(() => supprimerObjectif(objectif.id))}
+          disabled={deleteMutation.isPending}
+          onClick={() => deleteMutation.mutate()}
           className={dangerButton}
         >
           Suppr.

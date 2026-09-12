@@ -2,13 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { deleteCollection, renameCollection } from "@/app/actions/collections";
+import { queryKeys } from "@/lib/query/keys";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
 
 export function CollectionHeader({ collection }: { collection: Tables<"collections"> }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [nom, setNom] = useState(collection.nom);
   const [isPending, startTransition] = useTransition();
@@ -23,6 +26,8 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
     startTransition(async () => {
       try {
         await renameCollection(collection.id, trimmed);
+        queryClient.invalidateQueries({ queryKey: queryKeys.collection(collection.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.collections });
         setEditing(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -37,6 +42,7 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
     startTransition(async () => {
       try {
         await deleteCollection(collection.id);
+        queryClient.invalidateQueries({ queryKey: queryKeys.collections });
         router.push("/collection");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur inconnue.");

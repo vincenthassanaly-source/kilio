@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addDays,
   addMonths,
@@ -13,8 +14,9 @@ import {
   subMonths,
   subWeeks,
 } from "date-fns";
-import type { TacheAvecRelations } from "@/app/actions/taches";
-import type { Tables } from "@/lib/supabase/types";
+import { getListes, getTachesAvecRelations, getTags } from "@/app/actions/taches";
+import { getPlanningTravail, getPlanningTravailExceptions } from "@/app/actions/planning-travail";
+import { queryKeys } from "@/lib/query/keys";
 import { Modal } from "@/components/Modal";
 import { useBackClose } from "@/hooks/useBackClose";
 import { DayView } from "./DayView";
@@ -22,6 +24,9 @@ import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { ListView } from "./ListView";
 import { parseISODate, toISODate } from "./date-utils";
+import { errorText } from "@/lib/ui";
+import { Skeleton } from "@/components/skeletons/Skeleton";
+import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 
 const AddTaskForm = dynamic(() => import("../taches/AddTaskForm").then((m) => m.AddTaskForm), {
   ssr: false,
@@ -53,40 +58,64 @@ function periodKey(view: ViewKey, date: Date): string {
   return toISODate(date);
 }
 
-export function AgendaView({
-  taches,
-  listes,
-  tags,
-  creneaux,
-  exceptions,
-}: {
-  taches: TacheAvecRelations[];
-  listes: Tables<"listes_taches">[];
-  tags: Tables<"tags">[];
-  creneaux: Tables<"horaires_travail_creneaux">[];
-  exceptions: Tables<"horaires_travail_exceptions">[];
-}) {
+export function AgendaView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Tâche ciblée par un deep-link de notification (?tache=<id>, cf.
-  // envoyer-rappels-taches) : la vue Jour est déjà la vue par défaut, donc
-  // seules la date affichée et la tâche à surligner ont besoin d'être
-  // dérivées de l'URL — calculé ici (pas dans un effet) pour que l'état
-  // initial soit déjà correct dès le tout premier rendu.
-  const tacheDeepLinkId = searchParams.get("tache");
-  const tacheCibleeParURL = tacheDeepLinkId
-    ? taches.find((t) => t.id === tacheDeepLinkId && t.echeance)
-    : undefined;
+  const queryClient = useQueryClient();
+
+  const { data: taches, isLoading: tachesLoading, isError: tachesError } = useQuery({
+    queryKey: queryKeys.taches,
+    queryFn: getTachesAvecRelations,
+  });
+  const { data: listes = [] } = useQuery({ queryKey: queryKeys.listes, queryFn: getListes });
+  const { data: tags = [] } = useQuery({ queryKey: queryKeys.tags, queryFn: getTags });
+  // Aucune mutation côté app sur ces deux tables (écrites uniquement hors
+  // Server Action, via le skill kilio-planning-travail) : `staleTime: 0`
+  // pour ne jamais rester en cache, contrairement à `taches` (dont les
+  // mutations in-app invalident déjà correctement le cache, cf. TaskCard) —
+  // reproduit la garantie de l'ancien `export const dynamic =
+  // "force-dynamic"` de cette route pour ces deux lectures précises.
+  const { data: creneaux = [] } = useQuery({
+    queryKey: queryKeys.planningTravail,
+    queryFn: getPlanningTravail,
+    staleTime: 0,
+  });
+  const { data: exceptions = [] } = useQuery({
+    queryKey: queryKeys.planningTravailExceptions,
+    queryFn: getPlanningTravailExceptions,
+    staleTime: 0,
+  });
 
   const [view, setView] = useState<ViewKey>("jour");
-  const [selectedDate, setSelectedDate] = useState<Date>(() =>
-    tacheCibleeParURL ? parseISODate(tacheCibleeParURL.echeance!) : startOfToday()
-  );
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfToday());
   const [fabOpen, setFabOpen] = useState(false);
-  // Tâche introuvable (supprimée entretemps, etc.) : reste `null`, ignoré
-  // silencieusement. Pas de setter : valeur figée à l'état initial calculé
-  // depuis l'URL, jamais modifiée ensuite dans la session.
-  const [tacheEnSurbrillanceId] = useState<string | null>(() => tacheCibleeParURL?.id ?? null);
+  // Tâche ciblée par un deep-link de notification (?tache=<id>, cf.
+  // envoyer-rappels-taches). Contrairement à l'ancienne page Server
+  // Component, `taches` n'est plus disponible dès le tout premier rendu
+  // (chargement client via useQuery) : la date/mise en surbrillance sont
+  // donc appliquées dans un effet une fois `taches` chargé, plutôt que dans
+  // l'état initial. `deepLinkApplique` évite de ré-appliquer le deep-link
+  // après un refetch ultérieur (ex. retour en arrière dans la session).
+  const [tacheEnSurbrillanceId, setTacheEnSurbrillanceId] = useState<string | null>(null);
+  const deepLinkAppliqueRef = useRef(false);
+
+  useEffect(() => {
+    if (deepLinkAppliqueRef.current || !taches) return;
+    const tacheDeepLinkId = searchParams.get("tache");
+    if (!tacheDeepLinkId) return;
+    deepLinkAppliqueRef.current = true;
+    const cible = taches.find((t) => t.id === tacheDeepLinkId && t.echeance);
+    if (cible) {
+      // Synchronisation ponctuelle depuis une donnée externe arrivée de
+      // façon asynchrone (premier chargement de `taches`), gardée par
+      // `deepLinkAppliqueRef` : ne s'exécute qu'une fois, pas un
+      // enchaînement de re-rendus.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedDate(parseISODate(cible.echeance!));
+      setTacheEnSurbrillanceId(cible.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taches]);
 
   // Nettoie le paramètre ?tache= de l'URL une fois lu ci-dessus, pour éviter
   // que le comportement se répète à chaque re-render/navigation ultérieure
@@ -208,7 +237,10 @@ export function AgendaView({
             listes={listes}
             tags={tags}
             defaultEcheance={toISODate(selectedDate)}
-            onDone={() => setFabOpen(false)}
+            onDone={() => {
+              setFabOpen(false);
+              queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+            }}
           />
         </Modal>
       )}
@@ -230,48 +262,59 @@ export function AgendaView({
         </div>
       </div>
 
-      {view !== "liste" && (
-        <div onTouchStart={gererToucheDebut} onTouchMove={gererToucheMove} onTouchEnd={gererToucheFin}>
-          <div
-            key={periodKey(view, selectedDate)}
-            className={direction === 1 ? "agenda-glisse-suivant" : "agenda-glisse-precedent"}
-          >
-            {view === "jour" && (
-              <DayView
-                taches={taches}
-                listes={listes}
-                tags={tags}
-                creneaux={creneaux}
-                exceptions={exceptions}
-                selectedDate={selectedDate}
-                onChangeDate={handleChangeDate}
-                tacheEnSurbrillanceId={tacheEnSurbrillanceId}
-              />
-            )}
-            {view === "semaine" && (
-              <WeekView
-                taches={taches}
-                creneaux={creneaux}
-                exceptions={exceptions}
-                selectedDate={selectedDate}
-                onChangeDate={handleChangeDate}
-                onSelectDay={selectDay}
-              />
-            )}
-            {view === "mois" && (
-              <MonthView
-                taches={taches}
-                creneaux={creneaux}
-                exceptions={exceptions}
-                selectedDate={selectedDate}
-                onChangeDate={handleChangeDate}
-                onSelectDay={selectDay}
-              />
-            )}
-          </div>
+      {tachesLoading ? (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-10 w-full rounded-2xl" />
+          <ListItemSkeletonGroup count={5} withSubtitle />
         </div>
+      ) : tachesError || !taches ? (
+        <p className={errorText}>Erreur de chargement de l&apos;agenda. Réessaie.</p>
+      ) : (
+        <>
+          {view !== "liste" && (
+            <div onTouchStart={gererToucheDebut} onTouchMove={gererToucheMove} onTouchEnd={gererToucheFin}>
+              <div
+                key={periodKey(view, selectedDate)}
+                className={direction === 1 ? "agenda-glisse-suivant" : "agenda-glisse-precedent"}
+              >
+                {view === "jour" && (
+                  <DayView
+                    taches={taches}
+                    listes={listes}
+                    tags={tags}
+                    creneaux={creneaux}
+                    exceptions={exceptions}
+                    selectedDate={selectedDate}
+                    onChangeDate={handleChangeDate}
+                    tacheEnSurbrillanceId={tacheEnSurbrillanceId}
+                  />
+                )}
+                {view === "semaine" && (
+                  <WeekView
+                    taches={taches}
+                    creneaux={creneaux}
+                    exceptions={exceptions}
+                    selectedDate={selectedDate}
+                    onChangeDate={handleChangeDate}
+                    onSelectDay={selectDay}
+                  />
+                )}
+                {view === "mois" && (
+                  <MonthView
+                    taches={taches}
+                    creneaux={creneaux}
+                    exceptions={exceptions}
+                    selectedDate={selectedDate}
+                    onChangeDate={handleChangeDate}
+                    onSelectDay={selectDay}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          {view === "liste" && <ListView taches={taches} listes={listes} tags={tags} />}
+        </>
       )}
-      {view === "liste" && <ListView taches={taches} listes={listes} tags={tags} />}
     </div>
   );
 }

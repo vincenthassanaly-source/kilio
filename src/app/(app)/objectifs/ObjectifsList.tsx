@@ -1,6 +1,14 @@
+"use client";
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getObjectifs } from "@/app/actions/objectifs";
+import { queryKeys } from "@/lib/query/keys";
 import type { Enums, Tables } from "@/lib/supabase/types";
-import { eyebrow, sectionTitle } from "@/lib/ui";
+import { errorText, eyebrow, sectionTitle } from "@/lib/ui";
+import { AddObjectifToggle } from "./AddObjectifToggle";
 import { ObjectifCard } from "./ObjectifCard";
+import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const CATEGORIE_LABELS: Record<Enums<"categorie_objectif">, string> = {
   perso: "Personnel",
@@ -16,7 +24,7 @@ const STATUT_LABELS: Record<Enums<"statut_objectif">, string> = {
 const CATEGORIES_ORDRE: Enums<"categorie_objectif">[] = ["perso", "pro"];
 const STATUTS_ORDRE: Enums<"statut_objectif">[] = ["en_cours", "atteint", "abandonne"];
 
-export function ObjectifsList({ objectifs }: { objectifs: Tables<"objectifs">[] }) {
+function ObjectifsGroupes({ objectifs }: { objectifs: Tables<"objectifs">[] }) {
   if (objectifs.length === 0) {
     return <p className="text-ink-2">Aucun objectif pour l&apos;instant.</p>;
   }
@@ -49,5 +57,32 @@ export function ObjectifsList({ objectifs }: { objectifs: Tables<"objectifs">[] 
         );
       })}
     </div>
+  );
+}
+
+export function ObjectifsList() {
+  const queryClient = useQueryClient();
+  const { data: objectifs, isLoading, isError } = useQuery({
+    queryKey: queryKeys.objectifs,
+    queryFn: getObjectifs,
+  });
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.objectifs });
+  }
+
+  return (
+    <PullToRefresh onRefresh={invalidate}>
+      <div className="flex flex-col gap-4">
+        <AddObjectifToggle onSaved={invalidate} />
+        {isLoading ? (
+          <ListItemSkeletonGroup count={4} withSubtitle />
+        ) : isError ? (
+          <p className={errorText}>Erreur de chargement des objectifs. Réessaie.</p>
+        ) : (
+          <ObjectifsGroupes objectifs={objectifs ?? []} />
+        )}
+      </div>
+    </PullToRefresh>
   );
 }

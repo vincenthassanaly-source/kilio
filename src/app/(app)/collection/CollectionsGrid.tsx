@@ -1,12 +1,17 @@
 "use client";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { getCollectionsAvecApercu, type CollectionAvecApercu } from "@/app/actions/collections";
+import { queryKeys } from "@/lib/query/keys";
 import { CollectionMosaic } from "./CollectionMosaic";
-import type { CollectionAvecApercu } from "@/app/actions/collections";
+import { AddCollectionToggle } from "./AddCollectionToggle";
 import { TransitionLink } from "@/components/TransitionLink";
-import { nameText } from "@/lib/ui";
+import { errorText, nameText } from "@/lib/ui";
+import { GridSkeleton } from "@/components/skeletons/GridSkeleton";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
-export function CollectionsGrid({ collections }: { collections: CollectionAvecApercu[] }) {
+function CollectionsMosaic({ collections }: { collections: CollectionAvecApercu[] }) {
   if (collections.length === 0) {
     return <p className="text-ink-2">Aucune collection pour l&apos;instant.</p>;
   }
@@ -37,5 +42,32 @@ export function CollectionsGrid({ collections }: { collections: CollectionAvecAp
         </motion.li>
       ))}
     </ul>
+  );
+}
+
+export function CollectionsGrid() {
+  const queryClient = useQueryClient();
+  const { data: collections, isLoading, isError } = useQuery({
+    queryKey: queryKeys.collections,
+    queryFn: getCollectionsAvecApercu,
+  });
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.collections });
+  }
+
+  return (
+    <PullToRefresh onRefresh={invalidate}>
+      <div className="flex flex-col gap-4">
+        <AddCollectionToggle onSaved={invalidate} />
+        {isLoading ? (
+          <GridSkeleton />
+        ) : isError ? (
+          <p className={errorText}>Erreur de chargement des collections. Réessaie.</p>
+        ) : (
+          <CollectionsMosaic collections={collections ?? []} />
+        )}
+      </div>
+    </PullToRefresh>
   );
 }

@@ -11,4 +11,12 @@ export const queryKeys = {
   habitudes: (date: string) => ["habitudes", date] as const,
   journal: (date: string, jourType: string) => ["journal", date, jourType] as const,
   objectifNutritionnel: (jourType: string) => ["objectif-nutritionnel", jourType] as const,
+  objectifs: ["objectifs"] as const,
+  objectif: (id: string) => ["objectif", id] as const,
+  collections: ["collections"] as const,
+  collection: (id: string) => ["collection", id] as const,
+  // Sans mutation côté app (écrites uniquement hors Server Action, cf.
+  // skill kilio-planning-travail) : voir AgendaView pour le staleTime dédié.
+  planningTravail: ["planning-travail"] as const,
+  planningTravailExceptions: ["planning-travail-exceptions"] as const,
 };

@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ajouterLienTiktok, uploadCollectionPhotos } from "@/app/actions/collections";
+import { queryKeys } from "@/lib/query/keys";
 import { errorText, input, primaryButton } from "@/lib/ui";
 
 const ADD_PHOTO_BUTTON =
@@ -40,6 +42,7 @@ function TiktokIcon() {
 // l'appareil photo sans proposer la galerie. Un input dédié par usage
 // (caméra vs galerie) garantit que les deux restent accessibles.
 export function AddPhotoButton({ collectionId }: { collectionId: string }) {
+  const queryClient = useQueryClient();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galerieInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -49,6 +52,11 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [tiktokPending, startTiktokTransition] = useTransition();
   const [tiktokError, setTiktokError] = useState<string | null>(null);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.collection(collectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.collections });
+  }
 
   function handleFiles(files: FileList | null, inputRef: React.RefObject<HTMLInputElement | null>) {
     if (!files || files.length === 0) return;
@@ -60,6 +68,7 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
     startTransition(async () => {
       try {
         await uploadCollectionPhotos(collectionId, formData);
+        invalidate();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur lors de l'envoi.");
       } finally {
@@ -77,6 +86,7 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
     startTiktokTransition(async () => {
       try {
         await ajouterLienTiktok(collectionId, lien);
+        invalidate();
         setTiktokUrl("");
         setTiktokOpen(false);
       } catch (err) {

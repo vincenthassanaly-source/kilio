@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { changerStatutObjectif, supprimerObjectif } from "@/app/actions/objectifs";
+import { queryKeys } from "@/lib/query/keys";
 import { ObjectifForm } from "../ObjectifForm";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Enums, Tables } from "@/lib/supabase/types";
@@ -30,11 +32,22 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectif.id) });
+  }
 
   if (editing) {
     return (
       <div className={card}>
-        <ObjectifForm objectif={objectif} onDone={() => setEditing(false)} />
+        <ObjectifForm
+          objectif={objectif}
+          onDone={() => {
+            setEditing(false);
+            invalidate();
+          }}
+        />
         <button type="button" onClick={() => setEditing(false)} className="mt-2 text-sm text-ink-2 underline">
           Annuler
         </button>
@@ -66,6 +79,10 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
             disabled={isPending}
             onClick={() => {
               setError(null);
+              // Invalidée avant l'appel, pas après : `supprimerObjectif` se
+              // termine par `redirect("/objectifs")`, qui jette et empêche
+              // tout code placé après l'`await` de s'exécuter.
+              queryClient.invalidateQueries({ queryKey: queryKeys.objectifs });
               startTransition(async () => {
                 try {
                   await supprimerObjectif(objectif.id);
@@ -87,9 +104,10 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
         value={objectif.statut}
         disabled={isPending}
         onChange={(e) =>
-          startTransition(() =>
-            changerStatutObjectif(objectif.id, e.target.value as Enums<"statut_objectif">)
-          )
+          startTransition(async () => {
+            await changerStatutObjectif(objectif.id, e.target.value as Enums<"statut_objectif">);
+            invalidate();
+          })
         }
         className={`${input} w-fit`}
       >

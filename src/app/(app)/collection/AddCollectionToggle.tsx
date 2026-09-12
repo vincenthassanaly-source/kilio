@@ -8,7 +8,7 @@ import { addCard, addCardIcon, card, errorText, input, primaryButton } from "@/l
 
 const initialState: CollectionFormState = { error: null };
 
-export function AddCollectionToggle() {
+export function AddCollectionToggle({ onSaved }: { onSaved?: () => void }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(createCollection, initialState);
   const prevPending = useRef(pending);
@@ -17,9 +17,10 @@ export function AddCollectionToggle() {
   useEffect(() => {
     if (prevPending.current && !pending && !state.error) {
       setOpen(false);
+      onSaved?.();
     }
     prevPending.current = pending;
-  }, [pending, state.error]);
+  }, [pending, state.error, onSaved]);
 
   const trigger = (
     <button type="button" onClick={() => setOpen(true)} className={addCard}>

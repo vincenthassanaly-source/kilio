@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { deleteCollectionItem } from "@/app/actions/collections";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { deleteCollectionItem, type CollectionAvecPhotos } from "@/app/actions/collections";
+import { queryKeys } from "@/lib/query/keys";
+import { showToast } from "@/components/toast/toast-store";
 import { FadeInImage } from "@/components/FadeInImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TiktokLightbox } from "@/components/TiktokLightbox";
@@ -29,7 +32,35 @@ export function PhotosGrid({
   collectionId: string;
 }) {
   const [lightboxItem, setLightboxItem] = useState<Tables<"collection_items"> | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+
+  // Supprimer une photo est l'action la plus fréquente de cette vue : même
+  // mécanisme optimiste (setQueryData + rollback) que TaskCard/HabitudeCard,
+  // sur le cache de la collection (queryKeys.collection). `nb_photos`/
+  // l'aperçu affichés sur /collection dépendant aussi de cette suppression,
+  // la liste des collections est invalidée en plus au règlement.
+  const deleteMutation = useMutation({
+    mutationFn: (photoId: string) => {
+      vibrate();
+      return deleteCollectionItem(photoId);
+    },
+    onMutate: async (photoId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.collection(collectionId) });
+      const previous = queryClient.getQueryData<CollectionAvecPhotos>(queryKeys.collection(collectionId));
+      queryClient.setQueryData<CollectionAvecPhotos>(queryKeys.collection(collectionId), (old) =>
+        old ? { ...old, photos: old.photos.filter((p) => p.id !== photoId) } : old
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.collection(collectionId), context.previous);
+      showToast("Impossible de supprimer la photo.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.collection(collectionId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.collections });
+    },
+  });
 
   if (photos.length === 0) {
     return <p className="text-ink-2">Aucune photo pour l&apos;instant.</p>;
@@ -72,11 +103,8 @@ export function PhotosGrid({
                 </button>
                 <button
                   type="button"
-                  disabled={isPending}
-                  onClick={() => {
-                    vibrate();
-                    startTransition(() => deleteCollectionItem(photo.id));
-                  }}
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(photo.id)}
                   aria-label="Supprimer"
                   className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white disabled:opacity-50"
                 >

@@ -1,7 +1,9 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { enregistrerEntreeObjectif } from "@/app/actions/objectifs";
+import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import type { Tables } from "@/lib/supabase/types";
 import { card, ghostButton, input, label as labelClass, metaText, sectionTitle } from "@/lib/ui";
@@ -65,14 +67,13 @@ function EvolutionChart({
   );
 }
 
-// Nouvelle entrée affichée optimistiquement (barre de progression,
-// historique/graphe) avant confirmation serveur — même pattern
-// `useOptimistic` que JournalEntriesList, pas TanStack Query. L'upsert
-// serveur (clé `objectif_id, date`) est reproduit ici en remplaçant toute
-// entrée existante à la même date plutôt qu'en l'empilant, pour un rendu
-// optimiste fidèle au comportement final ; réconcilié par la nouvelle prop
-// `entries` une fois `enregistrerEntreeObjectif` (qui appelle
-// revalidatePath) résolue, sans rollback manuel en cas d'échec.
+// Saisie ponctuelle (au plus une fois par jour), pas une bascule répétée :
+// reste en Server Action + useTransition, sans rendu optimiste local (même
+// patron que SousTachesList dans taches/TasksList.tsx). `invalidateQueries`
+// remplace la reconciliation par prop qu'assurait `revalidatePath` avant le
+// passage de la page détail en lecture côté client (TanStack Query) :
+// cette Server Action continue d'appeler `revalidatePath`, mais ce
+// mécanisme n'a plus d'effet sur le cache TanStack de cette page.
 export function ObjectifSuiviValeur({
   objectifId,
   objectif,
@@ -83,19 +84,13 @@ export function ObjectifSuiviValeur({
   entries: Tables<"objectif_entries">[];
 }) {
   const [isPending, startTransition] = useTransition();
-  const [optimisticEntries, ajouterOptimiste] = useOptimistic(
-    entries,
-    (state, entree: Tables<"objectif_entries">) =>
-      [...state.filter((e) => e.date !== entree.date), entree].sort((a, b) =>
-        a.date.localeCompare(b.date)
-      )
-  );
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(() => toISODate(new Date()));
   const valeurInputRef = useRef<HTMLInputElement>(null);
 
-  const valeurExistante = optimisticEntries.find((e) => e.date === date)?.valeur;
+  const valeurExistante = entries.find((e) => e.date === date)?.valeur;
 
-  const derniere = optimisticEntries[optimisticEntries.length - 1] ?? null;
+  const derniere = entries[entries.length - 1] ?? null;
   const ratio =
     objectif.valeur_cible != null
       ? Math.min(1, Math.max(0, (derniere?.valeur ?? 0) / objectif.valeur_cible))
@@ -105,15 +100,9 @@ export function ObjectifSuiviValeur({
     const nombre = Number(valeurInputRef.current?.value ?? "");
     if (!Number.isFinite(nombre)) return;
     startTransition(async () => {
-      ajouterOptimiste({
-        id: `optimiste-${date}`,
-        objectif_id: objectifId,
-        date,
-        valeur: nombre,
-        created_at: new Date().toISOString(),
-      });
       try {
         await enregistrerEntreeObjectif(objectifId, date, nombre);
+        queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectifId) });
       } catch {
         showToast("Impossible d'enregistrer cette valeur.");
       }
@@ -140,7 +129,7 @@ export function ObjectifSuiviValeur({
         </div>
       )}
 
-      <EvolutionChart entries={optimisticEntries} cible={objectif.valeur_cible} />
+      <EvolutionChart entries={entries} cible={objectif.valeur_cible} />
 
       <div className="flex items-end gap-2">
         <div className="flex flex-1 flex-col gap-1">

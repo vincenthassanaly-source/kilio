@@ -6,7 +6,7 @@ import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { addCard, addCardIcon, card } from "@/lib/ui";
 
-export function AddObjectifToggle() {
+export function AddObjectifToggle({ onSaved }: { onSaved?: () => void }) {
   const [open, setOpen] = useState(false);
   useBackClose(open, () => setOpen(false));
 
@@ -32,7 +32,12 @@ export function AddObjectifToggle() {
   return (
     <AnimatedAddCard open={open} trigger={trigger}>
       <div className={card}>
-        <ObjectifForm onDone={() => setOpen(false)} />
+        <ObjectifForm
+          onDone={() => {
+            setOpen(false);
+            onSaved?.();
+          }}
+        />
         <button type="button" onClick={() => setOpen(false)} className="mt-2 text-sm text-ink-2 underline">
           Annuler
         </button>

@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { addDays, format, isSameDay, isToday, startOfToday, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TacheAvecRelations } from "@/app/actions/taches";
+import { queryKeys } from "@/lib/query/keys";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
 import { AddTaskToggle } from "../taches/AddTaskToggle";
@@ -85,6 +87,7 @@ export function DayView({
   const creneauxJour = getCreneauxDuJour(creneaux, selectedDate, exceptions);
   const { zoom, touchHandlers } = useAgendaZoom();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   useInitialScroll(
     scrollRef,
     computeInitialScrollMinutes({ showCurrentTime: isToday(selectedDate), creneaux: creneauxJour }),
@@ -163,6 +166,7 @@ export function DayView({
         tags={tags}
         defaultEcheance={toISODate(selectedDate)}
         label="+ Ajouter une tâche ce jour-là"
+        onSaved={() => queryClient.invalidateQueries({ queryKey: queryKeys.taches })}
       />
 
       {dayTaches.length === 0 && dayTachesArchivees.length === 0 ? (
