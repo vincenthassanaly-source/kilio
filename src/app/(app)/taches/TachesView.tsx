@@ -35,10 +35,11 @@ const CLEAR_ICON = (
   </svg>
 );
 
-type VueKey = "aujourdhui" | "semaine" | "toutes";
+type VueKey = "aujourdhui" | "en_retard" | "semaine" | "toutes";
 
 const VUES: { key: VueKey; label: string }[] = [
   { key: "aujourdhui", label: "Aujourd'hui" },
+  { key: "en_retard", label: "En retard" },
   { key: "semaine", label: "7 jours" },
   { key: "toutes", label: "Toutes" },
 ];
@@ -65,6 +66,9 @@ export function TachesView() {
     return taches.filter((tache) => {
       if (listeId !== "toutes" && tache.liste_id !== listeId) return false;
       if (vue === "aujourdhui" && tache.echeance !== today) return false;
+      if (vue === "en_retard") {
+        if (!tache.echeance || tache.echeance >= today || tache.fait) return false;
+      }
       if (vue === "semaine") {
         if (!tache.echeance || tache.echeance < today || tache.echeance > dansSeptJours) return false;
       }
