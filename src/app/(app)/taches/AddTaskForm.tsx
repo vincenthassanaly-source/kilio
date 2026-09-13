@@ -86,6 +86,7 @@ export function AddTaskForm({
   const titreRef = useRef<HTMLTextAreaElement>(null);
 
   const [priorite, setPriorite] = useState<Enums<"priorite_tache">>(tache?.priorite ?? "aucune");
+  const [programmeJour, setProgrammeJour] = useState(tache?.programme_jour ?? false);
   const [frequence, setFrequence] = useState<string>(tache?.recurrence_frequence ?? "");
   const [tagIds, setTagIds] = useState<string[]>(tache?.tags.map((t) => t.id) ?? []);
   const [touteLaJournee, setTouteLaJournee] = useState(tache?.toute_la_journee ?? false);
@@ -222,6 +223,22 @@ export function AddTaskForm({
           defaultValue={tache?.echeance ?? defaultEcheance ?? ""}
           className={input}
         />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="flex items-center gap-2 text-sm font-medium text-ink">
+          <input
+            type="checkbox"
+            name="programme_jour"
+            checked={programmeJour}
+            onChange={(e) => setProgrammeJour(e.target.checked)}
+            className="h-4 w-4 rounded border-line"
+          />
+          Tâche du jour
+        </label>
+        <p className="text-xs text-ink-2">
+          Sera supprimée automatiquement si non cochée à la fin de la journée.
+        </p>
       </div>
 
       <label className="flex items-center gap-2 text-sm font-medium text-ink">

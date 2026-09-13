@@ -27,7 +27,7 @@ import {
 import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import type { Enums, Tables } from "@/lib/supabase/types";
-import { card, dangerButton, ghostButton, listCard, metaText, pillTag } from "@/lib/ui";
+import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, pillTag } from "@/lib/ui";
 import { CheckToggle } from "@/components/CheckToggle";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { useBackClose } from "@/hooks/useBackClose";
@@ -398,6 +398,11 @@ export function TaskCard({
                 className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${PRIORITE_BADGE[tache.priorite]}`}
               >
                 {PRIORITE_LABELS[tache.priorite]}
+              </span>
+            )}
+            {tache.programme_jour && (
+              <span className={kcalPillTag} title="Sera supprimée automatiquement si non cochée à la fin de la journée">
+                Tâche du jour
               </span>
             )}
             {tache.tags.map((tag) => (

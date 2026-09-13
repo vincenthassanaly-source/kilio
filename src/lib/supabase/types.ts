@@ -1239,6 +1239,7 @@ export type Database = {
           notes: string | null
           ordre: number
           priorite: Database["public"]["Enums"]["priorite_tache"]
+          programme_jour: boolean
           rappel_envoye_le: string | null
           rappel_minutes: number | null
           recurrence_fin: string | null
@@ -1261,6 +1262,7 @@ export type Database = {
           notes?: string | null
           ordre?: number
           priorite?: Database["public"]["Enums"]["priorite_tache"]
+          programme_jour?: boolean
           rappel_envoye_le?: string | null
           rappel_minutes?: number | null
           recurrence_fin?: string | null
@@ -1283,6 +1285,7 @@ export type Database = {
           notes?: string | null
           ordre?: number
           priorite?: Database["public"]["Enums"]["priorite_tache"]
+          programme_jour?: boolean
           rappel_envoye_le?: string | null
           rappel_minutes?: number | null
           recurrence_fin?: string | null

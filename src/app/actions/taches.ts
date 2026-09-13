@@ -33,6 +33,7 @@ type TacheInput = {
   liste_id: string;
   notes: string | null;
   priorite: Enums<"priorite_tache">;
+  programme_jour: boolean;
   recurrence_frequence: Enums<"frequence_recurrence"> | null;
   recurrence_fin: string | null;
   toute_la_journee: boolean;
@@ -49,6 +50,7 @@ function parseTacheInput(formData: FormData): ParseResult {
   const liste_id = String(formData.get("liste_id") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const priorite = String(formData.get("priorite") ?? "aucune");
+  const programme_jour = formData.get("programme_jour") === "on";
   const recurrence_frequence = String(formData.get("recurrence_frequence") ?? "").trim();
   const recurrence_fin = String(formData.get("recurrence_fin") ?? "").trim();
   const toute_la_journee = formData.get("toute_la_journee") === "on";
@@ -106,12 +108,16 @@ function parseTacheInput(formData: FormData): ParseResult {
       // "Toute la journée" et une heure précise sont mutuellement
       // exclusives : le serveur force heure/rappel_minutes à null plutôt que
       // de faire confiance au client, qui masque déjà ces champs.
-      echeance: echeance || null,
+      // Une tâche "du jour" sans échéance n'aurait jamais de date à laquelle
+      // le cron de suppression pourrait s'appliquer : le serveur force donc
+      // l'échéance à aujourd'hui plutôt que de faire confiance au client.
+      echeance: echeance || (programme_jour ? aujourdhuiISO() : null),
       heure: toute_la_journee ? null : heure || null,
       heure_fin: toute_la_journee ? null : heure_fin || null,
       liste_id,
       notes: notes || null,
       priorite: priorite as Enums<"priorite_tache">,
+      programme_jour,
       recurrence_frequence: frequence,
       // La date de fin de récurrence n'a de sens qu'accompagnée d'une
       // fréquence : silencieusement ignorée sinon (même logique que
