@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 import { getObjectifs } from "@/app/actions/objectifs";
 import { queryKeys } from "@/lib/query/keys";
 import type { Enums, Tables } from "@/lib/supabase/types";
@@ -46,9 +47,11 @@ function ObjectifsGroupes({ objectifs }: { objectifs: Tables<"objectifs">[] }) {
                 <div key={statut} className="flex flex-col gap-2">
                   <p className={eyebrow}>{STATUT_LABELS[statut]}</p>
                   <ul className="flex flex-col gap-2.5">
-                    {parStatut.map((objectif) => (
-                      <ObjectifCard key={objectif.id} objectif={objectif} />
-                    ))}
+                    <AnimatePresence initial={false}>
+                      {parStatut.map((objectif) => (
+                        <ObjectifCard key={objectif.id} objectif={objectif} />
+                      ))}
+                    </AnimatePresence>
                   </ul>
                 </div>
               );

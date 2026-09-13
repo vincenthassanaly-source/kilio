@@ -1,3 +1,6 @@
+"use client";
+
+import { AnimatePresence } from "framer-motion";
 import type { DocumentAvecFichiers } from "@/app/actions/documents";
 import type { Tables } from "@/lib/supabase/types";
 import { DocumentCard } from "./DocumentCard";
@@ -17,9 +20,11 @@ export function DocumentsList({
 
   return (
     <ul className="flex flex-col gap-2.5">
-      {documents.map((document) => (
-        <DocumentCard key={document.id} document={document} etiquettes={etiquettes} />
-      ))}
+      <AnimatePresence initial={false}>
+        {documents.map((document) => (
+          <DocumentCard key={document.id} document={document} etiquettes={etiquettes} />
+        ))}
+      </AnimatePresence>
     </ul>
   );
 }

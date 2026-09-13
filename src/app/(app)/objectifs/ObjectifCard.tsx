@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supprimerObjectif } from "@/app/actions/objectifs";
 import { queryKeys } from "@/lib/query/keys";
@@ -56,7 +57,14 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
 
   if (editing) {
     return (
-      <li className={card}>
+      <motion.li
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.18 }}
+        className={card}
+      >
         <ObjectifForm
           objectif={objectif}
           onDone={() => {
@@ -71,12 +79,19 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
         >
           Annuler
         </button>
-      </li>
+      </motion.li>
     );
   }
 
   return (
-    <li className={listCard}>
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18 }}
+      className={listCard}
+    >
       <TransitionLink href={`/objectifs/${objectif.id}`} className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
           <p className={nameText} style={{ viewTransitionName: `objectif-title-${objectif.id}` }}>
@@ -107,6 +122,6 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
           Suppr.
         </button>
       </div>
-    </li>
+    </motion.li>
   );
 }

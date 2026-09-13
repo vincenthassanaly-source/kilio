@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { motion } from "framer-motion";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "./DocumentForm";
 import { formatEcheance, niveauAlerte } from "./echeance";
@@ -33,7 +34,14 @@ export function DocumentCard({
 
   if (editing) {
     return (
-      <li className={card}>
+      <motion.li
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.18 }}
+        className={card}
+      >
         <DocumentForm
           document={document}
           etiquettes={etiquettes}
@@ -46,7 +54,7 @@ export function DocumentCard({
         >
           Annuler
         </button>
-      </li>
+      </motion.li>
     );
   }
 
@@ -54,7 +62,14 @@ export function DocumentCard({
   const apercu = document.fichiers[0] ?? null;
 
   return (
-    <li className={listCard}>
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18 }}
+      className={listCard}
+    >
       <div className="flex items-center gap-3">
         {apercu && apercu.fichier_type === "image" ? (
           <button
@@ -129,6 +144,6 @@ export function DocumentCard({
       {lightboxSrc && (
         <ImageLightbox src={lightboxSrc} alt={document.nom} onClose={() => setLightboxSrc(null)} />
       )}
-    </li>
+    </motion.li>
   );
 }
