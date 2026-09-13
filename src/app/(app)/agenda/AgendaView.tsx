@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -40,6 +41,15 @@ const VIEWS: { key: ViewKey; label: string }[] = [
   { key: "mois", label: "Mois" },
   { key: "liste", label: "Liste" },
 ];
+
+// Fond glissant du sélecteur de vue Jour/Semaine/Mois/Liste, sur le modèle
+// de `ACTIVE_PILL_LAYOUT_ID`/`pillTransition` de BottomNav.tsx (id distinct
+// : ce sélecteur et la bottom nav sont montés en même temps sur cet écran,
+// un même layoutId ferait glisser le fond de l'un vers l'autre).
+const AGENDA_VUE_ACTIVE_PILL = "agenda-vue-active-pill";
+function vuePillTransition(reduceMotion: boolean) {
+  return reduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 500, damping: 40 };
+}
 
 // Distance horizontale minimum pour qu'un geste soit considéré comme un
 // swipe intentionnel (plutôt qu'un tap ou un léger tremblement du doigt).
@@ -86,6 +96,7 @@ export function AgendaView() {
     staleTime: 0,
   });
 
+  const reduceMotion = useReducedMotion() ?? false;
   const [view, setView] = useState<ViewKey>("jour");
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfToday());
   const [fabOpen, setFabOpen] = useState(false);
@@ -231,19 +242,21 @@ export function AgendaView() {
         </svg>
       </button>
 
-      {fabOpen && (
-        <Modal title="Nouvel événement" onClose={() => setFabOpen(false)}>
-          <AddTaskForm
-            listes={listes}
-            tags={tags}
-            defaultEcheance={toISODate(selectedDate)}
-            onDone={() => {
-              setFabOpen(false);
-              queryClient.invalidateQueries({ queryKey: queryKeys.taches });
-            }}
-          />
-        </Modal>
-      )}
+      <AnimatePresence>
+        {fabOpen && (
+          <Modal key="nouvel-evenement" title="Nouvel événement" onClose={() => setFabOpen(false)}>
+            <AddTaskForm
+              listes={listes}
+              tags={tags}
+              defaultEcheance={toISODate(selectedDate)}
+              onDone={() => {
+                setFabOpen(false);
+                queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+              }}
+            />
+          </Modal>
+        )}
+      </AnimatePresence>
 
       <div className="flex items-center gap-2">
         <div className="flex flex-1 rounded-2xl border border-line bg-surface p-1">
@@ -252,11 +265,18 @@ export function AgendaView() {
               key={v.key}
               type="button"
               onClick={() => setView(v.key)}
-              className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
-                view === v.key ? "bg-agenda text-white" : "text-ink-2"
-              }`}
+              className="relative flex-1 rounded-xl py-2 text-[13px] font-semibold"
             >
-              {v.label}
+              {view === v.key && (
+                <motion.div
+                  layoutId={AGENDA_VUE_ACTIVE_PILL}
+                  className="absolute inset-0 rounded-xl bg-agenda"
+                  transition={vuePillTransition(reduceMotion)}
+                />
+              )}
+              <span className={`relative transition-colors ${view === v.key ? "text-white" : "text-ink-2"}`}>
+                {v.label}
+              </span>
             </button>
           ))}
         </div>

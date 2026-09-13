@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHabitudesDuJour } from "@/app/actions/habitudes";
 import { queryKeys } from "@/lib/query/keys";
@@ -18,7 +19,16 @@ const VIEWS: { key: ViewKey; label: string }[] = [
   { key: "historique", label: "Historique" },
 ];
 
+// Même pattern que AGENDA_VUE_ACTIVE_PILL (AgendaView.tsx) et
+// ACTIVE_PILL_LAYOUT_ID (BottomNav.tsx) : id distinct, propre à ce
+// sélecteur.
+const HABITUDES_VUE_ACTIVE_PILL = "habitudes-vue-active-pill";
+function vuePillTransition(reduceMotion: boolean) {
+  return reduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 500, damping: 40 };
+}
+
 export function HabitudesView({ today }: { today: string }) {
+  const reduceMotion = useReducedMotion() ?? false;
   const [view, setView] = useState<ViewKey>("aujourdhui");
   const queryClient = useQueryClient();
 
@@ -38,11 +48,18 @@ export function HabitudesView({ today }: { today: string }) {
             key={v.key}
             type="button"
             onClick={() => setView(v.key)}
-            className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
-              view === v.key ? "bg-habitudes text-white" : "text-ink-2"
-            }`}
+            className="relative flex-1 rounded-xl py-2 text-[13px] font-semibold"
           >
-            {v.label}
+            {view === v.key && (
+              <motion.div
+                layoutId={HABITUDES_VUE_ACTIVE_PILL}
+                className="absolute inset-0 rounded-xl bg-habitudes"
+                transition={vuePillTransition(reduceMotion)}
+              />
+            )}
+            <span className={`relative transition-colors ${view === v.key ? "text-white" : "text-ink-2"}`}>
+              {v.label}
+            </span>
           </button>
         ))}
       </div>

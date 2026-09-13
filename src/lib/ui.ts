@@ -2,7 +2,16 @@
 // Keeps cards/buttons/inputs visually consistent across screens.
 
 export const card = "rounded-[22px] border border-line bg-surface p-4 shadow-card";
-export const cardTight = "rounded-[20px] border border-line bg-surface p-3.5 shadow-card";
+// `cardTight` : toujours une ligne de liste (un ingrédient, une étape, une
+// entrée de journal...), jamais un conteneur groupant plusieurs éléments
+// indépendants — press state ajouté sans risque de doublon avec un enfant.
+// `card` (ci-dessus), lui, sert aussi bien de conteneur de groupe (ex.
+// DashboardTachesSection, qui rassemble plusieurs tâches sous un seul
+// conteneur `card`) que de formulaire (Add*Toggle) : y ajouter
+// `active:scale` ferait "trembler" tout le groupe/formulaire au moindre tap
+// sur un champ ou un bouton interne, pas seulement l'élément pressé — non
+// modifié ici pour cette raison (voir reports/2026-09-13-fluidite-4-chantiers.md).
+export const cardTight = "rounded-[20px] border border-line bg-surface p-3.5 shadow-card transition active:scale-[0.97]";
 export const heroCard = "rounded-3xl border border-line bg-surface p-[18px] shadow-card";
 
 export const screenTitle = "font-display text-2xl font-bold text-ink tracking-tight";
@@ -37,8 +46,11 @@ export const pillTag =
 export const kcalPillTag =
   "shrink-0 rounded-full bg-kcal-soft px-2.5 py-1 text-[11px] font-bold text-kcal";
 
+// Toujours une ligne de liste représentant une seule entité (une tâche, un
+// objectif, une transaction...), jamais un groupe : même raisonnement que
+// `cardTight` ci-dessus.
 export const listCard =
-  "flex flex-col gap-1.5 rounded-[20px] border border-line bg-surface p-3.5 shadow-card";
+  "flex flex-col gap-1.5 rounded-[20px] border border-line bg-surface p-3.5 shadow-card transition active:scale-[0.97]";
 
 export const checkCircle =
   "flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2";

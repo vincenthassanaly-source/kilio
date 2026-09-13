@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AddCourseForm } from "./courses/AddCourseForm";
 import { Modal } from "@/components/Modal";
@@ -143,36 +144,38 @@ export function QuickAddFab() {
         </button>
       </div>
 
-      {mode === "tache" && (
-        <Modal title="Nouvelle tâche" onClose={() => history.back()}>
-          <AddTaskForm
-            listes={listes}
-            tags={tags}
-            onDone={() => {
-              queryClient.invalidateQueries({ queryKey: queryKeys.taches });
-              goBackSteps(2);
-            }}
-          />
-        </Modal>
-      )}
+      <AnimatePresence>
+        {mode === "tache" && (
+          <Modal key="tache" title="Nouvelle tâche" onClose={() => history.back()}>
+            <AddTaskForm
+              listes={listes}
+              tags={tags}
+              onDone={() => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+                goBackSteps(2);
+              }}
+            />
+          </Modal>
+        )}
 
-      {mode === "note" && (
-        <Modal title="Nouvelle note" onClose={() => history.back()}>
-          <NoteForm
-            tags={tags}
-            onDone={() => {
-              queryClient.invalidateQueries({ queryKey: queryKeys.notes });
-              goBackSteps(2);
-            }}
-          />
-        </Modal>
-      )}
+        {mode === "note" && (
+          <Modal key="note" title="Nouvelle note" onClose={() => history.back()}>
+            <NoteForm
+              tags={tags}
+              onDone={() => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.notes });
+                goBackSteps(2);
+              }}
+            />
+          </Modal>
+        )}
 
-      {mode === "course" && (
-        <Modal title="Ajouter à la liste de courses" onClose={() => history.back()}>
-          <AddCourseForm onDone={() => goBackSteps(2)} />
-        </Modal>
-      )}
+        {mode === "course" && (
+          <Modal key="course" title="Ajouter à la liste de courses" onClose={() => history.back()}>
+            <AddCourseForm onDone={() => goBackSteps(2)} />
+          </Modal>
+        )}
+      </AnimatePresence>
     </>
   );
 }

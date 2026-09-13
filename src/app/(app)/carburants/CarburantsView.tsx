@@ -6,6 +6,7 @@ import type { ResultatStationsProches, StationCarburant } from "@/app/actions/ca
 import { formaterDistance, trierParDistanceCroissante, trierParPrixCroissant } from "@/lib/carburants/compute";
 import { card, screenTitle, secondaryButton, errorText, linkButton } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 
 const RAYON_DEFAUT_KM = 10;
 const RAYONS_DISPONIBLES = [5, 10, 20, 50] as const;
@@ -198,7 +199,7 @@ export function CarburantsView() {
         </div>
       )}
 
-      {statut.phase === "chargement" && <p className="text-sm text-ink-2">Recherche des stations les plus proches…</p>}
+      {statut.phase === "chargement" && <ListItemSkeletonGroup count={5} withSubtitle />}
 
       {statut.phase === "erreur" && <p className={errorText}>{statut.message}</p>}
 

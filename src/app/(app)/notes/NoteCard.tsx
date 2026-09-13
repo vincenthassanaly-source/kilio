@@ -155,6 +155,9 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
   const itemsAffiches = note.items.slice(0, ITEMS_PREVIEW_LIMIT);
   const itemsRestants = note.items.length - itemsAffiches.length;
 
+  // `active:scale` ajouté ici localement (pas dans `card` de ui.ts, utilisé
+  // ailleurs comme conteneur de groupe/formulaire — voir ui.ts) : cette
+  // tuile est la seule utilisation de `card` visée par ce chantier.
   return (
     <motion.li
       layout
@@ -162,7 +165,7 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.18 }}
-      className={`${card} mb-3 flex flex-col gap-2 break-inside-avoid`}
+      className={`${card} mb-3 flex flex-col gap-2 break-inside-avoid transition active:scale-[0.97]`}
       style={noteBackgroundStyle(note.couleur)}
     >
       <div className="flex items-start justify-between gap-2">
