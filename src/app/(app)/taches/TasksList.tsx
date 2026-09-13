@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   DndContext,
   PointerSensor,
@@ -267,6 +267,14 @@ export function TaskCard({
   const [editing, setEditing] = useState(false);
   useBackClose(editing, () => setEditing(false));
   const [expanded, setExpanded] = useState(false);
+  const reduceMotion = useReducedMotion() ?? false;
+  // Bascule carte compacte <-> formulaire d'édition : cross-fade (comme
+  // AnimatedAddCard) plutôt que `layout`, qui interpolerait les dimensions
+  // très différentes des deux états et produirait un effet d'étirement.
+  const editSwapTransition = reduceMotion ? { duration: 0 } : { duration: 0.18 };
+  const editSwapInitial = reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 };
+  const editSwapAnimate = { opacity: 1, scale: 1 };
+  const editSwapExit = reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 };
   const queryClient = useQueryClient();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tache.id,
@@ -340,24 +348,33 @@ export function TaskCard({
 
   if (editing) {
     return (
-      <motion.li layout className={card}>
-        <AddTaskForm
-          tache={tache}
-          listes={listes}
-          tags={tags}
-          onDone={() => {
-            setEditing(false);
-            invalidateTaches();
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className="mt-2 text-sm text-ink-2 underline"
+      <AnimatePresence mode="wait" propagate>
+        <motion.li
+          key="edit"
+          initial={editSwapInitial}
+          animate={editSwapAnimate}
+          exit={editSwapExit}
+          transition={editSwapTransition}
+          className={card}
         >
-          Annuler
-        </button>
-      </motion.li>
+          <AddTaskForm
+            tache={tache}
+            listes={listes}
+            tags={tags}
+            onDone={() => {
+              setEditing(false);
+              invalidateTaches();
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="mt-2 text-sm text-ink-2 underline"
+          >
+            Annuler
+          </button>
+        </motion.li>
+      </AnimatePresence>
     );
   }
 
@@ -473,19 +490,22 @@ export function TaskCard({
   // l'animation d'entrée/sortie/layout.
   if (!reorderable) {
     return (
-      <motion.li
-        ref={highlightRef}
-        id={highlighted ? `tache-${tache.id}` : undefined}
-        layout
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.18 }}
-        className={`${listCard} ${highlighted ? "tache-surbrillance" : ""}`}
-        style={accentStyle}
-      >
-        {content}
-      </motion.li>
+      <AnimatePresence mode="wait" propagate>
+        <motion.li
+          key="view"
+          ref={highlightRef}
+          id={highlighted ? `tache-${tache.id}` : undefined}
+          layout
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
+          className={`${listCard} ${highlighted ? "tache-surbrillance" : ""}`}
+          style={accentStyle}
+        >
+          {content}
+        </motion.li>
+      </AnimatePresence>
     );
   }
 
@@ -503,19 +523,21 @@ export function TaskCard({
   };
 
   return (
-    <li ref={setNodeRef} style={dragStyle} className={isDragging ? "opacity-60" : undefined}>
-      <motion.div
-        layout={!isDragging}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.18 }}
-        className={listCard}
-        style={accentStyle}
-      >
-        {content}
-      </motion.div>
-    </li>
+    <AnimatePresence mode="wait" propagate>
+      <li key="view" ref={setNodeRef} style={dragStyle} className={isDragging ? "opacity-60" : undefined}>
+        <motion.div
+          layout={!isDragging}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
+          className={listCard}
+          style={accentStyle}
+        >
+          {content}
+        </motion.div>
+      </li>
+    </AnimatePresence>
   );
 }
 
