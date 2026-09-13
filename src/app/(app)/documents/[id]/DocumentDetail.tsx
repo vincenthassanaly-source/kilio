@@ -9,6 +9,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, errorText, ghostButton, kcalPillTag, linkButton, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 function PdfIcon() {
   return (
@@ -30,6 +31,7 @@ export function DocumentDetail({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxAlt, setLightboxAlt] = useState<string>("Photo agrandie");
 
   if (editing) {
     return (
@@ -75,6 +77,7 @@ export function DocumentDetail({
             type="button"
             disabled={isPending}
             onClick={() => {
+              if (!confirmDelete(`Supprimer le document « ${document.nom} » ?`)) return;
               setError(null);
               startTransition(async () => {
                 try {
@@ -117,7 +120,10 @@ export function DocumentDetail({
               <li key={fichier.id} className="flex flex-col gap-1">
                 <button
                   type="button"
-                  onClick={() => setLightboxSrc(fichier.url)}
+                  onClick={() => {
+                    setLightboxSrc(fichier.url);
+                    setLightboxAlt(caption ? `${caption} — ${document.nom}` : document.nom);
+                  }}
                   className="relative aspect-square w-full overflow-hidden rounded-2xl bg-surface-alt"
                   aria-label="Agrandir l'image"
                 >
@@ -151,7 +157,9 @@ export function DocumentDetail({
 
       {error && <p className={errorText}>{error}</p>}
 
-      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 }

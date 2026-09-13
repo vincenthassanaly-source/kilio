@@ -84,6 +84,7 @@ function BottomNavSlot({
       ref={setNodeRef}
       href={item.href}
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className="relative flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
       style={{
         outline: showDropRing ? "2px dashed var(--accent-kcal)" : undefined,
@@ -161,6 +162,7 @@ export function BottomNav() {
         <Link
           href="/plus"
           onClick={(e) => handleClick(e, "/plus")}
+          aria-current={plusActive ? "page" : undefined}
           className="relative flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
         >
           {plusActive && <ActivePill reduceMotion={reduceMotion} />}

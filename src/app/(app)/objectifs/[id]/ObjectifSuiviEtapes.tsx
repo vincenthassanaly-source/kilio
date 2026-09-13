@@ -13,6 +13,7 @@ import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, input, sectionTitle } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { CheckToggle } from "@/components/CheckToggle";
 import { vibrate } from "@/lib/haptics";
 
@@ -93,6 +94,7 @@ export function ObjectifSuiviEtapes({
   }
 
   function handleSupprimer(etape: Tables<"objectif_etapes">) {
+    if (!confirmDelete(`Supprimer l'étape « ${etape.titre} » ?`)) return;
     startTransition(async () => {
       try {
         await supprimerEtape(objectifId, etape.id);

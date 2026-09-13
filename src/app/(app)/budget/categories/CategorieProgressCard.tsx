@@ -6,6 +6,7 @@ import { supprimerCategorie } from "@/app/actions/categories-budget";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { formatMontant } from "@/lib/budget/compute";
 import { card, dangerButton, errorText, input } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import type { StatutBudget } from "@/lib/budget/compute";
 import { AddSousCategorieToggle } from "./AddSousCategorieToggle";
 
@@ -29,7 +30,10 @@ function SousCategorieRow({ categorie }: { categorie: Tables<"categories_budget"
       <button
         type="button"
         disabled={isPending}
-        onClick={() => startTransition(() => supprimerCategorie(categorie.id))}
+        onClick={() => {
+          if (!confirmDelete(`Supprimer la catégorie « ${categorie.nom} » ?`)) return;
+          startTransition(() => supprimerCategorie(categorie.id));
+        }}
         className={dangerButton}
       >
         Suppr.

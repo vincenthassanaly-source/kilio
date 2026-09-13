@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { deleteTag } from "@/app/actions/taches";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, listCard, nameText } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 function TagRow({ tag }: { tag: Tables<"tags"> }) {
   const [isPending, startTransition] = useTransition();
@@ -19,7 +20,10 @@ function TagRow({ tag }: { tag: Tables<"tags"> }) {
       <button
         type="button"
         disabled={isPending}
-        onClick={() => startTransition(() => deleteTag(tag.id))}
+        onClick={() => {
+          if (!confirmDelete(`Supprimer le tag « #${tag.nom} » ?`)) return;
+          startTransition(() => deleteTag(tag.id));
+        }}
         className={dangerButton}
       >
         Suppr.

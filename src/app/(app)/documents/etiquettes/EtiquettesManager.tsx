@@ -9,6 +9,7 @@ import {
 import { TYPE_CHAMPS_LABELS } from "../champs";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, ghostButton, input, listCard, metaText, nameText } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 function EtiquetteRow({ etiquette }: { etiquette: Tables<"etiquettes"> }) {
   const [editing, setEditing] = useState(false);
@@ -34,7 +35,7 @@ function EtiquetteRow({ etiquette }: { etiquette: Tables<"etiquettes"> }) {
   }
 
   function handleDelete() {
-    if (!window.confirm(`Supprimer l'étiquette « ${etiquette.nom} » ? Les documents ne seront pas supprimés.`)) {
+    if (!confirmDelete(`Supprimer l'étiquette « ${etiquette.nom} » ? Les documents ne seront pas supprimés.`)) {
       return;
     }
 

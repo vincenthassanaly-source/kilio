@@ -43,6 +43,7 @@ export function TiktokLightbox({ url, onClose }: { url: string; onClose: () => v
         {videoId ? (
           <iframe
             src={`https://www.tiktok.com/embed/v2/${videoId}`}
+            title="Vidéo TikTok"
             allow="autoplay; encrypted-media; fullscreen"
             allowFullScreen
             className="h-full max-h-[85vh] w-full max-w-[420px] border-0"
@@ -50,7 +51,7 @@ export function TiktokLightbox({ url, onClose }: { url: string; onClose: () => v
         ) : erreur ? (
           <p className="px-6 text-center text-sm text-white/80">Impossible de charger cette vidéo TikTok.</p>
         ) : (
-          <p className="px-6 text-center text-sm text-white/60">Chargement...</p>
+          <p className="px-6 text-center text-sm text-white/60">Chargement…</p>
         )}
       </div>
     </div>

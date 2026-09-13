@@ -56,7 +56,7 @@ export function Modal({
           </button>
         </div>
         <div
-          className="overflow-y-auto px-4 pt-4"
+          className="overflow-y-auto overscroll-contain px-4 pt-4"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
         >
           {children}

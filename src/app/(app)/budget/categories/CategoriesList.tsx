@@ -6,6 +6,7 @@ import type { SuiviCategorie } from "@/app/actions/budgets";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { regrouperParCategorieParente } from "@/lib/budget/compute";
 import { dangerButton, eyebrow, listCard, nameText, pillTag, sectionTitle } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { CategorieProgressCard } from "./CategorieProgressCard";
 import { AddSousCategorieToggle } from "./AddSousCategorieToggle";
 
@@ -21,7 +22,10 @@ function SousCategorieRow({ categorie }: { categorie: Tables<"categories_budget"
       <button
         type="button"
         disabled={isPending}
-        onClick={() => startTransition(() => supprimerCategorie(categorie.id))}
+        onClick={() => {
+          if (!confirmDelete(`Supprimer la catégorie « ${categorie.nom} » ?`)) return;
+          startTransition(() => supprimerCategorie(categorie.id));
+        }}
         className={dangerButton}
       >
         Suppr.
@@ -52,7 +56,10 @@ function CategorieRevenuRow({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => startTransition(() => supprimerCategorie(categorie.id))}
+            onClick={() => {
+              if (!confirmDelete(`Supprimer la catégorie « ${categorie.nom} » ?`)) return;
+              startTransition(() => supprimerCategorie(categorie.id));
+            }}
             className={dangerButton}
           >
             Suppr.

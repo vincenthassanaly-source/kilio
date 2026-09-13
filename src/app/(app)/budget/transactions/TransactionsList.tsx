@@ -6,6 +6,7 @@ import type { CompteAvecSolde } from "@/app/actions/comptes";
 import type { Tables } from "@/lib/supabase/types";
 import { formatMontant } from "@/lib/budget/compute";
 import { card, dangerButton, ghostButton, listCard, metaText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { TransactionModeForm } from "./TransactionModeForm";
 
 function formatDateOperation(iso: string) {
@@ -106,7 +107,10 @@ function TransactionRow({
         <button
           type="button"
           disabled={isPending}
-          onClick={() => startTransition(() => supprimerTransaction(transaction.id))}
+          onClick={() => {
+            if (!confirmDelete("Supprimer cette transaction ?")) return;
+            startTransition(() => supprimerTransaction(transaction.id));
+          }}
           className={dangerButton}
         >
           Suppr.

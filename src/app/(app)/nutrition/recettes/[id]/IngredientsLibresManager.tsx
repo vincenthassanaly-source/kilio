@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/recette-ingredients-libres";
 import type { Tables } from "@/lib/supabase/types";
 import { cardTight, dangerButton, errorText, ghostButton, input, nameText, primaryButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 type IngredientLibreRow = Tables<"recette_ingredients_libres">;
 
@@ -94,6 +95,7 @@ function IngredientLibreLine({
               type="button"
               disabled={isPending}
               onClick={() => {
+                if (!confirmDelete(`Supprimer l'ingrédient « ${ingredient.nom} » ?`)) return;
                 setError(null);
                 startTransition(async () => {
                   try {

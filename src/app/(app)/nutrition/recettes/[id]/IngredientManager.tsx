@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/recette-ingredients";
 import type { Tables } from "@/lib/supabase/types";
 import { cardTight, dangerButton, errorText, ghostButton, input, nameText, primaryButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 const UNITE_LABEL: Record<string, string> = { g: "g", ml: "ml", piece: "pièce" };
 
@@ -93,6 +94,7 @@ function IngredientLine({
               type="button"
               disabled={isPending}
               onClick={() => {
+                if (!confirmDelete(`Supprimer l'ingrédient « ${ingredient.aliment.nom} » ?`)) return;
                 setError(null);
                 startTransition(async () => {
                   try {

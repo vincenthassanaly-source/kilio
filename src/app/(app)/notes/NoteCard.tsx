@@ -12,6 +12,7 @@ import { CheckToggle } from "@/components/CheckToggle";
 import { useBackClose } from "@/hooks/useBackClose";
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, nameText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
@@ -224,7 +225,10 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
         <button
           type="button"
           disabled={deleteMutation.isPending}
-          onClick={() => deleteMutation.mutate()}
+          onClick={() => {
+            if (!confirmDelete(`Supprimer la note « ${note.titre} » ?`)) return;
+            deleteMutation.mutate();
+          }}
           className={dangerButton}
         >
           Suppr.

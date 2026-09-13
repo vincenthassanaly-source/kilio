@@ -10,6 +10,7 @@ import type { CompteAvecSolde } from "@/app/actions/comptes";
 import type { Tables } from "@/lib/supabase/types";
 import { FREQUENCE_LABELS, formatMontant } from "@/lib/budget/compute";
 import { card, dangerButton, ghostButton, listCard, metaText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { RecurrenceModeForm } from "./RecurrenceModeForm";
 
 function formatDate(iso: string) {
@@ -103,7 +104,10 @@ function RecurrenceRow({
         <button
           type="button"
           disabled={isPending}
-          onClick={() => startTransition(() => supprimerRecurrence(recurrence.id))}
+          onClick={() => {
+            if (!confirmDelete("Supprimer cette transaction récurrente ?")) return;
+            startTransition(() => supprimerRecurrence(recurrence.id));
+          }}
           className={dangerButton}
         >
           Suppr.

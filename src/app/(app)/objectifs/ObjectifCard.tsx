@@ -9,6 +9,7 @@ import { ObjectifForm } from "./ObjectifForm";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { TransitionLink } from "@/components/TransitionLink";
 import { card, dangerButton, ghostButton, listCard, metaText, nameText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 const TYPE_SUIVI_LABELS: Record<Enums<"type_suivi_objectif">, string> = {
   valeur: "Valeur",
@@ -97,7 +98,10 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
         <button
           type="button"
           disabled={deleteMutation.isPending}
-          onClick={() => deleteMutation.mutate()}
+          onClick={() => {
+            if (!confirmDelete(`Supprimer l'objectif « ${objectif.titre} » ?`)) return;
+            deleteMutation.mutate();
+          }}
           className={dangerButton}
         >
           Suppr.

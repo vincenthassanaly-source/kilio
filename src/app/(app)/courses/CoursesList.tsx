@@ -7,6 +7,7 @@ import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, listCard, nameText } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { CheckToggle } from "@/components/CheckToggle";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 import { vibrate } from "@/lib/haptics";
@@ -95,7 +96,10 @@ function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
         <button
           type="button"
           disabled={deleteMutation.isPending}
-          onClick={() => deleteMutation.mutate()}
+          onClick={() => {
+            if (!confirmDelete(`Supprimer « ${item.libelle} » de la liste de courses ?`)) return;
+            deleteMutation.mutate();
+          }}
           className={dangerButton}
         >
           Suppr.

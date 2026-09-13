@@ -8,6 +8,7 @@ import { ObjectifForm } from "../ObjectifForm";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 const STATUT_LABELS: Record<Enums<"statut_objectif">, string> = {
   en_cours: "En cours",
@@ -81,6 +82,7 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
             type="button"
             disabled={isPending}
             onClick={() => {
+              if (!confirmDelete(`Supprimer l'objectif « ${objectif.titre} » ?`)) return;
               setError(null);
               // Invalidée avant l'appel, pas après : `supprimerObjectif` se
               // termine par `redirect("/objectifs")`, qui jette et empêche

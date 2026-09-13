@@ -49,9 +49,13 @@ export function trierParDistanceCroissante<T extends { distanceMetres: number }>
   return [...stations].sort((a, b) => a.distanceMetres - b.distanceMetres);
 }
 
+const FORMAT_KM = new Intl.NumberFormat("fr-FR", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
 /** "800 m" en dessous d'1 km, "3,2 km" au-delà (une décimale, virgule française). */
 export function formaterDistance(metres: number): string {
   if (metres < 1000) return `${Math.round(metres)} m`;
-  const km = metres / 1000;
-  return `${km.toFixed(1).replace(".", ",")} km`;
+  return `${FORMAT_KM.format(metres / 1000)} km`;
 }

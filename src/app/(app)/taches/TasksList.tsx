@@ -28,6 +28,7 @@ import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { CheckToggle } from "@/components/CheckToggle";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { useBackClose } from "@/hooks/useBackClose";
@@ -473,7 +474,10 @@ export function TaskCard({
           <button
             type="button"
             disabled={deleteMutation.isPending}
-            onClick={() => deleteMutation.mutate()}
+            onClick={() => {
+              if (!confirmDelete(`Supprimer la tâche « ${tache.titre} » ?`)) return;
+              deleteMutation.mutate();
+            }}
             className={dangerButton}
           >
             Suppr.

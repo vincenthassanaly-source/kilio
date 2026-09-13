@@ -5,6 +5,7 @@ import { supprimerCompte, type CompteAvecSolde } from "@/app/actions/comptes";
 import { formatMontant } from "@/lib/budget/compute";
 import { AddCompteForm } from "./AddCompteForm";
 import { card, dangerButton, ghostButton, listCard, metaText, nameText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import type { Enums } from "@/lib/supabase/types";
 
 const TYPE_LABELS: Record<Enums<"type_compte">, string> = {
@@ -53,7 +54,10 @@ function CompteCard({ compte }: { compte: CompteAvecSolde }) {
         <button
           type="button"
           disabled={isPending}
-          onClick={() => startTransition(() => supprimerCompte(compte.id))}
+          onClick={() => {
+            if (!confirmDelete(`Supprimer le compte « ${compte.nom} » ?`)) return;
+            startTransition(() => supprimerCompte(compte.id));
+          }}
           className={dangerButton}
         >
           Suppr.

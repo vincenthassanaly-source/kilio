@@ -6,6 +6,7 @@ import { deleteRecette } from "@/app/actions/recettes";
 import type { Tables } from "@/lib/supabase/types";
 import { TransitionLink } from "@/components/TransitionLink";
 import { card, dangerButton, errorText, ghostButton, linkButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 const RecetteForm = dynamic(() => import("../RecetteForm").then((m) => m.RecetteForm), { ssr: false });
 
@@ -62,6 +63,7 @@ export function RecetteHeader({
             type="button"
             disabled={isPending}
             onClick={() => {
+              if (!confirmDelete(`Supprimer la recette « ${recette.nom} » ?`)) return;
               setError(null);
               startTransition(async () => {
                 try {

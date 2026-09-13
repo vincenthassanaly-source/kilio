@@ -8,6 +8,7 @@ import { queryKeys } from "@/lib/query/keys";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 export function CollectionHeader({ collection }: { collection: Tables<"collections"> }) {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
   }
 
   function handleDelete() {
-    if (!window.confirm(`Supprimer la collection « ${collection.nom} » et toutes ses photos ?`)) return;
+    if (!confirmDelete(`Supprimer la collection « ${collection.nom} » et toutes ses photos ?`)) return;
 
     setError(null);
     startTransition(async () => {

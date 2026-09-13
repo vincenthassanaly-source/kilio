@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { rechercheGlobale, type ModuleRecherche, type ResultatRecherche } from "@/app/actions/recherche";
 import { input } from "@/lib/ui";
+
+function idOption(item: ResultatRecherche): string {
+  return `recherche-option-${item.module}-${item.id}`;
+}
 
 const MODULE_INFO: Record<ModuleRecherche, { label: string; accentVar: string }> = {
   notes: { label: "Notes", accentVar: "var(--accent-protein)" },
@@ -26,10 +31,12 @@ function SearchIcon({ color }: { color: string }) {
 }
 
 export function GlobalSearchBar() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [resultats, setResultats] = useState<ResultatRecherche[]>([]);
   const [ouvert, setOuvert] = useState(false);
   const [aRecherche, setARecherche] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +52,7 @@ export function GlobalSearchBar() {
         const data = await rechercheGlobale(q);
         setResultats(data);
         setARecherche(true);
+        setActiveIndex(-1);
       });
     }, 300);
 
@@ -75,6 +83,28 @@ export function GlobalSearchBar() {
     items: resultats.filter((r) => r.module === module),
   })).filter((g) => g.items.length > 0);
 
+  const flatItems = groupes.flatMap((g) => g.items);
+
+  function selectionner(item: ResultatRecherche) {
+    setOuvert(false);
+    setQuery("");
+    router.push(item.href);
+  }
+
+  function handleKeyDown(e: ReactKeyboardEvent<HTMLInputElement>) {
+    if (!dropdownVisible || flatItems.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % flatItems.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? flatItems.length - 1 : i - 1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      selectionner(flatItems[activeIndex]);
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
@@ -86,11 +116,14 @@ export function GlobalSearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOuvert(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Rechercher dans Kilio…"
           aria-expanded={dropdownVisible}
           aria-controls="recherche-globale-listbox"
+          aria-activedescendant={activeIndex >= 0 ? idOption(flatItems[activeIndex]) : undefined}
           role="combobox"
           aria-autocomplete="list"
+          autoComplete="off"
           className={`${input} w-full pl-10 pr-9`}
         />
         {isPending && (
@@ -118,24 +151,27 @@ export function GlobalSearchBar() {
                   >
                     {MODULE_INFO[module].label}
                   </span>
-                  {items.map((item) => (
-                    <Link
-                      key={`${module}-${item.id}`}
-                      href={item.href}
-                      role="option"
-                      aria-selected="false"
-                      onClick={() => {
-                        setOuvert(false);
-                        setQuery("");
-                      }}
-                      className="flex flex-col rounded-2xl px-2.5 py-2 transition-colors hover:bg-surface-alt"
-                    >
-                      <span className="truncate text-[14px] font-semibold text-ink">{item.titre}</span>
-                      {item.sousTitre && (
-                        <span className="truncate text-[12px] text-ink-2">{item.sousTitre}</span>
-                      )}
-                    </Link>
-                  ))}
+                  {items.map((item) => {
+                    const active = flatItems.indexOf(item) === activeIndex;
+                    return (
+                      <Link
+                        key={`${module}-${item.id}`}
+                        id={idOption(item)}
+                        href={item.href}
+                        role="option"
+                        aria-selected={active}
+                        onClick={() => selectionner(item)}
+                        className={`flex flex-col rounded-2xl px-2.5 py-2 transition-colors hover:bg-surface-alt ${
+                          active ? "bg-surface-alt" : ""
+                        }`}
+                      >
+                        <span className="truncate text-[14px] font-semibold text-ink">{item.titre}</span>
+                        {item.sousTitre && (
+                          <span className="truncate text-[12px] text-ink-2">{item.sousTitre}</span>
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
               ))}
             </div>

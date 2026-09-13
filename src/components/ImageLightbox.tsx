@@ -8,7 +8,15 @@ import { FadeInImage } from "@/components/FadeInImage";
  * n'importe où (y compris sur l'image, cf. object-contain qui laisse de
  * l'espace vide autour) ou sur le bouton ×. Générique, pas spécifique au
  * module Tâches. */
-export function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+export function ImageLightbox({
+  src,
+  alt = "Photo agrandie",
+  onClose,
+}: {
+  src: string;
+  alt?: string;
+  onClose: () => void;
+}) {
   const [downloading, setDownloading] = useState(false);
 
   // Ce composant n'est monté que pendant que le lightbox est ouvert : `active`
@@ -61,7 +69,7 @@ export function ImageLightbox({ src, onClose }: { src: string; onClose: () => vo
         </svg>
       </button>
       <div className="absolute inset-4">
-        <FadeInImage src={src} alt="" fill sizes="100vw" className="object-contain" />
+        <FadeInImage src={src} alt={alt} fill sizes="100vw" className="object-contain" />
       </div>
     </div>
   );

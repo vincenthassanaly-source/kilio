@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useReducedMotion } from "framer-motion";
 
 const PULL_THRESHOLD = 70;
 const MAX_PULL = 96;
@@ -30,6 +31,7 @@ export function PullToRefresh({
   onRefresh?: () => void | Promise<void>;
 }) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
   const pulling = useRef(false);
@@ -98,12 +100,12 @@ export function PullToRefresh({
         aria-hidden={pullDistance === 0}
       >
         <div
-          className={`h-5 w-5 rounded-full border-2 ${refreshing ? "animate-spin" : ""}`}
+          className={`h-5 w-5 rounded-full border-2 ${refreshing && !reduceMotion ? "animate-spin" : ""}`}
           style={{
             borderColor: "var(--line)",
             borderTopColor: "var(--accent-kcal)",
             opacity: Math.min(1, pullDistance / PULL_THRESHOLD),
-            transform: refreshing ? undefined : `rotate(${pullDistance * 3}deg)`,
+            transform: refreshing || reduceMotion ? undefined : `rotate(${pullDistance * 3}deg)`,
           }}
         />
       </div>

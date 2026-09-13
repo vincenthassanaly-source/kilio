@@ -8,6 +8,7 @@ import { showToast } from "@/components/toast/toast-store";
 import { HabitudeForm } from "./HabitudeForm";
 import { ProgressRing } from "@/components/ProgressRing";
 import { card, dangerButton, ghostButton, input, listCard, metaText, nameText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
@@ -99,6 +100,7 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
   }
 
   function supprimer() {
+    if (!confirmDelete(`Supprimer l'habitude « ${habitude.nom} » ?`)) return;
     startTransition(async () => {
       try {
         await supprimerHabitude(habitude.id);

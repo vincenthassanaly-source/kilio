@@ -7,6 +7,7 @@ import { showToast } from "@/components/toast/toast-store";
 import type { Nutrition } from "@/lib/nutrition/compute";
 import type { Enums } from "@/lib/supabase/types";
 import { cardTight, dangerButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 export type JournalEntryView = {
   id: string;
@@ -46,7 +47,14 @@ function EntryRow({ entry, onDelete }: { entry: JournalEntryView; onDelete: (id:
           <span className="font-display text-[15px] font-semibold text-ink">
             {Math.round(entry.nutrition.kcal)} kcal
           </span>
-          <button type="button" onClick={() => onDelete(entry.id)} className={dangerButton}>
+          <button
+            type="button"
+            onClick={() => {
+              if (!confirmDelete(`Supprimer « ${entry.label} » du journal ?`)) return;
+              onDelete(entry.id);
+            }}
+            className={dangerButton}
+          >
             Suppr.
           </button>
         </div>

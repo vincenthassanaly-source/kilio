@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import { addEtape, removeEtape, updateEtape, type EtapeFormState } from "@/app/actions/recette-etapes";
 import type { Tables } from "@/lib/supabase/types";
 import { cardTight, dangerButton, errorText, ghostButton, input, nameText, primaryButton } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 type EtapeRow = Tables<"recette_etapes">;
 
@@ -100,6 +101,7 @@ function EtapeLine({ etape, index, recetteId }: { etape: EtapeRow; index: number
                 type="button"
                 disabled={isPending}
                 onClick={() => {
+                  if (!confirmDelete(`Supprimer l'étape ${index + 1} ?`)) return;
                   setError(null);
                   startTransition(async () => {
                     try {

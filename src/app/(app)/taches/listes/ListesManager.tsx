@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { deleteListe, reordonnerListes } from "@/app/actions/taches";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, ghostButton, listCard, nameText } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 import { AddListeForm } from "./AddListeForm";
 
 function ListeRow({
@@ -35,6 +36,7 @@ function ListeRow({
   }
 
   function handleDelete() {
+    if (!confirmDelete(`Supprimer la liste « ${liste.nom} » ?`)) return;
     setError(null);
     startTransition(async () => {
       try {

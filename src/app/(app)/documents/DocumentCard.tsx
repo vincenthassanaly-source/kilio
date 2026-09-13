@@ -9,6 +9,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, nameText, pillTag } from "@/lib/ui";
+import { confirmDelete } from "@/lib/confirm";
 
 function PdfIcon() {
   return (
@@ -115,14 +116,19 @@ export function DocumentCard({
         <button
           type="button"
           disabled={isPending}
-          onClick={() => startTransition(() => deleteDocument(document.id))}
+          onClick={() => {
+            if (!confirmDelete(`Supprimer le document « ${document.nom} » ?`)) return;
+            startTransition(() => deleteDocument(document.id));
+          }}
           className={dangerButton}
         >
           Suppr.
         </button>
       </div>
 
-      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} alt={document.nom} onClose={() => setLightboxSrc(null)} />
+      )}
     </li>
   );
 }
