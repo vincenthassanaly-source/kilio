@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
 
 export type PushPayload = {
@@ -49,7 +49,7 @@ export async function envoyerNotificationPush(
   } catch (err) {
     const statusCode = (err as { statusCode?: number }).statusCode;
     if (statusCode === 410 || statusCode === 404) {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
       return;
     }
