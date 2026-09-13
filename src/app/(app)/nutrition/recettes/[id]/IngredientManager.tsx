@@ -125,13 +125,14 @@ function AddIngredientForm({
   aliments: Tables<"aliments">[];
 }) {
   const [state, formAction, pending] = useActionState(addIngredient, initialState);
-  const [alimentId, setAlimentId] = useState(aliments[0]?.id ?? "");
+  const [alimentId, setAlimentId] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const prevPending = useRef(pending);
 
   useEffect(() => {
     if (prevPending.current && !pending && !state.error) {
       formRef.current?.reset();
+      setAlimentId("");
     }
     prevPending.current = pending;
   }, [pending, state.error]);
@@ -145,20 +146,24 @@ function AddIngredientForm({
     );
   }
 
-  const selected = aliments.find((a) => a.id === alimentId) ?? aliments[0];
+  const selected = aliments.find((a) => a.id === alimentId);
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="recette_id" value={recetteId} />
-      <input type="hidden" name="unite" value={selected.unite} />
+      <input type="hidden" name="unite" value={selected?.unite ?? ""} />
 
       <div className="flex gap-2">
         <select
           name="aliment_id"
           value={alimentId}
           onChange={(e) => setAlimentId(e.target.value)}
+          required
           className={`min-w-0 flex-1 ${input}`}
         >
+          <option value="" disabled>
+            Choisir un ingrédient…
+          </option>
           {aliments.map((a) => (
             <option key={a.id} value={a.id}>
               {a.nom}
@@ -171,7 +176,8 @@ function AddIngredientForm({
           step="0.1"
           min="0"
           required
-          placeholder={UNITE_LABEL[selected.unite]}
+          disabled={!selected}
+          placeholder={selected ? UNITE_LABEL[selected.unite] : "Quantité"}
           className={`w-24 ${input}`}
         />
       </div>
