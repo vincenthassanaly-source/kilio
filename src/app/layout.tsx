@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Sora, Inter } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { AppResumeRefresh } from "@/components/AppResumeRefresh";
-import { themeInitScript } from "@/lib/theme";
+import { THEME_COOKIE_KEY, themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
 const sora = Sora({
@@ -37,12 +38,15 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const cookieStore = await cookies();
+  const isDark = cookieStore.get(THEME_COOKIE_KEY)?.value === "dark";
+
   return (
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${sora.variable} ${inter.variable} h-full antialiased`}
+      className={`${sora.variable} ${inter.variable} h-full antialiased${isDark ? " dark" : ""}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />

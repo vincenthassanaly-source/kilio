@@ -1,6 +1,6 @@
 "use client";
 
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { THEME_COOKIE_KEY, THEME_COOKIE_MAX_AGE, THEME_STORAGE_KEY } from "@/lib/theme";
 
 function SunIcon() {
   return (
@@ -22,14 +22,18 @@ function MoonIcon() {
 function toggleTheme() {
   const next = !document.documentElement.classList.contains("dark");
   document.documentElement.classList.toggle("dark", next);
-  localStorage.setItem(THEME_STORAGE_KEY, next ? "dark" : "light");
+  const value = next ? "dark" : "light";
+  localStorage.setItem(THEME_STORAGE_KEY, value);
+  document.cookie = `${THEME_COOKIE_KEY}=${value}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
-/** Bouton rond pour basculer clair/sombre. Persisté en localStorage, appliqué
- * via la classe `dark` sur <html> (voir lib/theme.ts pour le script anti-flash).
- * Les deux icônes sont rendues côté serveur, la classe `dark:` choisit
- * laquelle afficher : pas d'état React, donc pas de flash ni de mismatch
- * d'hydratation. */
+/** Bouton rond pour basculer clair/sombre. Persisté en localStorage ET en
+ * cookie (lu côté serveur par layout.tsx pour appliquer la classe `dark` dès
+ * le SSR — plus robuste que le seul localStorage, qui peut être purgé sous
+ * pression de stockage en PWA), appliqué via la classe `dark` sur <html>
+ * (voir lib/theme.ts pour le script anti-flash). Les deux icônes sont
+ * rendues côté serveur, la classe `dark:` choisit laquelle afficher : pas
+ * d'état React, donc pas de flash ni de mismatch d'hydratation. */
 export function ThemeToggle({ className = "" }: { className?: string }) {
   return (
     <button

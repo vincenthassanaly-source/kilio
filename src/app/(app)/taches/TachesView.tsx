@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, format } from "date-fns";
 import { aujourdhuiISO } from "@/lib/budget/compute";
 import { getListes, getTachesAvecRelations, getTags } from "@/app/actions/taches";
+import { normalizeSearch } from "@/lib/normalize";
 import { queryKeys } from "@/lib/query/keys";
 import { AddTaskToggle } from "./AddTaskToggle";
 import { TasksList } from "./TasksList";
@@ -61,7 +62,7 @@ export function TachesView() {
     if (!taches) return [];
     const today = aujourdhuiISO();
     const dansSeptJours = format(addDays(new Date(`${today}T00:00:00`), 7), "yyyy-MM-dd");
-    const rechercheNormalisee = recherche.trim().toLowerCase();
+    const rechercheNormalisee = normalizeSearch(recherche);
 
     return taches.filter((tache) => {
       if (listeId !== "toutes" && tache.liste_id !== listeId) return false;
@@ -73,8 +74,8 @@ export function TachesView() {
         if (!tache.echeance || tache.echeance < today || tache.echeance > dansSeptJours) return false;
       }
       if (rechercheNormalisee) {
-        const titreMatch = tache.titre.toLowerCase().includes(rechercheNormalisee);
-        const notesMatch = tache.notes?.toLowerCase().includes(rechercheNormalisee) ?? false;
+        const titreMatch = normalizeSearch(tache.titre).includes(rechercheNormalisee);
+        const notesMatch = tache.notes ? normalizeSearch(tache.notes).includes(rechercheNormalisee) : false;
         if (!titreMatch && !notesMatch) return false;
       }
       return true;

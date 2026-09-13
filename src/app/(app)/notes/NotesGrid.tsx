@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getNotesAvecRelations } from "@/app/actions/notes";
 import { getTags } from "@/app/actions/taches";
+import { normalizeSearch } from "@/lib/normalize";
 import { queryKeys } from "@/lib/query/keys";
 import { NoteCard } from "./NoteCard";
 import { AddNoteToggle } from "./AddNoteToggle";
@@ -32,14 +33,14 @@ export function NotesGrid({ defaultOpen }: { defaultOpen?: boolean }) {
   // volume de données mono-utilisateur ne le justifie pas (cf. prompt).
   const filtered = useMemo(() => {
     if (!notes) return [];
-    const term = search.toLowerCase().trim();
+    const term = normalizeSearch(search);
     return notes.filter((note) => {
       const matchesSearch =
         term === "" ||
-        note.titre.toLowerCase().includes(term) ||
-        note.contenu.toLowerCase().includes(term) ||
-        note.items.some((item) => item.libelle.toLowerCase().includes(term)) ||
-        note.tags.some((tag) => tag.nom.toLowerCase().includes(term));
+        normalizeSearch(note.titre).includes(term) ||
+        normalizeSearch(note.contenu).includes(term) ||
+        note.items.some((item) => normalizeSearch(item.libelle).includes(term)) ||
+        note.tags.some((tag) => normalizeSearch(tag.nom).includes(term));
       const matchesTags =
         tagFilter.length === 0 || tagFilter.every((id) => note.tags.some((tag) => tag.id === id));
       return matchesSearch && matchesTags;

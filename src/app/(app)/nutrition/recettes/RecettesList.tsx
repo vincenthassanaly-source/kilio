@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Tables } from "@/lib/supabase/types";
 import { TransitionLink } from "@/components/TransitionLink";
+import { normalizeSearch } from "@/lib/normalize";
 import { input, kcalPillTag, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -51,10 +52,12 @@ export function RecettesList({
   }
 
   const filtered = useMemo(() => {
-    const term = search.toLowerCase().trim();
+    const term = normalizeSearch(search);
     return recettes.filter((r) => {
       const matchesSearch =
-        term === "" || r.nom.toLowerCase().includes(term) || r.ingredientsText.includes(term);
+        term === "" ||
+        normalizeSearch(r.nom).includes(term) ||
+        normalizeSearch(r.ingredientsText).includes(term);
       return matchesSearch && matchesFilters(r);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

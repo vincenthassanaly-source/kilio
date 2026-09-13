@@ -6,6 +6,7 @@ import type { DocumentAvecFichiers } from "@/app/actions/documents";
 import type { Tables } from "@/lib/supabase/types";
 import { AddDocumentToggle } from "./AddDocumentToggle";
 import { DocumentsList } from "./DocumentsList";
+import { normalizeSearch } from "@/lib/normalize";
 import { input, kcalPillTag, pillTag } from "@/lib/ui";
 
 type TriCle = "echeance" | "nom" | "recent" | "etiquette";
@@ -45,14 +46,14 @@ export function DocumentsBrowser({
   // que NotesGrid, le volume mono-utilisateur ne justifie pas une recherche
   // full-text Postgres.
   const filtres = useMemo(() => {
-    const term = search.toLowerCase().trim();
+    const term = normalizeSearch(search);
     return documents.filter((document) => {
       const matchesSearch =
         term === "" ||
-        document.nom.toLowerCase().includes(term) ||
-        (document.notes ?? "").toLowerCase().includes(term) ||
-        (document.categorie ?? "").toLowerCase().includes(term) ||
-        (document.etiquette?.nom.toLowerCase().includes(term) ?? false);
+        normalizeSearch(document.nom).includes(term) ||
+        normalizeSearch(document.notes ?? "").includes(term) ||
+        normalizeSearch(document.categorie ?? "").includes(term) ||
+        (document.etiquette ? normalizeSearch(document.etiquette.nom).includes(term) : false);
       const matchesEtiquette =
         etiquetteFilter.length === 0 ||
         (document.etiquette !== null && etiquetteFilter.includes(document.etiquette.id));
