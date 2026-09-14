@@ -80,7 +80,7 @@ export function QuickAddFab() {
           onClick={() => setMode("course")}
           aria-label="Courses"
           tabIndex={dialInteractive ? 0 : -1}
-          className="flex items-center gap-2 transition-all duration-200 ease-out"
+          className="flex items-center gap-2 transition-[opacity,transform] duration-200 ease-out"
           style={{
             opacity: dialOpen ? 1 : 0,
             transform: dialOpen ? "translateY(0)" : "translateY(12px)",
@@ -103,7 +103,7 @@ export function QuickAddFab() {
           onClick={() => setMode("tache")}
           aria-label="Nouvelle tâche"
           tabIndex={dialInteractive ? 0 : -1}
-          className="flex items-center gap-2 transition-all duration-200 ease-out"
+          className="flex items-center gap-2 transition-[opacity,transform] duration-200 ease-out"
           style={{
             opacity: dialOpen ? 1 : 0,
             transform: dialOpen ? "translateY(0)" : "translateY(12px)",
@@ -125,7 +125,7 @@ export function QuickAddFab() {
           onClick={() => setMode("note")}
           aria-label="Nouvelle note"
           tabIndex={dialInteractive ? 0 : -1}
-          className="flex items-center gap-2 transition-all duration-200 ease-out"
+          className="flex items-center gap-2 transition-[opacity,transform] duration-200 ease-out"
           style={{
             opacity: dialOpen ? 1 : 0,
             transform: dialOpen ? "translateY(0)" : "translateY(12px)",

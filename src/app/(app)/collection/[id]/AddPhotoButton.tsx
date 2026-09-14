@@ -147,12 +147,12 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
             autoFocus
             value={tiktokUrl}
             onChange={(e) => setTiktokUrl(e.target.value)}
-            placeholder="https://www.tiktok.com/..."
+            placeholder="https://www.tiktok.com/…"
             disabled={tiktokPending}
             className={`${input} flex-1`}
           />
           <button type="submit" disabled={tiktokPending} className={primaryButton}>
-            {tiktokPending ? "..." : "OK"}
+            {tiktokPending ? "…" : "OK"}
           </button>
         </form>
       )}

@@ -57,7 +57,7 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
           style={{ background: actif ? "var(--accent-kcal)" : "var(--surface-alt)" }}
         >
           <span
-            className="absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white transition-all"
+            className="absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white transition-[left]"
             style={{ left: actif ? "20px" : "2px" }}
           />
         </button>

@@ -87,7 +87,7 @@ export function NotificationsRow() {
           style={{ background: on ? "var(--accent-kcal)" : "var(--surface-alt)" }}
         >
           <span
-            className="absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white transition-all"
+            className="absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white transition-[left]"
             style={{ left: on ? "20px" : "2px" }}
           />
         </button>

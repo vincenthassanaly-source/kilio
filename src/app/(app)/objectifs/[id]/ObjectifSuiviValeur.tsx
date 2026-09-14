@@ -117,7 +117,7 @@ export function ObjectifSuiviValeur({
         <div className="flex flex-col gap-1.5">
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-alt">
             <div
-              className="h-full rounded-full bg-kcal transition-all"
+              className="h-full rounded-full bg-kcal transition-[width]"
               style={{ width: `${(ratio ?? 0) * 100}%` }}
             />
           </div>
