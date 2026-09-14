@@ -83,7 +83,7 @@ Deux tables portent des écarts propres (`taches`, `transactions_recurrentes`). 
 
 ## Détail des écarts
 
-### #1 — [MOYENNE] Query performance — `taches` : pas d'index sur les colonnes de filtrage dominantes
+### #1 — [MOYENNE] Query performance — `taches` : pas d'index sur les colonnes de filtrage dominantes ✅ Corrigé le 2026-09-14
 
 **Catégorie** : `query-` (index manquant sur colonnes filtrées fréquemment)
 **Table/colonnes** : `public.taches` (`fait`, `programme_jour`, en combinaison avec `echeance`)
@@ -104,9 +104,11 @@ create index idx_taches_programme_jour on taches (programme_jour, fait, echeance
 ```
 Index partiels : peu coûteux à maintenir, ciblent exactement les deux patterns de lecture observés (vue "liste de tâches actives" et purge du programme du jour).
 
+**Appliqué** via `mcp__Supabase__apply_migration` (`add_index_taches_actives_et_programme_jour`) et documenté dans `scripts/migration-taches-index-performance-2026-09-14.sql`. Vérifié en base : `idx_taches_a_faire` et `idx_taches_programme_jour` présents dans `pg_indexes`.
+
 ---
 
-### #2 — [MOYENNE] Query performance — `transactions_recurrentes` : 3 clés étrangères sans index de couverture
+### #2 — [MOYENNE] Query performance — `transactions_recurrentes` : 3 clés étrangères sans index de couverture ✅ Corrigé le 2026-09-14
 
 **Catégorie** : `query-` (foreign keys non indexées — remonté aussi par `mcp__Supabase__get_advisors(type="performance")`, lint `unindexed_foreign_keys`)
 **Table/colonnes** : `public.transactions_recurrentes.categorie_id`, `.compte_destination_id`, `.compte_id`
@@ -123,6 +125,8 @@ create index idx_transactions_recurrentes_categorie_id on transactions_recurrent
 ```
 (L'index existant `idx_transactions_recurrentes_actives_prochaine` couvre déjà bien le cas de génération paresseuse documenté dans `src/app/actions/transactions-recurrentes.ts`.)
 
+**Appliqué** via `mcp__Supabase__apply_migration` (`add_index_transactions_recurrentes_fk`) et documenté dans `scripts/migration-transactions-recurrentes-index-fk-2026-09-14.sql`. Vérifié en base : les 3 index présents dans `pg_indexes`, advisor performance ne remonte plus `unindexed_foreign_keys` sur cette table.
+
 ---
 
 ### #3 — [BASSE] Query performance — 16 index jamais utilisés
@@ -136,7 +140,7 @@ La quasi-totalité de ces tables sont actuellement vides ou quasi vides (`object
 
 ---
 
-### #4 — [BASSE] Concurrency & locking — `set_termine_le()` sans `search_path` fixé
+### #4 — [BASSE] Concurrency & locking — `set_termine_le()` sans `search_path` fixé ✅ Corrigé le 2026-09-14
 
 **Catégorie** : `lock-`/hygiène des triggers (le périmètre demandé couvre explicitement les triggers `set_updated_at()` et consorts)
 **Fonction** : `public.set_termine_le()`
@@ -149,9 +153,11 @@ alter function public.set_termine_le() set search_path = '';
 ```
 Migration triviale, sans risque de verrou (ALTER FUNCTION ne verrouille pas les lignes des tables qui l'utilisent).
 
+**Appliqué** via `mcp__Supabase__apply_migration` (`fix_set_termine_le_search_path`) et documenté dans `scripts/migration-fix-set-termine-le-search-path-2026-09-14.sql`. Vérifié en base : `proconfig` de `set_termine_le` contient désormais `search_path=""`, et `mcp__Supabase__get_advisors(type="security")` ne remonte plus `function_search_path_mutable`.
+
 ---
 
-### #5 — [BASSE] Data access patterns — client Supabase mort (`src/lib/supabase/server.ts`)
+### #5 — [BASSE] Data access patterns — client Supabase mort (`src/lib/supabase/server.ts`) ✅ Corrigé le 2026-09-14
 
 **Catégorie** : `data-` (cohérence avec le pattern de référence mono-client `service_role`)
 **Fichier** : `src/lib/supabase/server.ts`
@@ -161,6 +167,8 @@ Ce client (`createServerClient` + cookies, clé `NEXT_PUBLIC_SUPABASE_PUBLISHABL
 Ce n'est pas un problème de base de données, mais un risque de confusion applicative : si ce client était un jour réutilisé par erreur, il pointerait vers une clé anon soumise au RLS deny-all (donc tout échouerait silencieusement en lecture/écriture), sans lien avec le reste de l'architecture.
 
 **Correction suggérée** : supprimer `src/lib/supabase/server.ts` (et la variable d'env `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` si elle n'est utilisée nulle part ailleurs).
+
+**Appliqué** : `src/lib/supabase/server.ts` supprimé, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` retirée de `next.config.ts` (plus aucun autre consommateur trouvé), et la dépendance `@supabase/ssr` désinstallée (`package.json`/`package-lock.json`) puisqu'elle n'était utilisée que par ce fichier. `npx tsc --noEmit` et `npx eslint .` : 0 erreur ; `npm run build` : succès complet (les 5 erreurs de compilation liées à `@supabase/ssr` non résolu ont disparu avec la suppression).
 
 ---
 
@@ -210,10 +218,10 @@ Seule colonne `id` du schéma qui n'est ni `uuid` ni `bigint` : elle est `intege
 
 ## Liste priorisée des actions recommandées
 
-1. **[Moyenne]** `taches` — ajouter les deux index partiels ciblant `fait`/`programme_jour` (#1).
-2. **[Moyenne]** `transactions_recurrentes` — indexer les 3 FK (#2), avant mise en production réelle du module transactions récurrentes.
-3. **[Basse]** `set_termine_le()` — fixer `search_path = ''` par cohérence avec `set_updated_at()` (#4).
-4. **[Basse]** Supprimer `src/lib/supabase/server.ts`, vestige mort de l'ancien flux auth (#5).
+1. ✅ **[Moyenne]** `taches` — ajouter les deux index partiels ciblant `fait`/`programme_jour` (#1). *Corrigé le 2026-09-14.*
+2. ✅ **[Moyenne]** `transactions_recurrentes` — indexer les 3 FK (#2). *Corrigé le 2026-09-14.*
+3. ✅ **[Basse]** `set_termine_le()` — fixer `search_path = ''` par cohérence avec `set_updated_at()` (#4). *Corrigé le 2026-09-14.*
+4. ✅ **[Basse]** Supprimer `src/lib/supabase/server.ts`, vestige mort de l'ancien flux auth (#5). *Corrigé le 2026-09-14 (+ dépendance `@supabase/ssr` retirée).*
 5. **[Basse]** Vérifier ponctuellement `cron.job_run_details` pour confirmer la bonne santé des 4 jobs `pg_cron` (#6).
 6. **[Basse]** Ne rien faire sur les 16 index "inutilisés" avant 1–2 mois d'usage réel (#3) ; re-router `pg_net` vers le schéma `extensions` à l'occasion d'une prochaine migration touchant ce périmètre (#7).
 7. **[Haute, sans urgence]** Adopter `bigint identity` (ou UUID v7) au lieu de `gen_random_uuid()` pour les **nouvelles** tables (#8) ; ne pas migrer les 31 tables existantes rétroactivement sans raison métier.
