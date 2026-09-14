@@ -1,12 +1,12 @@
-# Audit Supabase / Postgres — best practices (hors RLS)
+# Audit Supabase / Postgres — best practices
 
-Date : 2026-09-14
+Date : 2026-09-14 (mis à jour le 2026-09-14 avec le skill réel)
 Projet Supabase audité : `kilio` (`vsmtkopkqasrdnjceegp`), Postgres 17.6, région `eu-west-3`
-Branche : `kilio` @ `f50fa79` (repo et DB synchronisés au moment de l'audit — cf. Phase 1)
+Branche : `kilio` @ `f50fa79` (audit initial), complété sur `kilio` après relecture avec le skill réel
 
-**Portée** : audit uniquement, aucune modification appliquée au repo ni à la base. Catégorie `security-`/RLS explicitement exclue à la demande de Vincent (mono-utilisateur, RLS deny-all + `service_role` assumé — cf. `scripts/migration-enable-rls-deny-all-2026-09-11.sql`).
+**Portée** : audit uniquement, aucune modification appliquée au repo ni à la base.
 
-> **Note méthodologique importante** : le skill `supabase-postgres-best-practices` référencé dans la consigne n'est pas installé dans cette session (absent du registre de skills et du filesystem — recherché via `SearchSkills` et sur le disque). L'audit ci-dessous a donc été mené avec mes propres connaissances Postgres/Supabase, organisées sous les mêmes catégories que celles demandées (`query-`, `conn-`, `schema-`, `lock-`, `data-`, `monitor-`, `advanced-`). Si le skill existe sous un autre nom ou doit être installé, le réaudit avec le skill réel pourrait faire ressortir des règles supplémentaires non couvertes ici.
+> **Mise à jour méthodologique** : la première version de cet audit avait été menée sans le skill `supabase-postgres-best-practices` (introuvable dans cette session) et excluait explicitement la catégorie `security-`/RLS. Le skill a depuis été localisé dans le dépôt `vincenthassanaly-source/vincent-toolkit-marketplace` (`plugins/vincent-toolkit/skills/supabase-postgres-best-practices/`) et relu intégralement (33 fichiers de règles, catégories `query-`, `conn-`, `security-`, `schema-`, `lock-`, `data-`, `monitor-`, `advanced-`). Ce document intègre maintenant la vérification RLS/sécurité (section dédiée ci-dessous) et un nouvel écart `schema-` détecté grâce au skill réel (#8, clés primaires UUID v4). Le reste du contenu (écarts #1 à #7) a été revérifié en direct contre la base (`mcp__Supabase__get_advisors`, requêtes SQL) et reste valide sans changement.
 
 ---
 
@@ -15,21 +15,36 @@ Branche : `kilio` @ `f50fa79` (repo et DB synchronisés au moment de l'audit —
 | Sévérité | Nombre |
 |---|---|
 | Critique | 0 |
-| Haute | 0 |
+| Haute | 1 |
 | Moyenne | 2 |
-| Basse | 5 |
-| **Total** | **7** |
+| Basse | 6 |
+| **Total** | **9** |
 
-Aucun écart critique ou haut. La base est jeune (39 tables, 55 migrations depuis le 27/08/2026), petite en volumétrie (quelques dizaines à quelques centaines de lignes par table), et globalement bien tenue : contraintes CHECK cohérentes, FK correctement déclarées, trigger `updated_at` générique et non dupliqué, séparation calcul/accès-données exemplaire sur le module Nutrition, et la règle `ALTER TYPE ... ADD VALUE` dans une migration séparée est **déjà respectée** partout où un enum existant a été étendu.
+La base est jeune (39 tables, 55+ migrations depuis le 27/08/2026), petite en volumétrie (quelques dizaines à quelques centaines de lignes par table), et globalement bien tenue : contraintes CHECK cohérentes, FK correctement déclarées, trigger `updated_at` générique et non dupliqué, séparation calcul/accès-données exemplaire sur le module Nutrition, la règle `ALTER TYPE ... ADD VALUE` dans une migration séparée est **déjà respectée** partout où un enum existant a été étendu, et la posture RLS deny-all + `service_role` est conforme à l'esprit de la règle `security-rls-basics` du skill compte tenu de l'architecture mono-utilisateur (détail ci-dessous).
 
-Les écarts trouvés sont des optimisations préventives (index manquants sur des points chauds ou des FK) et du nettoyage mineur (code mort, hygiène de fonction), pas des bugs actifs.
+Le seul écart classé Haute (#8, UUID v4 comme clés primaires) est un choix structurel sans impact mesurable aujourd'hui vu le volume actuel, mais coûteux à corriger rétroactivement une fois la base grossie — à corriger pour les nouvelles tables, pas nécessairement en rétroactif. Les autres écarts trouvés sont des optimisations préventives (index manquants sur des points chauds ou des FK) et du nettoyage mineur (code mort, hygiène de fonction), pas des bugs actifs.
+
+---
+
+## Vérification RLS / sécurité (section ajoutée après relecture du skill)
+
+Le skill (`security-rls-basics.md`) prescrit : RLS activé + policies par utilisateur via `(select auth.uid())`, pour empêcher les fuites de données entre tenants. Kilio applique autre chose : RLS activé sur les 39 tables, **0 policy** (deny-all), tout l'accès passant par `service_role` côté serveur (`src/lib/supabase/admin.ts`), qui bypass RLS nativement — documenté dans `scripts/migration-enable-rls-deny-all-2026-09-11.sql`. Confirmé en direct sur la base (`select * from pg_policies where schemaname = 'public'` → 0 ligne ; `mcp__Supabase__get_advisors(type="security")` → lint `rls_enabled_no_policy` sur les 39 tables, niveau INFO, pas de policy manquante par erreur).
+
+**Verdict : conforme à l'esprit de la règle, pas au pattern.** Le skill cible les fuites multi-tenant (exemple `orders`/`user_id`) ; Kilio est mono-utilisateur sans clé publique exposée côté client (module Auth retiré, `suppression_auth_2026_08_29`). Le deny-all + `service_role` est en réalité plus strict qu'un jeu de policies par `user_id`, puisqu'il bloque tout accès non-backend plutôt que de compter sur un filtre applicatif — exactement le risque que `security-rls-basics.md` désigne comme incorrect ("relying only on application to filter").
+
+Point d'hygiène sans impact : `scripts/migration-rls-performance-2026-08-27.sql` contient encore d'anciennes policies par `user_id` sur des tables (`placard`, `listes_courses`, `listes_courses_items`) qui **n'existent plus** dans le schéma actuel (renommées/remplacées par `courses_items` etc.). Fichier d'historique mort — sans action requise, migrations non rejouées — mais à ne pas prendre comme description de l'architecture actuelle si on le relit plus tard.
+
+Autres points sécurité de l'advisor, déjà couverts ou hors portée applicative :
+- `function_search_path_mutable` sur `set_termine_le` → traité en #4.
+- `extension_in_public` sur `pg_net` → traité en #7.
+- "Leaked password protection" désactivée côté Auth → sans portée, module Auth supprimé de l'app.
 
 ---
 
 ## Vue d'ensemble de la base
 
 - **39 tables** dans `public`, identique entre `src/lib/supabase/types.ts` et l'état réel de la DB (`mcp__Supabase__list_tables`) — **pas de décalage repo/DB constaté cette fois-ci**, contrairement à ce qui avait été observé par le passé.
-- RLS activé sur les 39 tables, **0 policy** partout (deny-all volontaire, documenté dans la migration dédiée) → hors périmètre de cet audit.
+- RLS activé sur les 39 tables, **0 policy** partout (deny-all volontaire, documenté dans la migration dédiée) → analysé dans la section « Vérification RLS / sécurité » ci-dessus.
 - 4 jobs `pg_cron` actifs : `rappels-taches` (chaque minute), `rappels-documents` (06:00), `nettoyage-auto` (05:00), `suppression-taches-programme-jour` (00:05) — tous appellent une Edge Function via `pg_net`, ou une requête `DELETE` directe et bornée.
 - Extensions notables installées : `pg_net` (0.20.4), `pg_cron` (1.6.4), `pg_stat_statements` (1.11), `pgcrypto`, `uuid-ossp`, `supabase_vault`. `pgvector`, `pgmq`, `postgis` **non installées** — cohérent avec les besoins actuels de l'app (pas de recherche sémantique, pas de file de messages).
 - Fonctions PL/pgSQL : `set_updated_at()` et `set_termine_le()`, toutes deux en trigger `BEFORE UPDATE`, logique triviale sans I/O externe ni verrou long.
@@ -169,6 +184,30 @@ Ce n'est pas un problème de base de données, mais un risque de confusion appli
 
 ---
 
+### #8 — [HAUTE] Schema design — clés primaires en UUID v4 aléatoire sur 31 tables
+
+**Catégorie** : `schema-` (`schema-primary-keys`, impact HIGH selon le skill)
+**Tables concernées** : 31 des 33 tables à PK `uuid` (`aliments`, `budgets`, `categories_budget`, `collections`, `comptes`, `documents`, `journal_repas`, `notes`, `objectifs`, `recettes`, `taches`, `transactions`, etc. — vérifié via `information_schema.columns` sur toutes les colonnes `id` de type `uuid`).
+
+Toutes ces PK utilisent `gen_random_uuid()` (UUID **v4**, complètement aléatoire) comme valeur par défaut. Le skill classe ce choix en impact HIGH : un UUID v4 disperse les insertions dans l'index B-tree de la PK au lieu de les faire croître en fin d'index comme un identifiant séquentiel, ce qui fragmente l'index et dégrade les performances d'écriture/lecture à mesure que la table grossit (`references/schema-primary-keys.md`).
+
+Deux tables font exception avec des PK `bigint generated always as identity` (le pattern recommandé par le skill) : `horaires_travail_creneaux`, `horaires_travail_exceptions`.
+
+Sur le volume actuel de Kilio (dizaines à centaines de lignes par table), l'impact réel est nul — la fragmentation d'index ne devient sensible qu'à partir de tables de taille significative. Ce n'est donc pas un correctif urgent, et une migration rétroactive de 31 PK serait lourde (toutes les FK qui y pointent devraient être migrées en cascade) pour un bénéfice actuellement inexistant.
+
+**Recommandation** : ne rien changer rétroactivement sur les tables existantes. Pour toute **nouvelle table**, préférer `bigint generated always as identity` (standard SQL, simple, pas d'extension requise) ou, si un identifiant non-séquentiel/exposable publiquement est nécessaire, une UUID v7 via l'extension `pg_uuidv7` (non installée aujourd'hui) plutôt que `gen_random_uuid()`.
+
+---
+
+### #9 — [BASSE] Schema design — `preferences_navigation.id` en `integer` plutôt que `bigint`
+
+**Catégorie** : `schema-` (`schema-data-types`)
+**Table/colonne** : `public.preferences_navigation.id`
+
+Seule colonne `id` du schéma qui n'est ni `uuid` ni `bigint` : elle est `integer`. Le skill recommande `bigint` pour toute PK ("future-proofing", `references/schema-data-types.md`). Impact nul en pratique — `preferences_navigation` est une table de réglages à une ligne par nature, jamais susceptible d'approcher la limite de l'`integer` (2,1 milliards). Signalé pour complétude/cohérence uniquement.
+
+---
+
 ## Liste priorisée des actions recommandées
 
 1. **[Moyenne]** `taches` — ajouter les deux index partiels ciblant `fait`/`programme_jour` (#1).
@@ -177,9 +216,11 @@ Ce n'est pas un problème de base de données, mais un risque de confusion appli
 4. **[Basse]** Supprimer `src/lib/supabase/server.ts`, vestige mort de l'ancien flux auth (#5).
 5. **[Basse]** Vérifier ponctuellement `cron.job_run_details` pour confirmer la bonne santé des 4 jobs `pg_cron` (#6).
 6. **[Basse]** Ne rien faire sur les 16 index "inutilisés" avant 1–2 mois d'usage réel (#3) ; re-router `pg_net` vers le schéma `extensions` à l'occasion d'une prochaine migration touchant ce périmètre (#7).
+7. **[Haute, sans urgence]** Adopter `bigint identity` (ou UUID v7) au lieu de `gen_random_uuid()` pour les **nouvelles** tables (#8) ; ne pas migrer les 31 tables existantes rétroactivement sans raison métier.
+8. **[Basse]** Ne rien faire sur `preferences_navigation.id` (#9), cohérence pure.
 
 ---
 
-## Hors périmètre (rappel)
+## Connexions (`conn-*`) — non applicable
 
-Explicitement exclu de cet audit à la demande de Vincent : la catégorie `security-`/RLS. Pour mémoire, `mcp__Supabase__get_advisors(type="security")` remonte aussi (au-delà du `function_search_path_mutable` traité en #4 ci-dessus car directement lié aux triggers audités) : 39 tables avec RLS activé sans policy (deny-all documenté et voulu) et la protection "leaked password" désactivée côté Auth — ce dernier point n'a aucune portée puisque le module Auth n'est plus utilisé dans Kilio (`suppression_auth_2026_08_29`). Rien à traiter ici sauf changement de politique d'architecture de la part de Vincent.
+Vérifié dans le code : l'app (Server Actions) et les 3 Edge Functions (`envoyer-rappels-documents`, `envoyer-rappels-taches`, `nettoyage-auto`) utilisent exclusivement `@supabase/supabase-js`, qui parle REST/PostgREST en HTTPS — aucune connexion directe au protocole filaire Postgres (pas de `pg.Client`/`postgres()` trouvé). Les règles `conn-pooling`, `conn-limits`, `conn-idle-timeout` et `conn-prepared-statements` du skill concernent des connexions Postgres directes gérées côté infra (pooler Supavisor) : rien à auditer côté code applicatif Kilio.
