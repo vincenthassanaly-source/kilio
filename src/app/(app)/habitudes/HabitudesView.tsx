@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHabitudesDuJour } from "@/app/actions/habitudes";
 import { queryKeys } from "@/lib/query/keys";
@@ -77,9 +77,11 @@ export function HabitudesView({ today }: { today: string }) {
             <p className="text-ink-2">Aucune habitude pour l&apos;instant.</p>
           ) : (
             <ul className="flex flex-col gap-2.5">
-              {habitudes.map((habitude) => (
-                <HabitudeCard key={habitude.id} habitude={habitude} date={today} />
-              ))}
+              <AnimatePresence initial={false}>
+                {habitudes.map((habitude) => (
+                  <HabitudeCard key={habitude.id} habitude={habitude} date={today} />
+                ))}
+              </AnimatePresence>
             </ul>
           )}
         </div>

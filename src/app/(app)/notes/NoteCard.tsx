@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteNote, toggleEpingle, toggleNoteItem, type NoteAvecRelations } from "@/app/actions/notes";
 import { queryKeys } from "@/lib/query/keys";
@@ -44,6 +44,7 @@ function PinIcon({ filled }: { filled: boolean }) {
 
 export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables<"tags">[] }) {
   const [editing, setEditing] = useState(false);
+  const reduceMotion = useReducedMotion() ?? false;
   const queryClient = useQueryClient();
   useBackClose(editing, () => setEditing(false));
 
@@ -161,11 +162,11 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
   // tuile est la seule utilisation de `card` visée par ce chantier.
   return (
     <motion.li
-      layout
-      initial={{ opacity: 0, y: 10 }}
+      layout={!reduceMotion}
+      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.18 }}
+      exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
       className={`${card} mb-3 flex flex-col gap-2 break-inside-avoid transition active:scale-[0.97]`}
       style={noteBackgroundStyle(note.couleur)}
     >

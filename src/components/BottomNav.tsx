@@ -36,6 +36,11 @@ function pillTransition(reduceMotion: boolean) {
   return reduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 500, damping: 40 };
 }
 
+// `motion(Link)` plutôt qu'un `motion.span` interne : le feedback tactile
+// doit s'appliquer à toute la zone cliquable (icône + label), pas juste à
+// un enfant, pour un "press" naturel au doigt sur toute la cible.
+const MotionLink = motion(Link);
+
 // Fond de l'onglet actif : enfant supplémentaire du slot, positionné derrière
 // l'icône + le label (grâce à l'ordre de peinture des éléments flex, qui
 // place cet élément `position: absolute` sous les items flex statiques
@@ -80,11 +85,12 @@ function BottomNavSlot({
   const showDropRing = isDropTarget && isOver;
 
   return (
-    <Link
+    <MotionLink
       ref={setNodeRef}
       href={item.href}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
+      whileTap={reduceMotion ? undefined : { scale: 0.9 }}
       className="relative flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
       style={{
         outline: showDropRing ? "2px dashed var(--accent-kcal)" : undefined,
@@ -96,7 +102,7 @@ function BottomNavSlot({
       <span className="text-[10px]" style={{ color, fontWeight: active ? 700 : 500 }}>
         {item.label}
       </span>
-    </Link>
+    </MotionLink>
   );
 }
 
@@ -159,10 +165,11 @@ export function BottomNav() {
             onClick={(e) => handleClick(e, href)}
           />
         ))}
-        <Link
+        <MotionLink
           href="/plus"
           onClick={(e) => handleClick(e, "/plus")}
           aria-current={plusActive ? "page" : undefined}
+          whileTap={reduceMotion ? undefined : { scale: 0.9 }}
           className="relative flex flex-col items-center gap-0.5 rounded-[18px] px-3 py-[7px] transition-colors"
         >
           {plusActive && <ActivePill reduceMotion={reduceMotion} />}
@@ -173,7 +180,7 @@ export function BottomNav() {
           >
             Plus
           </span>
-        </Link>
+        </MotionLink>
       </nav>
     </div>
   );

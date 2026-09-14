@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enregistrerEntreeHabitude, supprimerHabitude, type HabitudeDuJour } from "@/app/actions/habitudes";
 import { queryKeys } from "@/lib/query/keys";
@@ -14,6 +15,7 @@ import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
 export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; date: string }) {
   const [editing, setEditing] = useState(false);
+  const reduceMotion = useReducedMotion() ?? false;
   const [isPending, startTransition] = useTransition();
   const [valeurInput, setValeurInput] = useState(
     habitude.entreeDuJour ? String(habitude.entreeDuJour.valeur) : ""
@@ -114,7 +116,14 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
   }
 
   return (
-    <li className={listCard}>
+    <motion.li
+      layout={!reduceMotion}
+      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
+      className={listCard}
+    >
       <div className="flex items-start gap-3">
         <ProgressRing size={34} strokeWidth={4} pct={pct} color="var(--accent-habitudes)">
           {habitude.type !== "quantifiee" && (
@@ -175,6 +184,6 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
           Supprimer
         </button>
       </div>
-    </li>
+    </motion.li>
   );
 }

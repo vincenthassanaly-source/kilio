@@ -499,11 +499,11 @@ export function TaskCard({
           key="view"
           ref={highlightRef}
           id={highlighted ? `tache-${tache.id}` : undefined}
-          layout
-          initial={{ opacity: 0, y: 8 }}
+          layout={!reduceMotion}
+          initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18 }}
+          exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
           className={`${listCard} ${highlighted ? "tache-surbrillance" : ""}`}
           style={accentStyle}
         >
@@ -530,11 +530,11 @@ export function TaskCard({
     <AnimatePresence mode="wait" propagate>
       <li key="view" ref={setNodeRef} style={dragStyle} className={isDragging ? "opacity-60" : undefined}>
         <motion.div
-          layout={!isDragging}
-          initial={{ opacity: 0, y: 8 }}
+          layout={!isDragging && !reduceMotion}
+          initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18 }}
+          exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
           className={listCard}
           style={accentStyle}
         >
