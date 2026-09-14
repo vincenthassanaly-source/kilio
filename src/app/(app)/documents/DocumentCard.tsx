@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "./DocumentForm";
 import { formatEcheance, niveauAlerte } from "./echeance";
@@ -78,10 +79,11 @@ export function DocumentCard({
             className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-line"
             aria-label="Agrandir l'aperçu"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
-            <img
+            <Image
               src={apercu.url}
               alt=""
+              width={56}
+              height={56}
               style={{ viewTransitionName: `document-cover-${document.id}` }}
               className="h-full w-full object-cover"
             />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import {
   createDocument,
   deleteDocumentFichier,
@@ -50,8 +51,13 @@ function FichierThumb({
   return (
     <div className="relative h-14 w-14 shrink-0">
       {estImage ? (
-        // eslint-disable-next-line @next/next/no-img-element -- vignette issue d'une URL blob locale ou du bucket Storage, pas d'un domaine unique configurable dans next/image
-        <img src={src} alt="" className="h-14 w-14 rounded-2xl border border-line object-cover" />
+        <Image
+          src={src}
+          alt=""
+          width={56}
+          height={56}
+          className="h-14 w-14 rounded-2xl border border-line object-cover"
+        />
       ) : (
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-surface-alt text-ink-2">
           <PdfIcon />

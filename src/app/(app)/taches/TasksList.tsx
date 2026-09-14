@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -224,8 +225,7 @@ function TacheImagesRow({ tache }: { tache: TacheAvecRelations }) {
             className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-line"
             aria-label="Agrandir l'image"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
-            <img src={image.url} alt="" className="h-full w-full object-cover" />
+            <Image src={image.url} alt="" width={56} height={56} className="h-full w-full object-cover" />
           </button>
         ))}
       </div>

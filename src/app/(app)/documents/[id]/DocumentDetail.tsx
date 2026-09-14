@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "../DocumentForm";
 import { formatEcheance, niveauAlerte } from "../echeance";
@@ -127,12 +128,13 @@ export function DocumentDetail({
                   className="relative aspect-square w-full overflow-hidden rounded-2xl bg-surface-alt"
                   aria-label="Agrandir l'image"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- image issue du bucket Storage public, pas d'un domaine unique configurable dans next/image */}
-                  <img
+                  <Image
                     src={fichier.url}
                     alt=""
+                    fill
+                    sizes="(max-width: 640px) 45vw, 300px"
                     style={index === 0 ? { viewTransitionName: `document-cover-${document.id}` } : undefined}
-                    className="h-full w-full object-cover"
+                    className="object-cover"
                   />
                 </button>
                 {caption && <span className="text-center text-xs text-ink-3">{caption}</span>}

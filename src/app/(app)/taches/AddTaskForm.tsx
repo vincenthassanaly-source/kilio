@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import {
   createTache,
   deleteTacheImage,
@@ -35,8 +36,13 @@ function ImageThumb({
 }) {
   return (
     <div className="relative h-14 w-14 shrink-0">
-      {/* eslint-disable-next-line @next/next/no-img-element -- vignettes issues d'URLs blob locales ou du bucket Storage, pas d'un domaine unique configurable dans next/image */}
-      <img src={src} alt="" className="h-14 w-14 rounded-2xl border border-line object-cover" />
+      <Image
+        src={src}
+        alt=""
+        width={56}
+        height={56}
+        className="h-14 w-14 rounded-2xl border border-line object-cover"
+      />
       <button
         type="button"
         disabled={disabled}
