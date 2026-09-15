@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T07:30:18Z",
+  "title": "Design System: Kilio",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Vert Olive Kcal", "canonical": "oklch(0.55 0.14 165)", "tonalRamp": ["oklch(0.18 0.05 165)", "oklch(0.28 0.08 165)", "oklch(0.38 0.11 165)", "oklch(0.48 0.13 165)", "oklch(0.55 0.14 165)", "oklch(0.65 0.13 165)", "oklch(0.78 0.10 165)", "oklch(0.92 0.05 165)"] },
+      "macro-protein": { "role": "secondary", "displayName": "Bleu Protéines", "canonical": "oklch(0.55 0.13 265)", "tonalRamp": ["oklch(0.18 0.05 265)", "oklch(0.28 0.08 265)", "oklch(0.38 0.10 265)", "oklch(0.48 0.12 265)", "oklch(0.55 0.13 265)", "oklch(0.65 0.12 265)", "oklch(0.78 0.09 265)", "oklch(0.92 0.04 265)"] },
+      "macro-carbs": { "role": "secondary", "displayName": "Jaune Glucides", "canonical": "oklch(0.58 0.14 85)", "tonalRamp": ["oklch(0.20 0.05 85)", "oklch(0.30 0.08 85)", "oklch(0.40 0.11 85)", "oklch(0.50 0.13 85)", "oklch(0.58 0.14 85)", "oklch(0.68 0.13 85)", "oklch(0.80 0.10 85)", "oklch(0.93 0.05 85)"] },
+      "macro-fat": { "role": "secondary", "displayName": "Magenta Lipides", "canonical": "oklch(0.56 0.15 340)", "tonalRamp": ["oklch(0.19 0.05 340)", "oklch(0.29 0.09 340)", "oklch(0.39 0.12 340)", "oklch(0.49 0.14 340)", "oklch(0.56 0.15 340)", "oklch(0.66 0.13 340)", "oklch(0.79 0.10 340)", "oklch(0.92 0.05 340)"] },
+      "alert": { "role": "tertiary", "displayName": "Rouge Alerte", "canonical": "oklch(0.55 0.19 25)", "tonalRamp": ["oklch(0.18 0.07 25)", "oklch(0.28 0.11 25)", "oklch(0.38 0.15 25)", "oklch(0.48 0.18 25)", "oklch(0.55 0.19 25)", "oklch(0.65 0.16 25)", "oklch(0.78 0.11 25)", "oklch(0.92 0.05 25)"] },
+      "background": { "role": "neutral", "displayName": "Fond Ivoire Chaud", "canonical": "oklch(0.97 0.012 95)" },
+      "surface": { "role": "neutral", "displayName": "Surface Carte", "canonical": "oklch(0.995 0.006 95)" },
+      "surface-alt": { "role": "neutral", "displayName": "Surface Alt", "canonical": "oklch(0.935 0.012 95)" },
+      "line": { "role": "neutral", "displayName": "Ligne Hairline", "canonical": "oklch(0.9 0.012 95)" },
+      "ink": { "role": "neutral", "displayName": "Encre", "canonical": "oklch(0.22 0.02 150)" },
+      "ink-2": { "role": "neutral", "displayName": "Encre Secondaire", "canonical": "oklch(0.5 0.018 150)" },
+      "ink-3": { "role": "neutral", "displayName": "Encre Tertiaire", "canonical": "oklch(0.64 0.014 150)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Sora)", "purpose": "Titres d'écran et chiffres-clés (kcal, valeurs dominantes)." },
+      "body": { "displayName": "Body (Inter)", "purpose": "Corps de texte, boutons, noms d'entités." },
+      "label": { "displayName": "Label (Inter Semibold)", "purpose": "Eyebrows, onglets, libellés de section." },
+      "mono": { "displayName": "Mono (système)", "purpose": "Valeurs numériques alignées (ex: 120 / 150 g)." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 10px 24px oklch(0.35 0.03 150 / 0.09)", "purpose": "Seule ombre du système — cartes et barre de nav flottante, mode clair." },
+      { "name": "card-dark", "value": "0 10px 26px rgba(0, 0, 0, 0.42)", "purpose": "Même rôle que card, mode sombre." }
+    ],
+    "motion": [
+      { "name": "nav-slide", "value": "200-220ms ease-out", "purpose": "Glissement directionnel de page (View Transitions) selon le sens de navigation." },
+      { "name": "tap-press", "value": "transform scale(0.97), transition: transform", "purpose": "Feedback tactile au tap sur boutons et lignes de liste uniques." },
+      { "name": "nav-pill-spring", "value": "spring stiffness 500 damping 40 (Framer Motion layoutId)", "purpose": "Glissement de la pastille de fond active dans la barre de navigation du bas." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Bouton d'action principale (ex: Enregistrer l'objectif).",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer l'objectif</button>",
+      "css": ".ds-btn-primary { background: oklch(0.55 0.14 165); color: #ffffff; font-weight: 600; padding: 10px 16px; border: none; border-radius: 16px; transition: transform 0.15s, opacity 0.15s; } .ds-btn-primary:hover { opacity: 0.92; } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.55 0.14 165); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Bouton d'action secondaire (ex: Fermer).",
+      "html": "<button class=\"ds-btn-secondary\">Fermer</button>",
+      "css": ".ds-btn-secondary { background: oklch(0.995 0.006 95); color: oklch(0.22 0.02 150); font-weight: 600; padding: 10px 16px; border: 1px solid oklch(0.9 0.012 95); border-radius: 16px; transition: transform 0.15s; } .ds-btn-secondary:active { transform: scale(0.97); } .ds-btn-secondary:focus-visible { outline: 2px solid oklch(0.55 0.14 165); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Champ de saisie numérique/texte (ex: Kcal cible).",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-kcal\">Kcal cible</label><input id=\"ds-kcal\" class=\"ds-input\" type=\"number\" value=\"2200\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; } .ds-label { font-size: 14px; font-weight: 500; color: oklch(0.22 0.02 150); } .ds-input { background: oklch(0.935 0.012 95); color: oklch(0.22 0.02 150); border: 1px solid oklch(0.9 0.012 95); border-radius: 16px; padding: 10px 14px; font-size: 15px; outline: none; transition: border-color 0.15s; } .ds-input:focus { border-color: oklch(0.55 0.14 165 / 0.6); } .ds-input:focus-visible { outline: 2px solid oklch(0.55 0.14 165); outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Conteneur de carte standard (formulaire, groupe).",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-title\">Résumé du jour</p><p class=\"ds-card-body\">1 840 / 2 200 kcal</p></div>",
+      "css": ".ds-card { background: oklch(0.995 0.006 95); border: 1px solid oklch(0.9 0.012 95); border-radius: 22px; padding: 16px; box-shadow: 0 10px 24px oklch(0.35 0.03 150 / 0.09); } .ds-card-title { font-size: 15px; font-weight: 700; color: oklch(0.22 0.02 150); margin-bottom: 4px; } .ds-card-body { font-family: Sora, ui-sans-serif, system-ui; font-size: 15px; font-weight: 600; color: oklch(0.22 0.02 150); }"
+    },
+    {
+      "name": "Kcal Pill Tag",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pastille compacte affichant une valeur calorique.",
+      "html": "<span class=\"ds-chip-kcal\">420 kcal</span>",
+      "css": ".ds-chip-kcal { display: inline-block; background: oklch(0.55 0.14 165 / 0.12); color: oklch(0.55 0.14 165); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; }"
+    },
+    {
+      "name": "Segmented Tab Control",
+      "kind": "nav",
+      "refersTo": "segmented-tab",
+      "description": "Contrôle segmenté (sous-nav de module, toggle repos/entraînement) — le motif de choix binaire/multiple du système.",
+      "html": "<div class=\"ds-segmented\"><a class=\"ds-segmented-tab ds-segmented-tab--active\">Journal</a><a class=\"ds-segmented-tab\">Recettes</a></div>",
+      "css": ".ds-segmented { display: flex; gap: 6px; background: oklch(0.935 0.012 95); border-radius: 16px; padding: 4px; } .ds-segmented-tab { flex: 1; text-align: center; padding: 8px 0; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: oklch(0.5 0.018 150); transition: background-color 0.15s, color 0.15s; } .ds-segmented-tab--active { background: oklch(0.55 0.14 165); color: #ffffff; }"
+    },
+    {
+      "name": "Circular Progress Ring",
+      "kind": "custom",
+      "refersTo": "progress-ring",
+      "description": "Anneau de progression calorique (signature) — piste neutre, tracé accent, chiffre display au centre.",
+      "html": "<div class=\"ds-ring-wrap\"><svg width=\"132\" height=\"132\" viewBox=\"0 0 132 132\"><circle cx=\"66\" cy=\"66\" r=\"56\" stroke=\"oklch(0.935 0.012 95)\" stroke-width=\"11\" fill=\"none\" /><circle cx=\"66\" cy=\"66\" r=\"56\" stroke=\"oklch(0.55 0.14 165)\" stroke-width=\"11\" fill=\"none\" stroke-linecap=\"round\" transform=\"rotate(-90 66 66)\" stroke-dasharray=\"351.86\" stroke-dashoffset=\"90\" /></svg><div class=\"ds-ring-label\"><span class=\"ds-ring-value\">1840</span><span class=\"ds-ring-target\">/ 2200 kcal</span></div></div>",
+      "css": ".ds-ring-wrap { position: relative; width: 132px; height: 132px; } .ds-ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; } .ds-ring-value { font-family: Sora, ui-sans-serif, system-ui; font-size: 24px; font-weight: 600; color: oklch(0.22 0.02 150); } .ds-ring-target { font-size: 11px; color: oklch(0.64 0.014 150); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Tableau de Bord Doux",
+    "overview": "Kilio est l'app personnelle de Vincent : un tableau de bord de vie quotidienne (nutrition, budget, agenda, courses, habitudes, tâches...) pensé pour être rouvert plusieurs fois par jour, sur téléphone, sans jamais fatiguer. L'interface ne cherche pas à impressionner : elle cherche à rester lisible, calme et instantanément familière, avec juste assez de mouvement et de douceur pour rendre le quotidien agréable. Tout est arrondi, tout est feutré — un fond ivoire chaud, une encre presque noire teintée de vert olive (écho direct du logo « K »), et une unique couleur d'accent franche qui sert de fil rouge dans toute l'app. La densité d'information reste modérée : une carte = une idée (un repas, une tâche, une transaction), jamais un tableau dense. Les micro-interactions (pastille active qui glisse dans la barre du bas, transitions de page directionnelles, suppression optimiste avec sortie animée) donnent à l'app une sensation d'app native, alors qu'elle est servie en PWA.",
+    "keyCharacteristics": [
+      "Palette OKLCH entièrement teintée : même les neutres portent une pointe de vert, rien n'est gris pur.",
+      "Une seule couleur d'accent brand porte toute l'interaction primaire ; les autres teintes sont strictement sémantiques ou identitaires par module.",
+      "Coins très arrondis partout, rayon croissant avec la taille du conteneur.",
+      "Plat au repos, une seule ombre douce et ambiante.",
+      "Deux polices seulement : Sora (display) et Inter (tout le reste)."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Le vert Kcal est la seule couleur autorisée pour un élément interactif primaire, quel que soit le module affiché.", "section": "colors" },
+      { "name": "The Semantic-Only Macro Rule", "body": "Bleu/Jaune/Magenta ne désignent jamais rien d'autre que Protéines/Glucides/Lipides.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Sora uniquement pour les titres et les chiffres qui doivent dominer visuellement, Inter pour tout le reste.", "section": "typography" },
+      { "name": "The Single Shadow Rule", "body": "Un seul token d'ombre existe (--shadow-card). L'élévation est binaire : posé sur le fond, ou détaché avec --shadow-card.", "section": "elevation" },
+      { "name": "The Escalating Round Rule", "body": "Le rayon d'un élément suit la taille de son conteneur (12px → 26px), jusqu'au plein cercle pour les éléments ponctuels.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do réserver --accent-kcal (vert) à l'interaction primaire et à l'identité générale de l'app.",
+      "Do garder les neutres teintés vert OKLCH plutôt que d'introduire du gris pur.",
+      "Do faire grandir le rayon avec la taille du conteneur.",
+      "Do utiliser focus-visible (jamais focus) pour l'anneau de focus clavier.",
+      "Do neutraliser toute animation via prefers-reduced-motion: reduce.",
+      "Do utiliser Sora exclusivement pour les titres d'écran et les chiffres-clés."
+    ],
+    "donts": [
+      "Don't introduire une deuxième couleur brand/interactive à côté du vert Kcal.",
+      "Don't ajouter une ombre plus dure ou un second niveau d'ombre.",
+      "Don't utiliser un coin vif ou un rayon uniforme sur tous les composants.",
+      "Don't ajouter active:scale à une carte conteneur de groupe englobant plusieurs éléments indépendants.",
+      "Don't utiliser une police tierce ou une graisse Sora sous 600."
+    ]
+  }
+}
