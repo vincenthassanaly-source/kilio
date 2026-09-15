@@ -5,6 +5,17 @@ import { updateReglagesNettoyage } from "@/app/actions/nettoyage";
 import { errorText, input } from "@/lib/ui";
 import type { Tables } from "@/lib/supabase/types";
 
+function NettoyageIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-kcal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 7h14" />
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+      <path d="M6.5 7l.8 11a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8l.8-11" />
+      <path d="M10 11v5M14 11v5" />
+    </svg>
+  );
+}
+
 function formatDerniereExecution(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -47,13 +58,22 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
 
   return (
     <div className="flex flex-col gap-2.5 border-t border-line py-3.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[14px] font-medium text-ink">Nettoyage automatique</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2.5 text-[14px] font-medium text-ink">
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: "color-mix(in oklch, var(--accent-kcal) 12%, transparent)" }}
+          >
+            <NettoyageIcon />
+          </span>
+          Nettoyage automatique
+        </span>
         <button
           type="button"
           onClick={toggle}
           aria-pressed={actif}
-          className="relative h-[26px] w-11 rounded-full transition-colors"
+          aria-label="Activer le nettoyage automatique"
+          className="relative h-[26px] w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2"
           style={{ background: actif ? "var(--accent-kcal)" : "var(--surface-alt)" }}
         >
           <span
@@ -63,7 +83,7 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
         </button>
       </div>
       {actif && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-[13px] text-ink-2">Supprimer les items faits après (jours)</span>
           <input
             type="number"
@@ -72,12 +92,14 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
             value={delaiJours}
             onChange={(e) => setDelaiJours(e.target.value)}
             onBlur={validerDelai}
-            className={`${input} w-16 py-1.5 text-center text-[13px]`}
+            className={`${input} w-16 shrink-0 py-1.5 text-center text-[13px]`}
           />
         </div>
       )}
       {reglages.derniere_execution && (
-        <p className="text-xs text-ink-3">Dernier nettoyage : {formatDerniereExecution(reglages.derniere_execution)}</p>
+        <p className="text-xs text-ink-3">
+          Dernier nettoyage : {formatDerniereExecution(reglages.derniere_execution)}
+        </p>
       )}
       {error && <p className={errorText}>{error}</p>}
     </div>

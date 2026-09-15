@@ -9,6 +9,15 @@ import {
 } from "@/lib/push/subscribe";
 import { errorText } from "@/lib/ui";
 
+function NotificationsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-kcal)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 10a6 6 0 0 1 12 0c0 3.4 1 5 1.8 6H4.2C5 15 6 13.4 6 10z" />
+      <path d="M9.5 19a2.5 2.5 0 0 0 5 0" />
+    </svg>
+  );
+}
+
 export function NotificationsRow() {
   // null tant que l'état de l'abonnement (async, dépend du service worker)
   // n'est pas connu, pour éviter d'afficher un toggle "off" trompeur le
@@ -76,14 +85,23 @@ export function NotificationsRow() {
 
   return (
     <div className="flex flex-col gap-1.5 border-t border-line py-3.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[14px] font-medium text-ink">Notifications</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2.5 text-[14px] font-medium text-ink">
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: "color-mix(in oklch, var(--accent-kcal) 12%, transparent)" }}
+          >
+            <NotificationsIcon />
+          </span>
+          Notifications
+        </span>
         <button
           type="button"
           onClick={toggle}
           disabled={pending || on === null}
           aria-pressed={on ?? false}
-          className="relative h-[26px] w-11 rounded-full transition-colors disabled:opacity-60"
+          aria-label="Activer les notifications"
+          className="relative h-[26px] w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2"
           style={{ background: on ? "var(--accent-kcal)" : "var(--surface-alt)" }}
         >
           <span
