@@ -76,7 +76,9 @@ export function TachesView() {
       if (rechercheNormalisee) {
         const titreMatch = normalizeSearch(tache.titre).includes(rechercheNormalisee);
         const notesMatch = tache.notes ? normalizeSearch(tache.notes).includes(rechercheNormalisee) : false;
-        if (!titreMatch && !notesMatch) return false;
+        const tagsMatch = tache.tags.some((tag) => normalizeSearch(tag.nom).includes(rechercheNormalisee));
+        const listeMatch = tache.liste ? normalizeSearch(tache.liste.nom).includes(rechercheNormalisee) : false;
+        if (!titreMatch && !notesMatch && !tagsMatch && !listeMatch) return false;
       }
       return true;
     });
