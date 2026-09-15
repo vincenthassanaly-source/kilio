@@ -53,6 +53,13 @@ function EntryRow({ entry, onDelete }: { entry: JournalEntryView; onDelete: (id:
               if (!confirmDelete(`Supprimer « ${entry.label} » du journal ?`)) return;
               onDelete(entry.id);
             }}
+            // Empêche un tap imprécis sur ce petit bouton d'être lu comme un
+            // swipe de changement de jour par JournalSwipeWrapper (le geste
+            // ne bulle jamais jusqu'à son onTouchStart, voir
+            // useSwipeHorizontal.ts) — sans toucher à la sémantique
+            // `data-swipe-ignore` (delta de scroll) utilisée ailleurs dans
+            // l'app pour les zones réellement scrollables.
+            onTouchStart={(e) => e.stopPropagation()}
             className={dangerButton}
           >
             Suppr.
@@ -77,10 +84,18 @@ export function JournalEntriesList({ entries }: { entries: JournalEntryView[] })
   function handleDelete(id: string) {
     startTransition(async () => {
       removeOptimistic(id);
+      const entry = entries.find((e) => e.id === id);
       try {
         await removeJournalEntry(id);
       } catch {
-        showToast("Impossible de supprimer ce repas.");
+        // Nomme l'élément et la marche à suivre (clarify.md : un échec doit
+        // dire quoi a échoué et comment récupérer) : la ligne réapparaît
+        // d'elle-même une fois `useOptimistic` retombé sur les props réelles
+        // (non rafraîchies puisque `revalidatePath` n'a pas été appelé côté
+        // serveur), donc retaper "Suppr." suffit à réessayer.
+        showToast(
+          entry ? `Impossible de supprimer « ${entry.label} ». Réessaie.` : "Impossible de supprimer ce repas. Réessaie."
+        );
       }
     });
   }

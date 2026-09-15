@@ -8,6 +8,7 @@
       "macro-protein": { "role": "secondary", "displayName": "Bleu Protéines", "canonical": "oklch(0.55 0.13 265)", "tonalRamp": ["oklch(0.18 0.05 265)", "oklch(0.28 0.08 265)", "oklch(0.38 0.10 265)", "oklch(0.48 0.12 265)", "oklch(0.55 0.13 265)", "oklch(0.65 0.12 265)", "oklch(0.78 0.09 265)", "oklch(0.92 0.04 265)"] },
       "macro-carbs": { "role": "secondary", "displayName": "Jaune Glucides", "canonical": "oklch(0.58 0.14 85)", "tonalRamp": ["oklch(0.20 0.05 85)", "oklch(0.30 0.08 85)", "oklch(0.40 0.11 85)", "oklch(0.50 0.13 85)", "oklch(0.58 0.14 85)", "oklch(0.68 0.13 85)", "oklch(0.80 0.10 85)", "oklch(0.93 0.05 85)"] },
       "macro-fat": { "role": "secondary", "displayName": "Magenta Lipides", "canonical": "oklch(0.56 0.15 340)", "tonalRamp": ["oklch(0.19 0.05 340)", "oklch(0.29 0.09 340)", "oklch(0.39 0.12 340)", "oklch(0.49 0.14 340)", "oklch(0.56 0.15 340)", "oklch(0.66 0.13 340)", "oklch(0.79 0.10 340)", "oklch(0.92 0.05 340)"] },
+      "warning": { "role": "tertiary", "displayName": "Ambre Avertissement", "canonical": "oklch(0.6 0.15 55)", "tonalRamp": ["oklch(0.2 0.05 55)", "oklch(0.3 0.09 55)", "oklch(0.4 0.12 55)", "oklch(0.5 0.14 55)", "oklch(0.6 0.15 55)", "oklch(0.7 0.14 55)", "oklch(0.82 0.10 55)", "oklch(0.93 0.05 55)"] },
       "alert": { "role": "tertiary", "displayName": "Rouge Alerte", "canonical": "oklch(0.55 0.19 25)", "tonalRamp": ["oklch(0.18 0.07 25)", "oklch(0.28 0.11 25)", "oklch(0.38 0.15 25)", "oklch(0.48 0.18 25)", "oklch(0.55 0.19 25)", "oklch(0.65 0.16 25)", "oklch(0.78 0.11 25)", "oklch(0.92 0.05 25)"] },
       "background": { "role": "neutral", "displayName": "Fond Ivoire Chaud", "canonical": "oklch(0.97 0.012 95)" },
       "surface": { "role": "neutral", "displayName": "Surface Carte", "canonical": "oklch(0.995 0.006 95)" },
@@ -107,7 +108,8 @@
       { "name": "The Semantic-Only Macro Rule", "body": "Bleu/Jaune/Magenta ne désignent jamais rien d'autre que Protéines/Glucides/Lipides.", "section": "colors" },
       { "name": "The Two-Voice Rule", "body": "Sora uniquement pour les titres et les chiffres qui doivent dominer visuellement, Inter pour tout le reste.", "section": "typography" },
       { "name": "The Single Shadow Rule", "body": "Un seul token d'ombre existe (--shadow-card). L'élévation est binaire : posé sur le fond, ou détaché avec --shadow-card.", "section": "elevation" },
-      { "name": "The Escalating Round Rule", "body": "Le rayon d'un élément suit la taille de son conteneur (12px → 26px), jusqu'au plein cercle pour les éléments ponctuels.", "section": "shapes" }
+      { "name": "The Escalating Round Rule", "body": "Le rayon d'un élément suit la taille de son conteneur (12px → 26px), jusqu'au plein cercle pour les éléments ponctuels.", "section": "shapes" },
+      { "name": "The Graduated Alert Rule", "body": "Un dépassement d'objectif nutritionnel n'est jamais binaire : léger (≤10%) passe par l'Ambre Avertissement, net (>10%) par le Rouge Alerte, partagé avec les actions destructives.", "section": "colors" }
     ],
     "dos": [
       "Do réserver --accent-kcal (vert) à l'interaction primaire et à l'identité générale de l'app.",

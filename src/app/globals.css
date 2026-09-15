@@ -15,6 +15,7 @@
   --accent-protein: oklch(0.55 0.13 265);
   --accent-carbs: oklch(0.58 0.14 85);
   --accent-fat: oklch(0.56 0.15 340);
+  --accent-warning: oklch(0.6 0.15 55);
   --accent-alert: oklch(0.55 0.19 25);
   --accent-agenda: oklch(0.55 0.14 230);
   --accent-planning-travail: oklch(0.38 0.09 150);
@@ -52,6 +53,7 @@
   --accent-protein: oklch(0.72 0.12 265);
   --accent-carbs: oklch(0.75 0.13 85);
   --accent-fat: oklch(0.72 0.14 340);
+  --accent-warning: oklch(0.75 0.14 55);
   --accent-alert: oklch(0.7 0.17 25);
   --accent-agenda: oklch(0.72 0.13 230);
   --accent-planning-travail: oklch(0.5 0.1 150);
@@ -90,6 +92,7 @@
   --color-protein: var(--accent-protein);
   --color-carbs: var(--accent-carbs);
   --color-fat: var(--accent-fat);
+  --color-warning: var(--accent-warning);
   --color-alert: var(--accent-alert);
   --color-agenda: var(--accent-agenda);
   --color-planning-travail: var(--accent-planning-travail);

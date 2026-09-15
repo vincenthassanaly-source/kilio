@@ -26,7 +26,15 @@ export function ObjectifForm({
   }
 
   return (
-    <form action={formAction} className={`${card} flex flex-col gap-3`}>
+    <form
+      action={formAction}
+      // Empêche un drag sur un champ/bouton du formulaire (ex. ajuster un
+      // input number) d'être lu comme un swipe de changement de jour par
+      // JournalSwipeWrapper — voir la même garde sur le bouton "Suppr." de
+      // JournalEntriesList.tsx.
+      onTouchStart={(e) => e.stopPropagation()}
+      className={`${card} flex flex-col gap-3`}
+    >
       <input type="hidden" name="jour_type" value={jourType} />
 
       <div className="grid grid-cols-2 gap-3">
@@ -38,7 +46,9 @@ export function ObjectifForm({
             id="kcal_cible"
             name="kcal_cible"
             type="number"
+            inputMode="numeric"
             min="0"
+            max="10000"
             step="1"
             required
             defaultValue={objectif?.kcal_cible ?? ""}
@@ -53,7 +63,9 @@ export function ObjectifForm({
             id="proteines_cible_g"
             name="proteines_cible_g"
             type="number"
+            inputMode="numeric"
             min="0"
+            max="1000"
             step="1"
             defaultValue={objectif?.proteines_cible_g ?? 0}
             className={input}
@@ -67,7 +79,9 @@ export function ObjectifForm({
             id="glucides_cible_g"
             name="glucides_cible_g"
             type="number"
+            inputMode="numeric"
             min="0"
+            max="1000"
             step="1"
             defaultValue={objectif?.glucides_cible_g ?? 0}
             className={input}
@@ -81,7 +95,9 @@ export function ObjectifForm({
             id="lipides_cible_g"
             name="lipides_cible_g"
             type="number"
+            inputMode="numeric"
             min="0"
+            max="1000"
             step="1"
             defaultValue={objectif?.lipides_cible_g ?? 0}
             className={input}

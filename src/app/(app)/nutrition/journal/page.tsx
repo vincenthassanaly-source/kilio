@@ -125,14 +125,14 @@ export default async function JournalPage({
             <Link
               href={`/nutrition/journal?date=${shiftDate(date, -1)}&jour=${jourType}`}
               aria-label="Jour précédent"
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-xl border border-line bg-surface text-base text-ink"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-base text-ink"
             >
               ‹
             </Link>
             <Link
               href={`/nutrition/journal?date=${shiftDate(date, 1)}&jour=${jourType}`}
               aria-label="Jour suivant"
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-xl border border-line bg-surface text-base text-ink"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-base text-ink"
             >
               ›
             </Link>
@@ -142,6 +142,7 @@ export default async function JournalPage({
         <div className="flex gap-1.5 rounded-2xl bg-surface-alt p-1">
           <Link
             href={`/nutrition/journal?date=${date}&jour=repos`}
+            aria-current={jourType === "repos" ? "page" : undefined}
             className={`flex-1 rounded-xl py-2 text-center text-[13.5px] font-semibold transition-colors ${
               jourType === "repos" ? "bg-kcal text-white" : "text-ink-2"
             }`}
@@ -150,6 +151,7 @@ export default async function JournalPage({
           </Link>
           <Link
             href={`/nutrition/journal?date=${date}&jour=entrainement`}
+            aria-current={jourType === "entrainement" ? "page" : undefined}
             className={`flex-1 rounded-xl py-2 text-center text-[13.5px] font-semibold transition-colors ${
               jourType === "entrainement" ? "bg-kcal text-white" : "text-ink-2"
             }`}

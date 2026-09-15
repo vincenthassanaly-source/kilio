@@ -28,6 +28,16 @@ export async function upsertObjectif(
   ) {
     return { error: "Les objectifs doivent être des nombres positifs." };
   }
+  // Bornes hautes permissives mais réelles : sans elles, un objectif kcal
+  // aberrant (ex. faute de frappe à un zéro près) fait toujours lire
+  // l'anneau de ResumeJour.tsx comme "dans les clous" (son pourcentage est
+  // clampé à 100 %), masquant un vrai dépassement plutôt que de le signaler.
+  if (kcal_cible > 10000) {
+    return { error: "L'objectif calorique doit rester sous 10 000 kcal." };
+  }
+  if ([proteines_cible_g, glucides_cible_g, lipides_cible_g].some((n) => n > 1000)) {
+    return { error: "Les objectifs de macros doivent rester sous 1000 g." };
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("objectifs_nutritionnels").upsert(
@@ -41,7 +51,14 @@ export async function upsertObjectif(
     { onConflict: "jour_type" }
   );
 
-  if (error) return { error: error.message };
+  if (error) {
+    // Ne jamais remonter le message brut du driver Postgres/Supabase en UI
+    // (clarify.md : pas de code interne comme message principal) — loggé
+    // côté serveur pour le diagnostic, mais l'utilisateur voit une phrase
+    // actionnable.
+    console.error("upsertObjectif: échec de l'upsert Supabase", error);
+    return { error: "Impossible d'enregistrer l'objectif. Réessaie dans un instant." };
+  }
 
   revalidatePath("/nutrition/journal");
   return { error: null };

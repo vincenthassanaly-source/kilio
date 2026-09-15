@@ -7,6 +7,7 @@ colors:
   macro-protein: "oklch(0.55 0.13 265)"
   macro-carbs: "oklch(0.58 0.14 85)"
   macro-fat: "oklch(0.56 0.15 340)"
+  warning: "oklch(0.6 0.15 55)"
   alert: "oklch(0.55 0.19 25)"
   background: "oklch(0.97 0.012 95)"
   surface: "oklch(0.995 0.006 95)"
@@ -121,7 +122,8 @@ Palette OKLCH entièrement teintée verte, construite autour d'un unique accent 
 - **Magenta Lipides** (`oklch(0.56 0.15 340)`) : barre de progression et libellé "Lipides" uniquement.
 
 ### Tertiary
-- **Rouge Alerte** (`oklch(0.55 0.19 25)`) : dépassement d'objectif (kcal ou macro dépassée), texte et bouton "Supprimer". Remplace la couleur de macro concernée dès que la cible est dépassée (voir `ResumeJour`).
+- **Ambre Avertissement** (`oklch(0.6 0.15 55)`) : dépassement léger d'un objectif nutritionnel (≤10% au-delà de la cible kcal ou macro) — ton informatif, jamais alarmant. N'est utilisé nulle part ailleurs que ce cas précis.
+- **Rouge Alerte** (`oklch(0.55 0.19 25)`) : dépassement net d'un objectif (>10% au-delà de la cible), texte et bouton "Supprimer" uniquement. Un dépassement léger passe par l'Ambre Avertissement ci-dessus, pas directement par le rouge — voir The Graduated Alert Rule.
 
 ### Neutral
 - **Fond Ivoire Chaud** (`oklch(0.97 0.012 95)`, teinte 95 = légèrement jaune) : fond de page.
@@ -140,6 +142,7 @@ Huit teintes pastel très claires (`--note-sauge`, `--note-peche`, `--note-lavan
 ### Named Rules
 **The One Accent Rule.** Le vert Kcal est la seule couleur autorisée pour un élément interactif primaire (bouton plein, lien, focus ring, onglet actif), quel que soit le module affiché.
 **The Semantic-Only Macro Rule.** Bleu/Jaune/Magenta ne désignent jamais rien d'autre que Protéines/Glucides/Lipides — jamais réutilisées comme couleurs décoratives ailleurs.
+**The Graduated Alert Rule.** Un dépassement d'objectif nutritionnel n'est jamais binaire : léger (≤10% au-delà de la cible) passe par l'Ambre Avertissement, net (>10%) par le Rouge Alerte. Le rouge — partagé avec les actions destructives — ne s'applique qu'aux dépassements qui le méritent vraiment, pour ne pas transformer un usage quotidien en cadrage anxiogène.
 
 ## Typography
 
