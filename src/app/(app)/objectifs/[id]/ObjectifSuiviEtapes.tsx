@@ -126,6 +126,9 @@ export function ObjectifSuiviEtapes({
                 onToggle={() => toggleMutation.mutate(etape)}
                 color="var(--accent-objectifs)"
                 label={etape.fait ? "Marquer non fait" : "Marquer fait"}
+                // `<ul className="gap-2">` (8px) : hitSlop réduit, voir
+                // reports/2026-09-16-fix-dashboard-audit-constats-1-2.md.
+                hitSlop={3}
               />
               <span className={`flex-1 text-[14.5px] text-ink ${etape.fait ? "text-ink-2 line-through" : ""}`}>
                 {etape.titre}

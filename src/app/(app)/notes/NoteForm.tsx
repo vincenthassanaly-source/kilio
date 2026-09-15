@@ -58,6 +58,9 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
             }
             label={item.coche ? "Décocher l'item" : "Cocher l'item"}
             size={20}
+            // `flex flex-col gap-1.5` (6px) entre lignes : hitSlop réduit, voir
+            // reports/2026-09-16-fix-dashboard-audit-constats-1-2.md.
+            hitSlop={2}
           />
           <input
             defaultValue={item.libelle}

@@ -5,12 +5,24 @@ import { motion, AnimatePresence } from "framer-motion";
 /** Bouton rond à coche, remplace les `<input type="checkbox">` natifs pour
  * matcher le style de la maquette (cercle plein coché, contour sinon).
  * Micro-feedback au check : léger "pop" du cercle + tracé du check qui se
- * dessine, ~180ms — assez court pour ne pas ralentir la perception du tap. */
+ * dessine, ~180ms — assez court pour ne pas ralentir la perception du tap.
+ *
+ * `hitSlop` étend la zone de tap invisible au-delà du cercle visuel (overlay
+ * `position: absolute` sur un bouton `position: relative`, donc sans
+ * agrandir la boîte du bouton dans le flux ni décaler le layout des listes
+ * existantes — voir reports/2026-09-16-fix-dashboard-audit-constats-1-2.md).
+ * Par défaut 11px (cercle 22px -> cible 44×44px), sûr partout où une seule
+ * coche existe par carte/ligne isolée (ex. TaskCard, CourseItemRow). Les
+ * listes qui empilent plusieurs coches dans une même carte avec un `gap`
+ * serré (Dashboard "Aujourd'hui", étapes d'objectif, items de note,
+ * sous-tâches) passent une valeur plus petite, calculée pour que deux zones
+ * de tap voisines ne se chevauchent jamais (2×hitSlop ≤ gap entre lignes). */
 export function CheckToggle({
   checked,
   onToggle,
   disabled,
   size = 22,
+  hitSlop = 11,
   color = "var(--accent-kcal)",
   label,
   className = "",
@@ -19,6 +31,7 @@ export function CheckToggle({
   onToggle: () => void;
   disabled?: boolean;
   size?: number;
+  hitSlop?: number;
   color?: string;
   label: string;
   className?: string;
@@ -30,8 +43,9 @@ export function CheckToggle({
       onClick={onToggle}
       aria-label={label}
       aria-pressed={checked}
-      className={`shrink-0 ${className}`}
+      className={`relative shrink-0 ${className}`}
     >
+      {hitSlop > 0 && <span aria-hidden="true" className="absolute" style={{ inset: -hitSlop }} />}
       <motion.span
         className="flex items-center justify-center rounded-full border-2"
         style={{

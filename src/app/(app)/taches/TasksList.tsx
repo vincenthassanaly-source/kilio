@@ -136,6 +136,9 @@ function SousTachesList({ tache }: { tache: TacheAvecRelations }) {
                 }
                 size={17}
                 label={sousTache.fait ? "Marquer non fait" : "Marquer fait"}
+                // `<ul className="gap-1">` (4px, la plus dense des listes à coches) :
+                // hitSlop minimal, voir reports/2026-09-16-fix-dashboard-audit-constats-1-2.md.
+                hitSlop={1}
               />
               <span
                 className={`flex-1 text-[13.5px] ${

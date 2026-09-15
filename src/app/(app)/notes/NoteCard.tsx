@@ -199,6 +199,9 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
                 onToggle={() => itemMutation.mutate({ itemId: item.id, coche: !item.coche })}
                 label={item.coche ? "Décocher l'item" : "Cocher l'item"}
                 size={18}
+                // `flex flex-col gap-1.5` (6px) entre lignes : hitSlop réduit, voir
+                // reports/2026-09-16-fix-dashboard-audit-constats-1-2.md.
+                hitSlop={2}
               />
               <span className={`text-sm ${item.coche ? "text-ink-3 line-through" : "text-ink-2"}`}>
                 {item.libelle}

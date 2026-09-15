@@ -57,6 +57,10 @@ export function DashboardTaskItem({
         disabled={toggleMutation.isPending}
         onToggle={() => toggleMutation.mutate()}
         label={fait ? "Marquer non fait" : "Marquer fait"}
+        // Lignes empilées avec `gap-2.5` (10px, DashboardTachesSection) : hitSlop
+        // réduit pour que deux zones de tap voisines ne se chevauchent pas (voir
+        // reports/2026-09-16-fix-dashboard-audit-constats-1-2.md).
+        hitSlop={4}
       />
       <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
         <span

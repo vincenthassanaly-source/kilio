@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { getTachesAvecRelations } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
-import { card } from "@/lib/ui";
+import { card, kcalPillTag } from "@/lib/ui";
 import { CardSkeleton } from "@/components/skeletons/CardSkeleton";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 import { Skeleton } from "@/components/skeletons/Skeleton";
@@ -25,7 +25,12 @@ export function DashboardTachesSection({ today }: { today: string }) {
   // Les tâches faites ne sont plus listées ici (cf.
   // reports/2026-09-06-dashboard-taches-disparition.md) : le compteur
   // ci-dessous reste dérivé de tachesDuJour au complet, pas de cette liste.
-  const tachesAffichees = tachesDuJour.filter((t) => !t.fait).slice(0, 4);
+  const tachesNonFaites = tachesDuJour.filter((t) => !t.fait);
+  const tachesAffichees = tachesNonFaites.slice(0, 4);
+  // Tâches non faites au-delà des 4 affichées : signalées par le badge "+N"
+  // de l'en-tête (voir reports/2026-09-16-fix-dashboard-audit-constats-1-2.md,
+  // constat #2 de l'audit initial).
+  const tachesMasquees = tachesNonFaites.length - tachesAffichees.length;
 
   const now = new Date();
   const nowHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -36,21 +41,29 @@ export function DashboardTachesSection({ today }: { today: string }) {
   return (
     <>
       <div className={`${card} flex flex-col gap-3`}>
-        <div className="flex items-center justify-between">
-          <span
-            className="text-[14px] font-semibold text-ink"
-            style={{ viewTransitionName: "taches-titre-dashboard" }}
-          >
-            Aujourd&apos;hui
-          </span>
-          {isLoading ? (
-            <Skeleton className="h-3 w-14" />
-          ) : (
-            <span className="text-xs font-semibold text-ink-3">
-              {tachesDoneCount}/{tachesDuJour.length} tâches
+        {/* Seule la zone d'en-tête est cliquable vers /taches : la liste juste en
+            dessous contient déjà un <button> (CheckToggle) par tâche, imbriquer
+            toute la carte dans un <Link> casserait ce tap (bouton dans <a>). */}
+        <motion.div whileTap={{ scale: 0.98 }}>
+          <Link href="/taches" className="flex items-center justify-between">
+            <span
+              className="text-[14px] font-semibold text-ink"
+              style={{ viewTransitionName: "taches-titre-dashboard" }}
+            >
+              Aujourd&apos;hui
             </span>
-          )}
-        </div>
+            {isLoading ? (
+              <Skeleton className="h-3 w-14" />
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-ink-3">
+                  {tachesDoneCount}/{tachesDuJour.length} tâches
+                </span>
+                {tachesMasquees > 0 && <span className={kcalPillTag}>+{tachesMasquees}</span>}
+              </span>
+            )}
+          </Link>
+        </motion.div>
         {isLoading ? (
           <ListItemSkeletonGroup count={3} />
         ) : tachesAffichees.length === 0 ? (
