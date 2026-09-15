@@ -37,7 +37,12 @@ export function DashboardNutritionSection({ today }: { today: string }) {
           <span className="font-display text-[12.5px] font-bold text-ink">{Math.round(kcalPct * 100)}%</span>
         </ProgressRing>
         <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-          <span className="text-[14px] font-semibold text-ink">Nutrition</span>
+          <span
+            className="text-[14px] font-semibold text-ink"
+            style={{ viewTransitionName: "nutrition-titre-dashboard" }}
+          >
+            Nutrition
+          </span>
           <span className="text-[12.5px] font-medium text-ink-2">
             {Math.round(resume?.consomme.kcal ?? 0)} / {kcalGoal} kcal
           </span>

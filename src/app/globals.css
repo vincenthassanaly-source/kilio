@@ -278,6 +278,34 @@ html[data-nav-direction="recule"]::view-transition-new(root) {
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Cross-fade skeleton -> contenu réel des <Suspense> du dashboard (voir
+   DashboardView.tsx, composant <ViewTransition> de React). Fondu simple,
+   sans slide : la sortie est plus rapide que l'entrée (même asymétrie que
+   kilio-fondu-sortie/entree ci-dessus) pour que le skeleton s'efface avant
+   que le contenu réel ne s'installe. */
+::view-transition-old(.dashboard-reveal-exit) {
+  animation: kilio-dashboard-fondu-sortie 150ms ease-out both;
+}
+::view-transition-new(.dashboard-reveal-enter) {
+  animation: kilio-dashboard-fondu-entree 210ms ease-in 150ms both;
+}
+@keyframes kilio-dashboard-fondu-sortie {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes kilio-dashboard-fondu-entree {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Tremblement façon iOS des tuiles de la grille "Plus" en mode édition (voir
    ModulesGrid.tsx) : deux variantes de rotation légèrement différentes,
    alternées par tuile (nth-child pair/impair) pour éviter que toute la
@@ -365,6 +393,12 @@ html[data-nav-direction="recule"]::view-transition-new(root) {
   }
 
   ::view-transition-group(*) {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+
+  ::view-transition-old(.dashboard-reveal-exit),
+  ::view-transition-new(.dashboard-reveal-enter) {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
   }

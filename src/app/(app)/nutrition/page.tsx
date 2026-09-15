@@ -32,7 +32,9 @@ export default function NutritionHubPage() {
     <div className="flex flex-col gap-4">
       <div>
         <p className={eyebrow}>Nutrition</p>
-        <h1 className={screenTitle}>Nutrition</h1>
+        <h1 className={screenTitle} style={{ viewTransitionName: "nutrition-titre-dashboard" }}>
+          Nutrition
+        </h1>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {SECTIONS.map((section) => (

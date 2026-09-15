@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, ViewTransition } from "react";
 import { card } from "@/lib/ui";
 import { CardSkeleton } from "@/components/skeletons/CardSkeleton";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
@@ -43,19 +43,51 @@ function HabitudesSkeleton() {
 // wrappé dans son propre <Suspense> : elle apparaît dès que SA requête est
 // prête, sans attendre les autres. Voir
 // reports/2026-09-04-dashboard-streaming-par-section.md.
+// Cross-fade skeleton -> contenu réel à la résolution de chaque <Suspense>
+// ci-dessous (pattern "Suspense Fallback to Content" du composant
+// <ViewTransition> de React, cf. node_modules/next/dist/docs/01-app/02-guides/
+// view-transitions.md) : `default="none"` sur les deux moitiés pour ne
+// jamais rejouer ce fondu sur une transition sans rapport (ex. le slide
+// racine de useViewTransitionNavigate lors d'une navigation vers /). Les
+// classes `dashboard-reveal-exit`/`dashboard-reveal-enter` sont définies
+// dans globals.css.
 export function DashboardView({ today }: { today: string }) {
   return (
     <>
-      <Suspense fallback={<CardSkeleton />}>
-        <DashboardNutritionCard today={today} />
+      <Suspense
+        fallback={
+          <ViewTransition exit="dashboard-reveal-exit" default="none">
+            <CardSkeleton />
+          </ViewTransition>
+        }
+      >
+        <ViewTransition enter="dashboard-reveal-enter" default="none">
+          <DashboardNutritionCard today={today} />
+        </ViewTransition>
       </Suspense>
 
-      <Suspense fallback={<TachesCardsSkeleton />}>
-        <DashboardTachesCard today={today} />
+      <Suspense
+        fallback={
+          <ViewTransition exit="dashboard-reveal-exit" default="none">
+            <TachesCardsSkeleton />
+          </ViewTransition>
+        }
+      >
+        <ViewTransition enter="dashboard-reveal-enter" default="none">
+          <DashboardTachesCard today={today} />
+        </ViewTransition>
       </Suspense>
 
-      <Suspense fallback={<HabitudesSkeleton />}>
-        <DashboardHabitudesCard today={today} />
+      <Suspense
+        fallback={
+          <ViewTransition exit="dashboard-reveal-exit" default="none">
+            <HabitudesSkeleton />
+          </ViewTransition>
+        }
+      >
+        <ViewTransition enter="dashboard-reveal-enter" default="none">
+          <DashboardHabitudesCard today={today} />
+        </ViewTransition>
       </Suspense>
 
       <QuickAddFab />

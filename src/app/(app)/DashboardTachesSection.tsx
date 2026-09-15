@@ -37,7 +37,12 @@ export function DashboardTachesSection({ today }: { today: string }) {
     <>
       <div className={`${card} flex flex-col gap-3`}>
         <div className="flex items-center justify-between">
-          <span className="text-[14px] font-semibold text-ink">Aujourd&apos;hui</span>
+          <span
+            className="text-[14px] font-semibold text-ink"
+            style={{ viewTransitionName: "taches-titre-dashboard" }}
+          >
+            Aujourd&apos;hui
+          </span>
           {isLoading ? (
             <Skeleton className="h-3 w-14" />
           ) : (

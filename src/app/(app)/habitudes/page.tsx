@@ -7,7 +7,9 @@ export default function HabitudesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className={screenTitle}>Habitudes</h1>
+      <h1 className={screenTitle} style={{ viewTransitionName: "habitudes-titre-dashboard" }}>
+        Habitudes
+      </h1>
       <HabitudesView today={today} />
     </div>
   );

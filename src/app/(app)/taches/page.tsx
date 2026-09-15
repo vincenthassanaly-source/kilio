@@ -8,7 +8,9 @@ import { screenTitle } from "@/lib/ui";
 export default function TachesPage() {
   return (
     <div className="flex flex-col gap-4">
-      <h1 className={screenTitle}>Tâches</h1>
+      <h1 className={screenTitle} style={{ viewTransitionName: "taches-titre-dashboard" }}>
+        Tâches
+      </h1>
       <TachesView />
     </div>
   );
