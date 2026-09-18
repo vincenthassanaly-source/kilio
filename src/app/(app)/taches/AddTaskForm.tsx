@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import {
   createTache,
@@ -10,8 +10,9 @@ import {
   type TacheFormState,
 } from "@/app/actions/taches";
 import type { Enums, Tables } from "@/lib/supabase/types";
-import { FREQUENCE_LABELS } from "@/lib/budget/compute";
-import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { FREQUENCE_LABELS, aujourdhuiISO } from "@/lib/budget/compute";
+import { champsAvancesRenseignes } from "@/lib/taches/compute";
+import { errorText, input, label as labelClass, primaryButton, secondaryButton } from "@/lib/ui";
 
 function ImageIcon() {
   return (
@@ -19,6 +20,14 @@ function ImageIcon() {
       <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
       <circle cx="8.5" cy="9.5" r="1.6" />
       <path d="M3.8 16.5l5-5a1.8 1.8 0 0 1 2.5 0l3.4 3.4M14.5 12.7l1.4-1.4a1.8 1.8 0 0 1 2.5 0l2.4 2.4" />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 9l6 6 6-6" />
     </svg>
   );
 }
@@ -89,7 +98,9 @@ export function AddTaskForm({
   defaultListeId?: string;
   defaultEcheance?: string;
   defaultHeure?: string;
-  onDone?: () => void;
+  // `id` : id de la tâche créée (création réussie uniquement, cf.
+  // TacheFormState). Les appelants qui n'en ont pas besoin l'ignorent.
+  onDone?: (id?: string) => void;
 }) {
   const action = tache ? updateTache : createTache;
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -97,6 +108,20 @@ export function AddTaskForm({
 
   const [titre, setTitre] = useState(tache?.titre ?? "");
   const titreRef = useRef<HTMLTextAreaElement>(null);
+  const echeanceRef = useRef<HTMLInputElement>(null);
+  // Suivent l'état d'envoi hors rendu, pour que l'envoi par la touche Entrée
+  // (handlers natifs) ne dépende jamais d'une valeur périmée et ne déclenche
+  // jamais une seconde soumission pendant qu'une action est en cours.
+  const pendingRef = useRef(pending);
+  const submitLockRef = useRef(false);
+  const shiftRef = useRef(false);
+
+  // Replié par défaut en création. Déplié d'office quand des champs avancés
+  // sont déjà renseignés : en édition, ou en création avec une heure
+  // pré-remplie (créneau choisi dans l'Agenda) qu'on ne doit pas cacher.
+  const [optionsOuvertes, setOptionsOuvertes] = useState(() =>
+    tache ? champsAvancesRenseignes(tache) : Boolean(defaultHeure)
+  );
 
   const [priorite, setPriorite] = useState<Enums<"priorite_tache">>(tache?.priorite ?? "aucune");
   const [programmeJour, setProgrammeJour] = useState(tache?.programme_jour ?? false);
@@ -118,10 +143,12 @@ export function AddTaskForm({
 
   useEffect(() => {
     if (prevPending.current && !pending && !state.error) {
-      onDone?.();
+      onDone?.(state.id);
     }
     prevPending.current = pending;
-  }, [pending, state.error, onDone]);
+    pendingRef.current = pending;
+    if (!pending) submitLockRef.current = false;
+  }, [pending, state.error, state.id, onDone]);
 
   useEffect(() => {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
@@ -140,8 +167,59 @@ export function AddTaskForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit s'exécuter qu'au montage
   }, []);
 
+  // Entrée dans le titre = enregistrer (Maj+Entrée = saut de ligne). Le titre
+  // reste un <textarea> pour afficher les titres longs, mais on n'y saisit
+  // presque jamais de retour à la ligne : sur clavier mobile, valider doit
+  // être un seul geste, sans fermer le clavier pour viser « Créer ».
+  const envoyerDepuisTitre = useCallback(() => {
+    const form = titreRef.current?.form;
+    if (!form || pendingRef.current || submitLockRef.current) return;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    submitLockRef.current = true;
+    form.requestSubmit();
+  }, []);
+
+  function handleTitreKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    shiftRef.current = e.shiftKey;
+    if (e.key !== "Enter" || e.shiftKey) return;
+    // Saisie en cours de composition (IME, suggestions du clavier) : la
+    // touche Entrée valide le mot, elle n'envoie pas le formulaire.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    envoyerDepuisTitre();
+  }
+
+  function handleTitreKeyUp(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    shiftRef.current = e.shiftKey;
+  }
+
+  // Filet de sécurité pour les claviers mobiles dont le keydown de la touche
+  // Entrée n'arrive pas sous la forme { key: "Enter" } : le navigateur émet
+  // alors quand même un beforeinput « insertLineBreak ». Si keydown a déjà
+  // traité Entrée (preventDefault), cet évènement n'est jamais émis.
+  useEffect(() => {
+    const textarea = titreRef.current;
+    if (!textarea) return;
+    function handleBeforeInput(event: InputEvent) {
+      if (event.inputType !== "insertLineBreak" || event.isComposing || shiftRef.current) return;
+      event.preventDefault();
+      envoyerDepuisTitre();
+    }
+    textarea.addEventListener("beforeinput", handleBeforeInput);
+    return () => textarea.removeEventListener("beforeinput", handleBeforeInput);
+  }, [envoyerDepuisTitre]);
+
   function toggleTag(id: string) {
     setTagIds((ids) => (ids.includes(id) ? ids.filter((t) => t !== id) : [...ids, id]));
+  }
+
+  // Le champ date reste non contrôlé (defaultValue) : on écrit directement
+  // dans le DOM, la valeur est lue par FormData à l'envoi comme avant.
+  function definirEcheanceAujourdhui() {
+    if (echeanceRef.current) echeanceRef.current.value = aujourdhuiISO();
   }
 
   function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -202,6 +280,9 @@ export function AddTaskForm({
           ref={titreRef}
           value={titre}
           onChange={(e) => setTitre(e.target.value)}
+          onKeyDown={handleTitreKeyDown}
+          onKeyUp={handleTitreKeyUp}
+          enterKeyHint="done"
           className={`${input} resize-none overflow-y-auto max-h-40`}
         />
       </div>
@@ -225,271 +306,305 @@ export function AddTaskForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className={labelClass}>Priorité</span>
-        <div className="flex rounded-xl border border-line p-1">
-          {PRIORITES.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => setPriorite(p.value)}
-              className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
-                priorite === p.value ? p.activeClassName : "text-ink-2"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
         <label htmlFor="echeance" className={labelClass}>
           Échéance (optionnel)
         </label>
-        <input
-          id="echeance"
-          name="echeance"
-          type="date"
-          defaultValue={tache?.echeance ?? defaultEcheance ?? ""}
-          className={input}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            id="echeance"
+            name="echeance"
+            type="date"
+            ref={echeanceRef}
+            defaultValue={tache?.echeance ?? defaultEcheance ?? ""}
+            className={`${input} min-w-0 flex-1`}
+          />
+          <button
+            type="button"
+            onClick={definirEcheanceAujourdhui}
+            aria-label="Définir l'échéance à aujourd'hui"
+            className={`${secondaryButton} min-h-11 shrink-0 text-sm`}
+          >
+            Aujourd&apos;hui
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label className="flex items-center gap-2 text-sm font-medium text-ink">
-          <input
-            type="checkbox"
-            name="programme_jour"
-            checked={programmeJour}
-            onChange={(e) => setProgrammeJour(e.target.checked)}
-            className="h-4 w-4 rounded border-line"
-          />
-          Tâche du jour
-        </label>
-        <p className="text-xs text-ink-2">
-          Sera supprimée automatiquement si non cochée à la fin de la journée.
-        </p>
-      </div>
+      {/* Tous les champs ci-dessous restent dans le DOM même repliés (un
+          <details> fermé ne démonte rien) : ils sont donc toujours soumis
+          avec le formulaire. Ne jamais les rendre conditionnellement sur
+          l'état d'ouverture — updateTache effacerait les tags de la tâche
+          (tag_ids / nouveaux_tags absents du FormData). */}
+      <details
+        className="group border-t border-line"
+        open={optionsOuvertes}
+        onToggle={(e) => setOptionsOuvertes(e.currentTarget.open)}
+      >
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl py-1 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          <span className="flex flex-col">
+            <span className="text-sm font-medium">Plus d&apos;options</span>
+            <span className="text-xs text-ink-2">Heure, rappel, notes, images…</span>
+          </span>
+          <span className="shrink-0 text-ink-2 transition-transform group-open:rotate-180 motion-reduce:transition-none">
+            <ChevronIcon />
+          </span>
+        </summary>
 
-      <label className="flex items-center gap-2 text-sm font-medium text-ink">
-        <input
-          type="checkbox"
-          name="toute_la_journee"
-          checked={touteLaJournee}
-          onChange={(e) => {
-            const checked = e.target.checked;
-            // Les valeurs 5/15/30/60 n'existent pas dans le select "toute la
-            // journée" (seul "" ou "1440" y a un sens) : on les efface pour
-            // ne pas les soumettre silencieusement si elles restent d'une
-            // saisie précédente avec heure.
-            if (checked && rappelMinutes !== "" && rappelMinutes !== "1440") setRappelMinutes("");
-            setTouteLaJournee(checked);
-          }}
-          className="h-4 w-4 rounded border-line"
-        />
-        Toute la journée
-      </label>
+        <div className="flex flex-col gap-3 pt-3">
+          {!touteLaJournee && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="heure" className={labelClass}>
+                Heure (optionnel)
+              </label>
+              <input
+                id="heure"
+                name="heure"
+                type="time"
+                value={heure}
+                onChange={(e) => {
+                  const nextHeure = e.target.value;
+                  if (!heure && nextHeure && rappelMinutes === "") setRappelMinutes("5");
+                  setHeure(nextHeure);
+                }}
+                className={input}
+              />
+            </div>
+          )}
 
-      {!touteLaJournee && (
-        <div className="flex flex-col gap-1">
-          <label htmlFor="heure" className={labelClass}>
-            Heure (optionnel)
-          </label>
-          <input
-            id="heure"
-            name="heure"
-            type="time"
-            value={heure}
-            onChange={(e) => {
-              const nextHeure = e.target.value;
-              if (!heure && nextHeure && rappelMinutes === "") setRappelMinutes("5");
-              setHeure(nextHeure);
-            }}
-            className={input}
-          />
-        </div>
-      )}
+          {!touteLaJournee && heure && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="heure_fin" className={labelClass}>
+                Heure de fin (optionnel)
+              </label>
+              <input
+                id="heure_fin"
+                name="heure_fin"
+                type="time"
+                value={heureFin}
+                onChange={(e) => setHeureFin(e.target.value)}
+                className={input}
+              />
+            </div>
+          )}
 
-      {!touteLaJournee && heure && (
-        <div className="flex flex-col gap-1">
-          <label htmlFor="heure_fin" className={labelClass}>
-            Heure de fin (optionnel)
-          </label>
-          <input
-            id="heure_fin"
-            name="heure_fin"
-            type="time"
-            value={heureFin}
-            onChange={(e) => setHeureFin(e.target.value)}
-            className={input}
-          />
-        </div>
-      )}
+          {!touteLaJournee && heure && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="rappel_minutes" className={labelClass}>
+                Rappel
+              </label>
+              <select
+                id="rappel_minutes"
+                name="rappel_minutes"
+                value={rappelMinutes}
+                onChange={(e) => setRappelMinutes(e.target.value)}
+                className={input}
+              >
+                <option value="">Aucun</option>
+                <option value="5">5 min avant</option>
+                <option value="15">15 min avant</option>
+                <option value="30">30 min avant</option>
+                <option value="60">1h avant</option>
+                <option value="1440">1 jour avant (la veille)</option>
+              </select>
+            </div>
+          )}
 
-      {!touteLaJournee && heure && (
-        <div className="flex flex-col gap-1">
-          <label htmlFor="rappel_minutes" className={labelClass}>
-            Rappel
-          </label>
-          <select
-            id="rappel_minutes"
-            name="rappel_minutes"
-            value={rappelMinutes}
-            onChange={(e) => setRappelMinutes(e.target.value)}
-            className={input}
-          >
-            <option value="">Aucun</option>
-            <option value="5">5 min avant</option>
-            <option value="15">15 min avant</option>
-            <option value="30">30 min avant</option>
-            <option value="60">1h avant</option>
-            <option value="1440">1 jour avant (la veille)</option>
-          </select>
-        </div>
-      )}
+          {touteLaJournee && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="rappel_minutes" className={labelClass}>
+                Rappel
+              </label>
+              <select
+                id="rappel_minutes"
+                name="rappel_minutes"
+                value={rappelMinutes}
+                onChange={(e) => setRappelMinutes(e.target.value)}
+                className={input}
+              >
+                <option value="">Aucun</option>
+                <option value="1440">La veille à 18h</option>
+              </select>
+            </div>
+          )}
 
-      {touteLaJournee && (
-        <div className="flex flex-col gap-1">
-          <label htmlFor="rappel_minutes" className={labelClass}>
-            Rappel
-          </label>
-          <select
-            id="rappel_minutes"
-            name="rappel_minutes"
-            value={rappelMinutes}
-            onChange={(e) => setRappelMinutes(e.target.value)}
-            className={input}
-          >
-            <option value="">Aucun</option>
-            <option value="1440">La veille à 18h</option>
-          </select>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="notes" className={labelClass}>
-          Notes (optionnel)
-        </label>
-        <textarea
-          id="notes"
-          name="notes"
-          rows={3}
-          defaultValue={tache?.notes ?? ""}
-          className={input}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <span className={labelClass}>Images (optionnel)</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <label
-            htmlFor="tache-images"
-            className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl border-[1.5px] border-dashed border-line text-ink-2 transition-colors hover:bg-surface-alt"
-            aria-label="Ajouter des images"
-          >
-            <ImageIcon />
-          </label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            id="tache-images"
-            name="images"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFilesChange}
-          />
-
-          {existingImages.map((image) => (
-            <ImageThumb
-              key={image.id}
-              src={image.url}
-              onRemove={() => removeExistingImage(image.id)}
-              removeLabel="Supprimer cette image"
-              disabled={isDeletingImage}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="notes" className={labelClass}>
+              Notes (optionnel)
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              defaultValue={tache?.notes ?? ""}
+              className={input}
             />
-          ))}
+          </div>
 
-          {selectedFiles.map(
-            (file, index) =>
-              previews[index] && (
+          <div className="flex flex-col gap-1">
+            <label className="flex items-center gap-2 text-sm font-medium text-ink">
+              <input
+                type="checkbox"
+                name="programme_jour"
+                checked={programmeJour}
+                onChange={(e) => setProgrammeJour(e.target.checked)}
+                className="h-4 w-4 rounded border-line"
+              />
+              Tâche du jour
+            </label>
+            <p className="text-xs text-ink-2">
+              Sera supprimée automatiquement si non cochée à la fin de la journée.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className={labelClass}>Images (optionnel)</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <label
+                htmlFor="tache-images"
+                className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl border-[1.5px] border-dashed border-line text-ink-2 transition-colors hover:bg-surface-alt"
+                aria-label="Ajouter des images"
+              >
+                <ImageIcon />
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="tache-images"
+                name="images"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleFilesChange}
+              />
+
+              {existingImages.map((image) => (
                 <ImageThumb
-                  key={`${file.name}-${index}`}
-                  src={previews[index]}
-                  onRemove={() => removeSelectedFile(index)}
-                  removeLabel="Retirer cette image de la sélection"
+                  key={image.id}
+                  src={image.url}
+                  onRemove={() => removeExistingImage(image.id)}
+                  removeLabel="Supprimer cette image"
+                  disabled={isDeletingImage}
                 />
-              )
+              ))}
+
+              {selectedFiles.map(
+                (file, index) =>
+                  previews[index] && (
+                    <ImageThumb
+                      key={`${file.name}-${index}`}
+                      src={previews[index]}
+                      onRemove={() => removeSelectedFile(index)}
+                      removeLabel="Retirer cette image de la sélection"
+                    />
+                  )
+              )}
+            </div>
+            {imagesError && (
+              <p className={errorText} role="alert">
+                {imagesError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className={labelClass}>Priorité</span>
+            <div className="flex rounded-xl border border-line p-1">
+              {PRIORITES.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPriorite(p.value)}
+                  className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
+                    priorite === p.value ? p.activeClassName : "text-ink-2"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              name="toute_la_journee"
+              checked={touteLaJournee}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                // Les valeurs 5/15/30/60 n'existent pas dans le select "toute la
+                // journée" (seul "" ou "1440" y a un sens) : on les efface pour
+                // ne pas les soumettre silencieusement si elles restent d'une
+                // saisie précédente avec heure.
+                if (checked && rappelMinutes !== "" && rappelMinutes !== "1440") setRappelMinutes("");
+                setTouteLaJournee(checked);
+              }}
+              className="h-4 w-4 rounded border-line"
+            />
+            Toute la journée
+          </label>
+
+          {tags.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className={labelClass}>Tags</span>
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors ${
+                      tagIds.includes(tag.id) ? "bg-kcal text-white" : "bg-surface-alt text-ink-2"
+                    }`}
+                  >
+                    #{tag.nom}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="nouveaux_tags" className={labelClass}>
+              Nouveaux tags (optionnel, séparés par une virgule)
+            </label>
+            <input id="nouveaux_tags" name="nouveaux_tags" placeholder="urgent, maison" className={input} />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="recurrence_frequence" className={labelClass}>
+              Récurrence (optionnel)
+            </label>
+            <select
+              id="recurrence_frequence"
+              name="recurrence_frequence"
+              value={frequence}
+              onChange={(e) => setFrequence(e.target.value)}
+              className={input}
+            >
+              <option value="">Aucune récurrence</option>
+              {FREQUENCES.map((f) => (
+                <option key={f} value={f}>
+                  {FREQUENCE_LABELS[f]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {frequence && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="recurrence_fin" className={labelClass}>
+                Fin de la récurrence (optionnel)
+              </label>
+              <input
+                id="recurrence_fin"
+                name="recurrence_fin"
+                type="date"
+                defaultValue={tache?.recurrence_fin ?? ""}
+                className={input}
+              />
+            </div>
           )}
         </div>
-        {imagesError && (
-          <p className={errorText} role="alert">
-            {imagesError}
-          </p>
-        )}
-      </div>
-
-      {tags.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <span className={labelClass}>Tags</span>
-          <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() => toggleTag(tag.id)}
-                className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors ${
-                  tagIds.includes(tag.id) ? "bg-kcal text-white" : "bg-surface-alt text-ink-2"
-                }`}
-              >
-                #{tag.nom}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="nouveaux_tags" className={labelClass}>
-          Nouveaux tags (optionnel, séparés par une virgule)
-        </label>
-        <input id="nouveaux_tags" name="nouveaux_tags" placeholder="urgent, maison" className={input} />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="recurrence_frequence" className={labelClass}>
-          Récurrence (optionnel)
-        </label>
-        <select
-          id="recurrence_frequence"
-          name="recurrence_frequence"
-          value={frequence}
-          onChange={(e) => setFrequence(e.target.value)}
-          className={input}
-        >
-          <option value="">Aucune récurrence</option>
-          {FREQUENCES.map((f) => (
-            <option key={f} value={f}>
-              {FREQUENCE_LABELS[f]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {frequence && (
-        <div className="flex flex-col gap-1">
-          <label htmlFor="recurrence_fin" className={labelClass}>
-            Fin de la récurrence (optionnel)
-          </label>
-          <input
-            id="recurrence_fin"
-            name="recurrence_fin"
-            type="date"
-            defaultValue={tache?.recurrence_fin ?? ""}
-            className={input}
-          />
-        </div>
-      )}
+      </details>
 
       <div
         className="sticky bottom-0 z-10 flex flex-col items-center gap-2 pt-3"

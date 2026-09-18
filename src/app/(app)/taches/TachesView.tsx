@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, format } from "date-fns";
 import { aujourdhuiISO } from "@/lib/budget/compute";
 import { getListes, getTachesAvecRelations, getTags } from "@/app/actions/taches";
 import { normalizeSearch } from "@/lib/normalize";
+import { echeanceParDefaut, type VueTache } from "@/lib/taches/compute";
 import { queryKeys } from "@/lib/query/keys";
 import { AddTaskToggle } from "./AddTaskToggle";
 import { TasksList } from "./TasksList";
@@ -14,6 +15,9 @@ import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { errorText, input } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { showToast } from "@/components/toast/toast-store";
+import { QuickAddFab } from "../QuickAddFab";
+import { preloadAddTaskFormWhenIdle } from "./preloadAddTaskForm";
 
 const LISTE_ICON = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -36,7 +40,13 @@ const CLEAR_ICON = (
   </svg>
 );
 
-type VueKey = "aujourdhui" | "en_retard" | "semaine" | "toutes";
+type VueKey = VueTache;
+
+// Durée pendant laquelle la carte d'une tâche tout juste créée reste marquée
+// (l'animation CSS dure 2,6 s), une fois affichée dans la liste. Repli plus
+// long si elle n'apparaît pas (filtre de vue, de liste ou recherche actif).
+const DUREE_SURBRILLANCE_MS = 3000;
+const DUREE_MAX_ATTENTE_CARTE_MS = 6000;
 
 const VUES: { key: VueKey; label: string }[] = [
   { key: "aujourdhui", label: "Aujourd'hui" },
@@ -49,6 +59,11 @@ export function TachesView() {
   const [vue, setVue] = useState<VueKey>("toutes");
   const [listeId, setListeId] = useState<string>("toutes");
   const [recherche, setRecherche] = useState("");
+  // Formulaire d'ajout inline ouvert : le FAB est alors masqué (deux
+  // formulaires de création à la fois n'ont pas de sens).
+  const [ajoutInlineOuvert, setAjoutInlineOuvert] = useState(false);
+  // Tâche qui vient d'être créée : à faire défiler en vue et à surligner.
+  const [tacheSurlignee, setTacheSurlignee] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: taches, isLoading: tachesLoading, isError: tachesError } = useQuery({
@@ -88,6 +103,40 @@ export function TachesView() {
     queryClient.invalidateQueries({ queryKey: queryKeys.taches });
   }
 
+  // Valeurs par défaut communes à la carte d'ajout et au FAB : la liste
+  // sélectionnée, et l'échéance imposée par l'onglet de vue (sans elle, une
+  // tâche créée sous « Aujourd'hui » serait aussitôt filtrée hors de la vue).
+  const defaultListeId = listeId !== "toutes" ? listeId : undefined;
+  const defaultEcheance = echeanceParDefaut(vue, aujourdhuiISO());
+
+  // Point d'entrée unique après une création, quel que soit le bouton utilisé
+  // (carte ou FAB). Les filtres de l'utilisateur ne sont jamais modifiés : si
+  // la carte n'est pas dans la liste affichée, seul le toast apparaît.
+  function handleCreated(id?: string) {
+    showToast("Tâche créée");
+    invalidateTaches();
+    if (id) setTacheSurlignee(id);
+  }
+
+  // Précharge le formulaire à l'inactivité du navigateur, sans retarder
+  // l'affichage initial de la liste.
+  useEffect(() => preloadAddTaskFormWhenIdle(), []);
+
+  // Retire la surbrillance : peu après l'apparition de la carte (l'effet de
+  // scroll de TaskCard ne doit pas rejouer aux re-rendus suivants), ou après
+  // un délai plus long si elle n'apparaît jamais (filtre actif, échec du
+  // rafraîchissement).
+  const carteSurligneeAffichee =
+    tacheSurlignee !== null && filtered.some((tache) => tache.id === tacheSurlignee);
+  useEffect(() => {
+    if (tacheSurlignee === null) return;
+    const timer = window.setTimeout(
+      () => setTacheSurlignee(null),
+      carteSurligneeAffichee ? DUREE_SURBRILLANCE_MS : DUREE_MAX_ATTENTE_CARTE_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [tacheSurlignee, carteSurligneeAffichee]);
+
   async function handleRefresh() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.taches }),
@@ -97,8 +146,11 @@ export function TachesView() {
   }
 
   return (
+    <>
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="flex flex-col gap-4">
+    {/* pb-12 : dégage les dernières cartes (boutons « Modifier / Suppr. » à
+        droite) du FAB, posé au-dessus de la barre du bas. */}
+    <div className="flex flex-col gap-4 pb-12">
       <div className="flex rounded-2xl border border-line bg-surface p-1">
         {VUES.map((v) => (
           <button
@@ -172,8 +224,10 @@ export function TachesView() {
       <AddTaskToggle
         listes={listes}
         tags={tags}
-        defaultListeId={listeId !== "toutes" ? listeId : undefined}
-        onSaved={invalidateTaches}
+        defaultListeId={defaultListeId}
+        defaultEcheance={defaultEcheance}
+        onSaved={handleCreated}
+        onOpenChange={setAjoutInlineOuvert}
       />
       {tachesLoading ? (
         <div className="flex flex-col gap-2.5">
@@ -187,9 +241,23 @@ export function TachesView() {
           Aucune tâche ne correspond à « {recherche.trim()} ».
         </p>
       ) : (
-        <TasksList taches={filtered} listes={listes} tags={tags} reordonnable={vue === "toutes"} />
+        <TasksList
+          taches={filtered}
+          listes={listes}
+          tags={tags}
+          reordonnable={vue === "toutes"}
+          highlightedId={tacheSurlignee}
+        />
       )}
     </div>
     </PullToRefresh>
+    {/* Hors de PullToRefresh : ni le bouton ni sa feuille de saisie ne doivent
+        partager les gestes tactiles du tirer-pour-rafraîchir. */}
+    {!ajoutInlineOuvert && (
+      <QuickAddFab
+        directTask={{ defaultListeId, defaultEcheance, onCreated: handleCreated }}
+      />
+    )}
+    </>
   );
 }

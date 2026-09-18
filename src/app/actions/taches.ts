@@ -6,7 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
-export type TacheFormState = { error: string | null };
+// `id` : renseigné par createTache en cas de succès (id de la tâche créée,
+// pour que l'UI puisse la mettre en évidence) ; absent pour updateTache et
+// pour tout état d'erreur.
+export type TacheFormState = { error: string | null; id?: string };
 
 const PRIORITES: readonly Enums<"priorite_tache">[] = ["aucune", "basse", "moyenne", "haute"];
 const FREQUENCES: readonly Enums<"frequence_recurrence">[] = [
@@ -224,7 +227,7 @@ export async function createTache(
   }
 
   revalidateTachesPaths();
-  return { error: null };
+  return { error: null, id: tache.id };
 }
 
 export async function updateTache(

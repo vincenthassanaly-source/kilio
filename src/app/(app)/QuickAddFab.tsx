@@ -9,6 +9,7 @@ import { Modal } from "@/components/Modal";
 import { goBackSteps, useBackClose } from "@/hooks/useBackClose";
 import { getListes, getTags } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
+import { preloadAddTaskForm } from "./taches/preloadAddTaskForm";
 
 const AddTaskForm = dynamic(() => import("./taches/AddTaskForm").then((m) => m.AddTaskForm), {
   ssr: false,
@@ -17,24 +18,41 @@ const NoteForm = dynamic(() => import("./notes/NoteForm").then((m) => m.NoteForm
 
 type Mode = null | "menu" | "tache" | "note" | "course";
 
+// Mode « direct » : le FAB ouvre tout de suite le formulaire de tâche, sans
+// passer par le menu Tâche/Note/Course (utilisé par /taches). Sans cette
+// option, le comportement du dashboard est inchangé.
+export type DirectTaskOptions = {
+  defaultListeId?: string;
+  defaultEcheance?: string;
+  // Appelé avec l'id de la tâche créée ; c'est à l'appelant de rafraîchir
+  // ses données (le dashboard, lui, invalide déjà queryKeys.taches).
+  onCreated?: (id?: string) => void;
+};
+
 // listes/tags ne servent qu'une fois un formulaire ouvert : fetch client
 // pur, non préchargé côté serveur, pour ne jamais retarder l'affichage des
 // cartes principales du dashboard (voir reports/2026-09-04-dashboard-streaming-par-section.md).
-export function QuickAddFab() {
+export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) {
   const [mode, setMode] = useState<Mode>(null);
   const queryClient = useQueryClient();
   const { data: listes = [] } = useQuery({ queryKey: queryKeys.listes, queryFn: getListes });
   const { data: tags = [] } = useQuery({ queryKey: queryKeys.tags, queryFn: getTags });
+  const direct = directTask !== undefined;
 
   // The dial's history entry stays pushed for as long as *anything* is
   // open (menu or form) so a single back press from a form lands on the
-  // menu, not straight back home.
-  useBackClose(mode !== null, () => setMode(null));
+  // menu, not straight back home. In direct mode there is no menu, hence a
+  // single history entry (the form's own, below).
+  useBackClose(mode !== null && !direct, () => setMode(null));
   // The form's own entry sits on top of the dial's. Guarded with a
   // functional update so it's a no-op if the dial-level handler above
-  // already closed everything (e.g. goBackSteps(2) from onDone).
+  // already closed everything (e.g. goBackSteps(2) from onDone). In direct
+  // mode, closing the form closes everything (no menu to land on).
   useBackClose(mode === "tache" || mode === "note" || mode === "course", () =>
-    setMode((m) => (m === "tache" || m === "note" || m === "course" ? "menu" : m))
+    setMode((m) => {
+      if (direct) return null;
+      return m === "tache" || m === "note" || m === "course" ? "menu" : m;
+    })
   );
 
   const dialOpen = mode !== null;
@@ -54,9 +72,12 @@ export function QuickAddFab() {
       >
         <button
           type="button"
-          onClick={() => (mode === null ? setMode("menu") : history.back())}
-          aria-label={mode === null ? "Ajouter" : "Fermer"}
-          aria-expanded={mode !== null}
+          onClick={() => (mode === null ? setMode(direct ? "tache" : "menu") : history.back())}
+          onPointerDown={preloadAddTaskForm}
+          onFocus={preloadAddTaskForm}
+          aria-label={direct ? "Ajouter une tâche" : mode === null ? "Ajouter" : "Fermer"}
+          aria-expanded={direct ? undefined : mode !== null}
+          aria-haspopup={direct ? "dialog" : undefined}
           className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-card"
           style={{ background: "var(--accent-kcal)" }}
         >
@@ -75,6 +96,9 @@ export function QuickAddFab() {
           </svg>
         </button>
 
+        {/* Entrées du menu : absentes en mode direct (seul le "+" est affiché). */}
+        {!direct && (
+        <>
         <button
           type="button"
           onClick={() => setMode("course")}
@@ -142,6 +166,8 @@ export function QuickAddFab() {
             </svg>
           </span>
         </button>
+        </>
+        )}
       </div>
 
       <AnimatePresence>
@@ -150,9 +176,17 @@ export function QuickAddFab() {
             <AddTaskForm
               listes={listes}
               tags={tags}
-              onDone={() => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.taches });
-                goBackSteps(2);
+              defaultListeId={directTask?.defaultListeId}
+              defaultEcheance={directTask?.defaultEcheance}
+              onDone={(id) => {
+                if (direct) {
+                  // Un seul niveau d'historique à refermer (pas de menu).
+                  directTask?.onCreated?.(id);
+                  goBackSteps(1);
+                } else {
+                  queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+                  goBackSteps(2);
+                }
               }}
             />
           </Modal>

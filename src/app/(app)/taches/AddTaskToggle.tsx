@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Tables } from "@/lib/supabase/types";
 import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import { addCard, addCardIcon, card } from "@/lib/ui";
+import { preloadAddTaskForm } from "./preloadAddTaskForm";
 
 const AddTaskForm = dynamic(() => import("./AddTaskForm").then((m) => m.AddTaskForm), { ssr: false });
 
@@ -17,6 +18,7 @@ export function AddTaskToggle({
   defaultHeure,
   label = "+ Ajouter une tâche",
   onSaved,
+  onOpenChange,
 }: {
   listes: Tables<"listes_taches">[];
   tags: Tables<"tags">[];
@@ -24,13 +26,28 @@ export function AddTaskToggle({
   defaultEcheance?: string;
   defaultHeure?: string;
   label?: string;
-  onSaved?: () => void;
+  // `id` : id de la tâche créée (voir TacheFormState). Les appelants qui
+  // n'en ont pas besoin (Agenda) l'ignorent.
+  onSaved?: (id?: string) => void;
+  // Notifie l'ouverture/fermeture du formulaire inline, pour qu'un parent
+  // puisse masquer un autre point d'entrée (FAB de /taches) pendant ce temps.
+  onOpenChange?: (open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   useBackClose(open, () => setOpen(false));
 
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
+
   const trigger = (
-    <button type="button" onClick={() => setOpen(true)} className={addCard}>
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      onPointerDown={preloadAddTaskForm}
+      onFocus={preloadAddTaskForm}
+      className={addCard}
+    >
       <div
         className={addCardIcon}
         style={{
@@ -59,9 +76,9 @@ export function AddTaskToggle({
           defaultListeId={defaultListeId}
           defaultEcheance={defaultEcheance}
           defaultHeure={defaultHeure}
-          onDone={() => {
+          onDone={(id) => {
             setOpen(false);
-            onSaved?.();
+            onSaved?.(id);
           }}
         />
         <button

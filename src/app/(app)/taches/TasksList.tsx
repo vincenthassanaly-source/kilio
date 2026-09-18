@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -283,12 +283,25 @@ export function TaskCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tache.id,
   });
-  const highlightRef = useRef<HTMLLIElement>(null);
+  const highlightRef = useRef<HTMLLIElement | null>(null);
+  // Variante `reorderable` : le <li> porte déjà le ref de dnd-kit, on y
+  // ajoute celui de la surbrillance (un même nœud, deux consommateurs).
+  const setReorderableRef = useCallback(
+    (node: HTMLLIElement | null) => {
+      setNodeRef(node);
+      highlightRef.current = node;
+    },
+    [setNodeRef]
+  );
   useEffect(() => {
     if (highlighted) {
-      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Scroll instantané pour qui a demandé de réduire les animations.
+      highlightRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+      });
     }
-  }, [highlighted]);
+  }, [highlighted, reduceMotion]);
 
   function invalidateTaches() {
     queryClient.invalidateQueries({ queryKey: queryKeys.taches });
@@ -531,14 +544,20 @@ export function TaskCard({
 
   return (
     <AnimatePresence mode="wait" propagate>
-      <li key="view" ref={setNodeRef} style={dragStyle} className={isDragging ? "opacity-60" : undefined}>
+      <li
+        key="view"
+        ref={setReorderableRef}
+        id={highlighted ? `tache-${tache.id}` : undefined}
+        style={dragStyle}
+        className={isDragging ? "opacity-60" : undefined}
+      >
         <motion.div
           layout={!isDragging && !reduceMotion}
           initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
-          className={listCard}
+          className={`${listCard} ${highlighted ? "tache-surbrillance" : ""}`}
           style={accentStyle}
         >
           {content}
@@ -587,10 +606,12 @@ function SortableTachesList({
   actives,
   listes,
   tags,
+  highlightedId,
 }: {
   actives: TacheAvecRelations[];
   listes: Tables<"listes_taches">[];
   tags: Tables<"tags">[];
+  highlightedId?: string | null;
 }) {
   const queryClient = useQueryClient();
   const sensors = useTaskDragSensors();
@@ -635,7 +656,14 @@ function SortableTachesList({
         <ul className="flex flex-col gap-2.5">
           <AnimatePresence initial={false}>
             {actives.map((tache) => (
-              <TaskCard key={tache.id} tache={tache} listes={listes} tags={tags} reorderable />
+              <TaskCard
+                key={tache.id}
+                tache={tache}
+                listes={listes}
+                tags={tags}
+                reorderable
+                highlighted={tache.id === highlightedId}
+              />
             ))}
           </AnimatePresence>
         </ul>
@@ -649,11 +677,15 @@ export function TasksList({
   listes,
   tags,
   reordonnable = false,
+  highlightedId = null,
 }: {
   taches: TacheAvecRelations[];
   listes: Tables<"listes_taches">[];
   tags: Tables<"tags">[];
   reordonnable?: boolean;
+  // Tâche à faire défiler en vue et surligner (création réussie, cf.
+  // TachesView) ; uniquement pour les tâches actives.
+  highlightedId?: string | null;
 }) {
   if (taches.length === 0) {
     return <p className="text-ink-2">Aucune tâche pour l&apos;instant.</p>;
@@ -671,12 +703,18 @@ export function TasksList({
     <>
       {actives.length > 0 &&
         (reordonnable ? (
-          <SortableTachesList actives={actives} listes={listes} tags={tags} />
+          <SortableTachesList actives={actives} listes={listes} tags={tags} highlightedId={highlightedId} />
         ) : (
           <ul className="flex flex-col gap-2.5">
             <AnimatePresence initial={false}>
               {actives.map((tache) => (
-                <TaskCard key={tache.id} tache={tache} listes={listes} tags={tags} />
+                <TaskCard
+                  key={tache.id}
+                  tache={tache}
+                  listes={listes}
+                  tags={tags}
+                  highlighted={tache.id === highlightedId}
+                />
               ))}
             </AnimatePresence>
           </ul>
