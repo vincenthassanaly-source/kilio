@@ -10,6 +10,8 @@ import { goBackSteps, useBackClose } from "@/hooks/useBackClose";
 import { getListes, getTags } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
 import { preloadAddTaskForm } from "./taches/preloadAddTaskForm";
+import { showToast } from "@/components/toast/toast-store";
+import { DUREE_TOAST_AVERTISSEMENT_MS } from "@/lib/taches/compute";
 
 const AddTaskForm = dynamic(() => import("./taches/AddTaskForm").then((m) => m.AddTaskForm), {
   ssr: false,
@@ -24,9 +26,11 @@ type Mode = null | "menu" | "tache" | "note" | "course";
 export type DirectTaskOptions = {
   defaultListeId?: string;
   defaultEcheance?: string;
-  // Appelé avec l'id de la tâche créée ; c'est à l'appelant de rafraîchir
-  // ses données (le dashboard, lui, invalide déjà queryKeys.taches).
-  onCreated?: (id?: string) => void;
+  // Appelé avec l'id de la tâche créée (et, si une étape secondaire — tags,
+  // images — a échoué, le texte d'avertissement à afficher) ; c'est à
+  // l'appelant de rafraîchir ses données (le dashboard, lui, invalide déjà
+  // queryKeys.taches).
+  onCreated?: (id?: string, avertissement?: string) => void;
 };
 
 // listes/tags ne servent qu'une fois un formulaire ouvert : fetch client
@@ -178,13 +182,17 @@ export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) 
               tags={tags}
               defaultListeId={directTask?.defaultListeId}
               defaultEcheance={directTask?.defaultEcheance}
-              onDone={(id) => {
+              onDone={(id, avertissement) => {
                 if (direct) {
                   // Un seul niveau d'historique à refermer (pas de menu).
-                  directTask?.onCreated?.(id);
+                  directTask?.onCreated?.(id, avertissement);
                   goBackSteps(1);
                 } else {
                   queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+                  // Le dashboard n'affichait rien après une création : un
+                  // avertissement (image ou tags en échec) ne doit pas être
+                  // perdu en silence.
+                  if (avertissement) showToast(avertissement, DUREE_TOAST_AVERTISSEMENT_MS);
                   goBackSteps(2);
                 }
               }}

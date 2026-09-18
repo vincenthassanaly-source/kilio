@@ -26,9 +26,10 @@ export function AddTaskToggle({
   defaultEcheance?: string;
   defaultHeure?: string;
   label?: string;
-  // `id` : id de la tâche créée (voir TacheFormState). Les appelants qui
-  // n'en ont pas besoin (Agenda) l'ignorent.
-  onSaved?: (id?: string) => void;
+  // `id` : id de la tâche créée ; `avertissement` : création réussie mais
+  // étape secondaire (tags, images) en échec (voir TacheFormState). Les
+  // appelants qui n'en ont pas besoin les ignorent.
+  onSaved?: (id?: string, avertissement?: string) => void;
   // Notifie l'ouverture/fermeture du formulaire inline, pour qu'un parent
   // puisse masquer un autre point d'entrée (FAB de /taches) pendant ce temps.
   onOpenChange?: (open: boolean) => void;
@@ -76,9 +77,9 @@ export function AddTaskToggle({
           defaultListeId={defaultListeId}
           defaultEcheance={defaultEcheance}
           defaultHeure={defaultHeure}
-          onDone={(id) => {
+          onDone={(id, avertissement) => {
             setOpen(false);
-            onSaved?.(id);
+            onSaved?.(id, avertissement);
           }}
         />
         <button

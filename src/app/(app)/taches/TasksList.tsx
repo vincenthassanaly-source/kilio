@@ -312,7 +312,15 @@ export function TaskCard({
   // silencieux + toast discret si le serveur échoue. La logique de
   // récurrence (échéance suivante) reste calculée côté serveur ; on ne
   // l'approxime pas ici, `onSettled` réconcilie avec l'état réel.
+  // `networkMode: "always"` (ici et sur deleteMutation) : par défaut,
+  // TanStack Query met une mutation en pause tant qu'il se croit hors ligne
+  // (onMutate s'exécute, mutationFn jamais) : le repli Dexie ci-dessous n'était
+  // alors jamais atteint, la coche restait en mémoire et se perdait si l'app
+  // était fermée avant le retour du réseau. Ici mutationFn doit s'exécuter :
+  // hors ligne, toggleTache échoue en erreur réseau et l'action est mise en
+  // file (enqueueAction), rejouée au retour du réseau par useOnlineSync.
   const toggleMutation = useMutation({
+    networkMode: "always",
     mutationFn: async () => {
       vibrate();
       try {
@@ -339,6 +347,7 @@ export function TaskCard({
   });
 
   const deleteMutation = useMutation({
+    networkMode: "always",
     mutationFn: async () => {
       try {
         await deleteTache(tache.id);

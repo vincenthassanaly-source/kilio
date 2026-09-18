@@ -7,7 +7,7 @@ import { addDays, format } from "date-fns";
 import { aujourdhuiISO } from "@/lib/budget/compute";
 import { getListes, getTachesAvecRelations, getTags } from "@/app/actions/taches";
 import { normalizeSearch } from "@/lib/normalize";
-import { echeanceParDefaut, type VueTache } from "@/lib/taches/compute";
+import { DUREE_TOAST_AVERTISSEMENT_MS, echeanceParDefaut, type VueTache } from "@/lib/taches/compute";
 import { queryKeys } from "@/lib/query/keys";
 import { AddTaskToggle } from "./AddTaskToggle";
 import { TasksList } from "./TasksList";
@@ -112,8 +112,11 @@ export function TachesView() {
   // Point d'entrée unique après une création, quel que soit le bouton utilisé
   // (carte ou FAB). Les filtres de l'utilisateur ne sont jamais modifiés : si
   // la carte n'est pas dans la liste affichée, seul le toast apparaît.
-  function handleCreated(id?: string) {
-    showToast("Tâche créée");
+  function handleCreated(id?: string, avertissement?: string) {
+    // La tâche existe dans tous les cas : un avertissement (tags ou image en
+    // échec) remplace « Tâche créée », plus longtemps affiché.
+    if (avertissement) showToast(avertissement, DUREE_TOAST_AVERTISSEMENT_MS);
+    else showToast("Tâche créée");
     invalidateTaches();
     if (id) setTacheSurlignee(id);
   }

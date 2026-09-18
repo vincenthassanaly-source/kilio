@@ -5,11 +5,17 @@ import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
+import { messageAvertissementCreation } from "@/lib/taches/compute";
 
 // `id` : renseigné par createTache en cas de succès (id de la tâche créée,
 // pour que l'UI puisse la mettre en évidence) ; absent pour updateTache et
 // pour tout état d'erreur.
-export type TacheFormState = { error: string | null; id?: string };
+// `avertissement` : la tâche a bien été créée (`error` est null) mais une
+// étape secondaire (tags, images) a échoué ; à afficher à l'utilisateur sans
+// le laisser recréer la tâche.
+export type TacheFormState = { error: string | null; id?: string; avertissement?: string };
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const PRIORITES: readonly Enums<"priorite_tache">[] = ["aucune", "basse", "moyenne", "haute"];
 const FREQUENCES: readonly Enums<"frequence_recurrence">[] = [
@@ -210,24 +216,39 @@ export async function createTache(
 
   if (error) return { error: error.message };
 
+  // À partir d'ici la tâche existe. Un échec des étapes secondaires (tags,
+  // images) ne doit plus être renvoyé comme une erreur de formulaire : le
+  // formulaire resterait ouvert et un nouvel appui sur « Créer » créerait un
+  // doublon. On renvoie donc un succès accompagné d'un avertissement, et on
+  // revalide sur tous les chemins de sortie.
+  let echecTags = false;
+  let echecImages = false;
+
   try {
     const { tagIds, nouveauxNoms } = parseTagFields(formData);
     const resolvedTagIds = await resolveTagIds(supabase, tagIds, nouveauxNoms);
     await syncTachesTags(supabase, tache.id, resolvedTagIds);
   } catch (tagError) {
-    return { error: tagError instanceof Error ? tagError.message : "Erreur lors des tags." };
+    echecTags = true;
+    console.error("createTache : échec de l'enregistrement des tags", tagError);
   }
 
+  const nbImages = formData.getAll("images").filter((f) => f instanceof File && f.size > 0).length;
   try {
     await uploadTacheImages(tache.id, formData);
   } catch (imageError) {
-    return {
-      error: imageError instanceof Error ? imageError.message : "Erreur lors de l'envoi des images.",
-    };
+    echecImages = true;
+    console.error("createTache : échec de l'envoi des images", imageError);
   }
 
   revalidateTachesPaths();
-  return { error: null, id: tache.id };
+
+  const avertissement = messageAvertissementCreation({
+    tags: echecTags,
+    images: echecImages,
+    plusieursImages: nbImages > 1,
+  });
+  return { error: null, id: tache.id, ...(avertissement ? { avertissement } : {}) };
 }
 
 export async function updateTache(
@@ -264,17 +285,42 @@ export async function updateTache(
 
   if (error) return { error: error.message };
 
+  // La mise à jour principale est appliquée : quelle que soit la suite, les
+  // données ont changé et les chemins du module doivent être revalidés. Une
+  // mise à jour est rejouable (tags recalculés, images déjà supprimées
+  // ignorées) : en cas d'échec d'une étape secondaire on garde donc un
+  // retour `{ error }`, le formulaire reste ouvert pour un nouvel essai.
   try {
     const { tagIds, nouveauxNoms } = parseTagFields(formData);
     const resolvedTagIds = await resolveTagIds(supabase, tagIds, nouveauxNoms);
     await syncTachesTags(supabase, id, resolvedTagIds);
   } catch (tagError) {
+    revalidateTachesPaths();
     return { error: tagError instanceof Error ? tagError.message : "Erreur lors des tags." };
+  }
+
+  // Suppression différée des images retirées dans le formulaire : elle n'a
+  // lieu qu'ici, une fois la mise à jour réussie (« Annuler » n'a rien à
+  // annuler côté serveur).
+  try {
+    const imageIds = [...new Set(formData.getAll("delete_image_ids").map(String))].filter((imageId) =>
+      UUID_REGEX.test(imageId)
+    );
+    await supprimerImagesDeTache(supabase, id, imageIds);
+  } catch (suppressionError) {
+    revalidateTachesPaths();
+    return {
+      error:
+        suppressionError instanceof Error
+          ? suppressionError.message
+          : "Erreur lors de la suppression des images.",
+    };
   }
 
   try {
     await uploadTacheImages(id, formData);
   } catch (imageError) {
+    revalidateTachesPaths();
     return {
       error: imageError instanceof Error ? imageError.message : "Erreur lors de l'envoi des images.",
     };
@@ -346,7 +392,20 @@ export async function uploadTacheImages(tacheId: string, formData: FormData) {
     const { error: insertError } = await supabase
       .from("tache_images")
       .insert({ tache_id: tacheId, url: publicUrl, ordre });
-    if (insertError) throw new Error(insertError.message);
+    if (insertError) {
+      // Le fichier est déjà dans le bucket alors que sa ligne n'a pas pu
+      // être enregistrée : sans nettoyage, il resterait orphelin. Au mieux :
+      // un échec de ce nettoyage ne doit pas masquer l'erreur d'origine.
+      try {
+        const { error: cleanupError } = await supabase.storage.from(TACHE_IMAGES_BUCKET).remove([chemin]);
+        if (cleanupError) {
+          console.error("uploadTacheImages : nettoyage de l'objet orphelin impossible", cleanupError);
+        }
+      } catch (cleanupError) {
+        console.error("uploadTacheImages : nettoyage de l'objet orphelin impossible", cleanupError);
+      }
+      throw new Error(insertError.message);
+    }
 
     ordre++;
   }
@@ -354,26 +413,55 @@ export async function uploadTacheImages(tacheId: string, formData: FormData) {
   revalidateTachesPaths();
 }
 
-export async function deleteTacheImage(imageId: string) {
-  const supabase = createAdminClient();
+// Taille des lots pour les requêtes `in (...)` et les suppressions Storage :
+// évite des URL de requête démesurées quand une liste compte beaucoup de
+// tâches.
+const TAILLE_LOT = 100;
 
-  const { data: image, error: fetchError } = await supabase
-    .from("tache_images")
-    .select("url")
-    .eq("id", imageId)
-    .single();
-  if (fetchError) throw new Error(fetchError.message);
+function enLots<T>(elements: T[], taille = TAILLE_LOT): T[][] {
+  const lots: T[][] = [];
+  for (let i = 0; i < elements.length; i += taille) lots.push(elements.slice(i, i + taille));
+  return lots;
+}
 
-  const chemin = extraireCheminStorage(image.url);
-  if (chemin) {
-    const { error: removeError } = await supabase.storage.from(TACHE_IMAGES_BUCKET).remove([chemin]);
-    if (removeError) throw new Error(removeError.message);
+// Supprime des objets du bucket par lots. Lève à la première erreur : les
+// lots déjà traités restent supprimés (la suppression d'un objet absent est
+// sans effet, l'opération est donc rejouable).
+async function supprimerObjetsStorage(supabase: SupabaseClient, chemins: string[]) {
+  for (const lot of enLots(chemins)) {
+    const { error } = await supabase.storage.from(TACHE_IMAGES_BUCKET).remove(lot);
+    if (error) throw new Error(error.message);
   }
+}
 
-  const { error } = await supabase.from("tache_images").delete().eq("id", imageId);
+// Supprime des images d'UNE tâche (fichier Storage puis ligne). Seules les
+// images réellement rattachées à `tacheId` sont concernées : un id qui
+// appartient à une autre tâche, ou qui n'existe plus, est ignoré. Le fichier
+// est supprimé avant la ligne : en cas d'échec Storage la ligne reste et
+// l'opération peut être rejouée.
+async function supprimerImagesDeTache(supabase: SupabaseClient, tacheId: string, imageIds: string[]) {
+  if (imageIds.length === 0) return;
+
+  const { data: images, error: fetchError } = await supabase
+    .from("tache_images")
+    .select("id, url")
+    .eq("tache_id", tacheId)
+    .in("id", imageIds);
+  if (fetchError) throw new Error(fetchError.message);
+  if (!images || images.length === 0) return;
+
+  const chemins = images.map((i) => extraireCheminStorage(i.url)).filter((c): c is string => c !== null);
+  await supprimerObjetsStorage(supabase, chemins);
+
+  const { error } = await supabase
+    .from("tache_images")
+    .delete()
+    .eq("tache_id", tacheId)
+    .in(
+      "id",
+      images.map((i) => i.id)
+    );
   if (error) throw new Error(error.message);
-
-  revalidateTachesPaths();
 }
 
 // Option A (validée) : quand une tâche récurrente est cochée, elle repart
@@ -533,7 +621,35 @@ export async function updateListe(
 // secours : comme taches.liste_id est not null, la supprimer casserait
 // toute tâche qui y est encore rattachée. Non supprimable, à l'image des
 // catégories prédéfinies du budget (cf. supprimerCategorie).
-export async function deleteListe(id: string) {
+//
+// Suppression en deux temps, sans exception (Next masque en production le
+// message d'une exception levée par une Server Action : toute erreur est
+// donc renvoyée en valeur, en français) :
+//  1. tant que la suppression des tâches n'est pas confirmée
+//     (`supprimerTaches`), rien n'est supprimé et, si la liste contient des
+//     tâches, on renvoie `confirmation` avec leur nombre exact ;
+//  2. une fois confirmée : fichiers Storage des images -> tâches (les
+//     sous-tâches, lignes d'images et liens de tags partent par CASCADE) ->
+//     liste. La clé `taches_liste_id_fkey` reste `NO ACTION` : les tâches
+//     sont supprimées explicitement ici, jamais par la base.
+// `totalAttendu` : nombre de tâches annoncé à l'utilisateur au moment de la
+// confirmation ; s'il ne correspond plus (tâches ajoutées ou supprimées
+// entre-temps), rien n'est supprimé et on renvoie les chiffres réels pour
+// une nouvelle confirmation.
+// Pas de transaction : si une étape échoue en cours de route, l'opération
+// est rejouable. États intermédiaires possibles : images supprimées du
+// bucket alors que leurs lignes existent encore (tâches sans fichier), ou
+// une partie des tâches supprimée alors que la liste existe encore.
+export type SuppressionListeResult = {
+  error: string | null;
+  confirmation?: { total: number; faites: number };
+};
+
+export async function deleteListe(
+  id: string,
+  supprimerTaches = false,
+  totalAttendu?: number
+): Promise<SuppressionListeResult> {
   const supabase = createAdminClient();
 
   const { data: liste, error: fetchError } = await supabase
@@ -542,16 +658,99 @@ export async function deleteListe(id: string) {
     .eq("id", id)
     .maybeSingle();
 
-  if (fetchError) throw new Error(fetchError.message);
-  if (!liste) return;
+  if (fetchError) return { error: "Impossible de lire la liste. Réessaie." };
+  if (!liste) return { error: null }; // déjà supprimée
   if (liste.nom === "Général") {
-    throw new Error('La liste "Général" ne peut pas être supprimée.');
+    return { error: 'La liste "Général" ne peut pas être supprimée.' };
   }
 
+  const { data: taches, error: tachesError } = await supabase
+    .from("taches")
+    .select("id, fait")
+    .eq("liste_id", id);
+  if (tachesError) return { error: "Impossible de compter les tâches de la liste. Réessaie." };
+
+  const total = taches.length;
+  const faites = taches.filter((t) => t.fait).length;
+
+  // Rien n'est supprimé tant que le nombre de tâches n'a pas été confirmé.
+  if (total > 0 && !supprimerTaches) return { error: null, confirmation: { total, faites } };
+  if (supprimerTaches && totalAttendu !== undefined && total !== totalAttendu) {
+    return { error: null, confirmation: { total, faites } };
+  }
+
+  if (total > 0) {
+    const tacheIds = taches.map((t) => t.id);
+
+    // 1. Fichiers Storage : en cas d'échec, on s'arrête AVANT toute
+    //    suppression en base.
+    const chemins: string[] = [];
+    for (const lot of enLots(tacheIds)) {
+      const { data: images, error: imagesError } = await supabase
+        .from("tache_images")
+        .select("url")
+        .in("tache_id", lot);
+      if (imagesError) {
+        return { error: "Impossible de lister les images de la liste : rien n'a été supprimé. Réessaie." };
+      }
+      for (const image of images ?? []) {
+        const chemin = extraireCheminStorage(image.url);
+        if (chemin) chemins.push(chemin);
+      }
+    }
+    try {
+      await supprimerObjetsStorage(supabase, chemins);
+    } catch (storageError) {
+      console.error("deleteListe : suppression des images impossible", storageError);
+      return {
+        error: "La suppression des images a échoué : aucune tâche ni liste n'a été supprimée. Réessaie.",
+      };
+    }
+
+    // 2. Tâches (exactement celles comptées et confirmées).
+    for (const lot of enLots(tacheIds)) {
+      const { error } = await supabase.from("taches").delete().in("id", lot);
+      if (error) {
+        console.error("deleteListe : suppression des tâches impossible", error);
+        revalidateTachesPaths();
+        return {
+          error: "La suppression des tâches a échoué en cours de route. Réessaie pour supprimer celles qui restent.",
+        };
+      }
+    }
+  }
+
+  // 3. La liste elle-même.
   const { error } = await supabase.from("listes_taches").delete().eq("id", id);
-  if (error) throw new Error(error.message);
 
   revalidateTachesPaths();
+  revalidatePath("/taches/listes");
+
+  if (error) {
+    console.error("deleteListe : suppression de la liste impossible", error);
+    return {
+      error: "La liste n'a pas pu être supprimée (des tâches y ont peut-être été ajoutées entre-temps). Réessaie.",
+    };
+  }
+  return { error: null };
+}
+
+// Nombre de tâches (total et faites) par liste, pour afficher le compte dans
+// /taches/listes et annoncer ce qu'une suppression de liste emporterait.
+export async function getComptesTachesParListe(): Promise<
+  Record<string, { total: number; faites: number }>
+> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.from("taches").select("liste_id, fait");
+  if (error) throw new Error(error.message);
+
+  const comptes: Record<string, { total: number; faites: number }> = {};
+  for (const { liste_id, fait } of data ?? []) {
+    const compte = (comptes[liste_id] ??= { total: 0, faites: 0 });
+    compte.total++;
+    if (fait) compte.faites++;
+  }
+  return comptes;
 }
 
 export async function reordonnerListes(id: string, direction: "haut" | "bas") {

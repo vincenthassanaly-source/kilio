@@ -6,6 +6,8 @@ import { addDays, format, isSameDay, isToday, startOfToday, subDays } from "date
 import { fr } from "date-fns/locale";
 import type { TacheAvecRelations } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
+import { showToast } from "@/components/toast/toast-store";
+import { DUREE_TOAST_AVERTISSEMENT_MS } from "@/lib/taches/compute";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
 import { AddTaskToggle } from "../taches/AddTaskToggle";
@@ -166,7 +168,11 @@ export function DayView({
         tags={tags}
         defaultEcheance={toISODate(selectedDate)}
         label="+ Ajouter une tâche ce jour-là"
-        onSaved={() => queryClient.invalidateQueries({ queryKey: queryKeys.taches })}
+        onSaved={(_id, avertissement) => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+          // Création réussie mais tags/image en échec : ne pas le taire.
+          if (avertissement) showToast(avertissement, DUREE_TOAST_AVERTISSEMENT_MS);
+        }}
       />
 
       {dayTaches.length === 0 && dayTachesArchivees.length === 0 ? (

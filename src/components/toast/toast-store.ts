@@ -14,11 +14,13 @@ function emit() {
   for (const listener of listeners) listener(toasts);
 }
 
-export function showToast(text: string) {
+// `dureeMs` : durée d'affichage, 3,2 s par défaut ; à allonger pour un
+// message long (avertissement de plus d'une ligne).
+export function showToast(text: string, dureeMs = 3200) {
   const id = nextId++;
   toasts = [...toasts, { id, text }];
   emit();
-  setTimeout(() => dismissToast(id), 3200);
+  setTimeout(() => dismissToast(id), dureeMs);
 }
 
 export function dismissToast(id: number) {

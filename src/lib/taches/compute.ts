@@ -18,6 +18,72 @@ export function echeanceParDefaut(vue: VueTache, today: string): string | undefi
   return vue === "aujourdhui" || vue === "semaine" ? today : undefined;
 }
 
+// Durée d'affichage du toast d'avertissement (plus long que le toast par
+// défaut : le message tient sur deux lignes).
+export const DUREE_TOAST_AVERTISSEMENT_MS = 6500;
+
+/**
+ * Avertissement affiché quand la tâche a bien été créée mais qu'une étape
+ * secondaire (tags, images) a échoué. Renvoie `undefined` si tout a réussi.
+ * La tâche existe : on ne parle jamais d'erreur bloquante ici, seulement de
+ * ce qu'il reste à refaire.
+ */
+export function messageAvertissementCreation(echecs: {
+  tags: boolean;
+  images: boolean;
+  plusieursImages?: boolean;
+}): string | undefined {
+  if (!echecs.tags && !echecs.images) return undefined;
+  const tags = "l'enregistrement des tags";
+  const images = echecs.plusieursImages ? "l'envoi des images" : "l'envoi de l'image";
+  let detail: string;
+  if (echecs.tags && echecs.images) detail = `${tags} et ${images} ont échoué`;
+  else if (echecs.tags) detail = `${tags} a échoué`;
+  else detail = `${images} a échoué`;
+  return `Tâche créée, mais ${detail}. Rouvre la tâche pour réessayer.`;
+}
+
+/**
+ * Message affiché dans le formulaire quand l'envoi n'a pas pu partir (hors
+ * ligne ou erreur réseau). La saisie est conservée : seul le réessai reste
+ * à faire.
+ */
+export function messageHorsLigne(edition: boolean): string {
+  return edition
+    ? "Connexion impossible : les modifications n'ont pas été enregistrées. Vérifie ta connexion et réessaie."
+    : "Connexion impossible : la tâche n'a pas été enregistrée. Vérifie ta connexion et réessaie.";
+}
+
+/**
+ * Texte de confirmation avant la suppression d'une liste. Une liste vide se
+ * supprime avec une confirmation simple ; sinon le message annonce le nombre
+ * exact de tâches (et combien sont déjà faites) et précise que la
+ * suppression est définitive et emporte sous-tâches et images.
+ */
+export function messageSuppressionListe(nom: string, total: number, faites: number): string {
+  if (total <= 0) return `Supprimer la liste « ${nom} » ?`;
+
+  const tachesTxt = total === 1 ? "sa tâche" : `ses ${total} tâches`;
+  let faitesTxt = "";
+  if (faites > 0) {
+    if (total === 1) faitesTxt = " (déjà faite)";
+    else if (faites === total) faitesTxt = " (toutes faites)";
+    else if (faites === 1) faitesTxt = " (dont 1 faite)";
+    else faitesTxt = ` (dont ${faites} faites)`;
+  }
+  const emporte =
+    total === 1
+      ? "la tâche, ses sous-tâches et ses images seront supprimées"
+      : "les tâches, leurs sous-tâches et leurs images seront supprimées";
+  return `Supprimer la liste « ${nom} » et ${tachesTxt}${faitesTxt} ? Cette action est définitive : ${emporte}.`;
+}
+
+/** Libellé discret du nombre de tâches d'une liste (« 12 tâches »). */
+export function libelleNombreTaches(total: number): string {
+  if (total <= 0) return "Aucune tâche";
+  return total === 1 ? "1 tâche" : `${total} tâches`;
+}
+
 export type ChampsAvancesTache = Pick<
   Tables<"taches">,
   | "heure"

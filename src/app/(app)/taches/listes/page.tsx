@@ -1,4 +1,4 @@
-import { getListes, getTags } from "@/app/actions/taches";
+import { getComptesTachesParListe, getListes, getTags } from "@/app/actions/taches";
 import { TransitionLink } from "@/components/TransitionLink";
 import { eyebrow, linkButton, screenTitle, sectionTitle } from "@/lib/ui";
 import { AddListeToggle } from "./AddListeToggle";
@@ -7,7 +7,7 @@ import { AddTagToggle } from "./AddTagToggle";
 import { TagsManager } from "./TagsManager";
 
 export default async function ListesTachesPage() {
-  const [listes, tags] = await Promise.all([getListes(), getTags()]);
+  const [listes, tags, comptes] = await Promise.all([getListes(), getTags(), getComptesTachesParListe()]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -22,7 +22,7 @@ export default async function ListesTachesPage() {
       <div className="flex flex-col gap-2.5">
         <h2 className={sectionTitle}>Listes</h2>
         <AddListeToggle />
-        <ListesManager listes={listes} />
+        <ListesManager listes={listes} comptes={comptes} />
       </div>
 
       <div className="flex flex-col gap-2.5">

@@ -35,7 +35,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(getQueryClient);
   // Écoute online/offline et rejoue la file d'attente offline (voir
   // src/lib/offline/) au retour en ligne, pour toute l'app.
-  useOnlineSync();
+  // Après un rejeu réussi, on invalide tout : la file couvre plusieurs
+  // modules (tâches, notes, courses, habitudes) et un refetch parti à la
+  // reconnexion a pu lire l'état serveur avant le rejeu.
+  useOnlineSync(() => {
+    queryClient.invalidateQueries();
+  });
 
   return (
     <QueryClientProvider client={queryClient}>

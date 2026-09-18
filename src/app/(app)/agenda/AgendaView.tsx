@@ -18,6 +18,8 @@ import {
 import { getListes, getTachesAvecRelations, getTags } from "@/app/actions/taches";
 import { getPlanningTravail, getPlanningTravailExceptions } from "@/app/actions/planning-travail";
 import { queryKeys } from "@/lib/query/keys";
+import { showToast } from "@/components/toast/toast-store";
+import { DUREE_TOAST_AVERTISSEMENT_MS } from "@/lib/taches/compute";
 import { Modal } from "@/components/Modal";
 import { useBackClose } from "@/hooks/useBackClose";
 import { DayView } from "./DayView";
@@ -249,9 +251,11 @@ export function AgendaView() {
               listes={listes}
               tags={tags}
               defaultEcheance={toISODate(selectedDate)}
-              onDone={() => {
+              onDone={(_id, avertissement) => {
                 setFabOpen(false);
                 queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+                // Création réussie mais tags/image en échec : ne pas le taire.
+                if (avertissement) showToast(avertissement, DUREE_TOAST_AVERTISSEMENT_MS);
               }}
             />
           </Modal>

@@ -47,12 +47,16 @@ let flushing = false;
 // fur et à mesure. S'arrête au premier échec (probablement un nouveau
 // passage offline) : les actions restantes seront retentées au prochain
 // appel plutôt que perdues.
-export async function flushQueue() {
-  if (flushing) return;
+// Renvoie le nombre d'actions rejouées avec succès (0 si rien à faire ou si
+// un rejeu est déjà en cours) : l'appelant s'en sert pour rafraîchir les
+// données affichées, qu'un refetch parti à la reconnexion a pu lire AVANT le
+// rejeu.
+export async function flushQueue(): Promise<number> {
+  if (flushing) return 0;
   flushing = true;
   try {
     const pending = await db.pending_actions.orderBy("created_at").toArray();
-    if (pending.length === 0) return;
+    if (pending.length === 0) return 0;
 
     let synced = 0;
     for (const action of pending) {
@@ -73,6 +77,7 @@ export async function flushQueue() {
     if (synced > 0) {
       showToast(`${synced} action${synced > 1 ? "s" : ""} synchronisée${synced > 1 ? "s" : ""}`);
     }
+    return synced;
   } finally {
     flushing = false;
   }

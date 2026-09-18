@@ -1,17 +1,17 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   createTache,
-  deleteTacheImage,
   updateTache,
   type TacheAvecRelations,
   type TacheFormState,
 } from "@/app/actions/taches";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { FREQUENCE_LABELS, aujourdhuiISO } from "@/lib/budget/compute";
-import { champsAvancesRenseignes } from "@/lib/taches/compute";
+import { champsAvancesRenseignes, messageHorsLigne } from "@/lib/taches/compute";
+import { isNetworkError } from "@/lib/offline/queue";
 import { errorText, input, label as labelClass, primaryButton, secondaryButton } from "@/lib/ui";
 
 function ImageIcon() {
@@ -99,10 +99,29 @@ export function AddTaskForm({
   defaultEcheance?: string;
   defaultHeure?: string;
   // `id` : id de la tâche créée (création réussie uniquement, cf.
-  // TacheFormState). Les appelants qui n'en ont pas besoin l'ignorent.
-  onDone?: (id?: string) => void;
+  // TacheFormState). `avertissement` : la tâche est créée mais une étape
+  // secondaire (tags, images) a échoué. Les appelants qui n'en ont pas
+  // besoin ignorent ces arguments.
+  onDone?: (id?: string, avertissement?: string) => void;
 }) {
-  const action = tache ? updateTache : createTache;
+  const actionServeur = tache ? updateTache : createTache;
+  // Envoi impossible (hors ligne, erreur réseau) : on renvoie une erreur de
+  // formulaire en français au lieu de laisser l'exception remonter jusqu'à
+  // error.tsx, et la saisie est conservée. Aucune file hors ligne pour la
+  // création/édition (formulaire avec fichiers) : c'est un simple réessai.
+  // Toute autre erreur est relancée.
+  const action = async (prevState: TacheFormState, formData: FormData): Promise<TacheFormState> => {
+    const messageReseau = messageHorsLigne(Boolean(tache));
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return { error: messageReseau };
+    }
+    try {
+      return await actionServeur(prevState, formData);
+    } catch (err) {
+      if (isNetworkError(err)) return { error: messageReseau };
+      throw err;
+    }
+  };
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
 
@@ -139,16 +158,28 @@ export function AddTaskForm({
   const [imagesError, setImagesError] = useState<string | null>(null);
   const previews = useMemo(() => selectedFiles.map((file) => URL.createObjectURL(file)), [selectedFiles]);
   const [existingImages, setExistingImages] = useState<Tables<"tache_images">[]>(tache?.images ?? []);
-  const [isDeletingImage, startImageTransition] = useTransition();
+  // Images retirées de l'affichage mais pas encore supprimées : le serveur
+  // les supprime à « Enregistrer » (champs cachés `delete_image_ids`),
+  // « Annuler » n'a donc rien à annuler. Conservé tel quel si l'envoi échoue.
+  const [imagesASupprimer, setImagesASupprimer] = useState<string[]>([]);
 
   useEffect(() => {
     if (prevPending.current && !pending && !state.error) {
-      onDone?.(state.id);
+      onDone?.(state.id, state.avertissement);
     }
     prevPending.current = pending;
+  }, [pending, state.error, state.id, state.avertissement, onDone]);
+
+  // Effet séparé, sans `onDone` dans ses dépendances : `onDone` change
+  // d'identité à chaque rendu du parent, ce qui réarmerait le verrou d'envoi
+  // en plein vol. `state` (objet renvoyé par l'action, identité stable entre
+  // deux rendus) est là pour le cas où l'action se résout aussitôt (hors
+  // ligne) : `pending` peut alors passer à vrai puis à faux dans le même lot
+  // de rendu sans jamais changer de valeur visible.
+  useEffect(() => {
     pendingRef.current = pending;
     if (!pending) submitLockRef.current = false;
-  }, [pending, state.error, state.id, onDone]);
+  }, [pending, state]);
 
   useEffect(() => {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
@@ -178,7 +209,7 @@ export function AddTaskForm({
       form.reportValidity();
       return;
     }
-    submitLockRef.current = true;
+    // Le verrou est posé par handleSubmit, que requestSubmit() déclenche.
     form.requestSubmit();
   }, []);
 
@@ -253,18 +284,40 @@ export function AddTaskForm({
     if (fileInputRef.current) fileInputRef.current.files = dataTransfer.files;
   }
 
+  // Différé : ne fait que retirer la vignette et mémoriser l'id, rien n'est
+  // supprimé côté serveur avant « Enregistrer ».
   function removeExistingImage(imageId: string) {
-    startImageTransition(async () => {
-      await deleteTacheImage(imageId);
-      setExistingImages((imgs) => imgs.filter((img) => img.id !== imageId));
+    setExistingImages((imgs) => imgs.filter((img) => img.id !== imageId));
+    setImagesASupprimer((ids) => (ids.includes(imageId) ? ids : [...ids, imageId]));
+  }
+
+  // <form onSubmit> plutôt que <form action> : React 19 réinitialise les
+  // champs non contrôlés d'un formulaire à action (requestFormReset, appelé
+  // avant l'action) même quand elle renvoie une erreur, ce qui effaçait
+  // liste, échéance, notes, nouveaux tags et fichiers après un échec. Sans
+  // prop `action`, React ne réinitialise rien. On appelle nous-mêmes
+  // formAction, DANS une transition : c'est ce qui maintient `pending` à
+  // vrai pendant l'action (dispatchActionState).
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // Jamais deux envois en même temps (double tap, Entrée + « Créer ») : le
+    // verrou couvre l'intervalle avant que `pending` ne soit rendu à vrai.
+    if (pendingRef.current || submitLockRef.current) return;
+    submitLockRef.current = true;
+    const formData = new FormData(e.currentTarget);
+    startTransition(() => {
+      formAction(formData);
     });
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {tache && <input type="hidden" name="id" value={tache.id} />}
       {tagIds.map((id) => (
         <input key={id} type="hidden" name="tag_ids" value={id} />
+      ))}
+      {imagesASupprimer.map((imageId) => (
+        <input key={imageId} type="hidden" name="delete_image_ids" value={imageId} />
       ))}
       <input type="hidden" name="priorite" value={priorite} />
 
@@ -482,7 +535,6 @@ export function AddTaskForm({
                   src={image.url}
                   onRemove={() => removeExistingImage(image.id)}
                   removeLabel="Supprimer cette image"
-                  disabled={isDeletingImage}
                 />
               ))}
 
