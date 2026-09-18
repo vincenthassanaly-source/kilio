@@ -57,6 +57,13 @@ function ImageThumb({
 }
 
 const initialState: TacheFormState = { error: null };
+// Marge sous next.config.ts (serverActions.bodySizeLimit: "4mb") : une
+// requête refusée par cette limite plante toute la page (le fetch de
+// Server Action échoue avant même que createTache/uploadTacheImages ne
+// s'exécute, donc rien ne peut l'intercepter côté serveur). On bloque donc
+// l'envoi en amont, côté client, avec un message clair plutôt que de
+// laisser passer une requête vouée à échouer.
+const MAX_IMAGES_TOTAL_BYTES = 3.8 * 1024 * 1024;
 const FREQUENCES = Object.keys(FREQUENCE_LABELS) as Enums<"frequence_recurrence">[];
 const TITRE_MAX_HEIGHT_PX = 160; // ~8-9 lignes avant de passer en scroll interne
 
@@ -104,6 +111,7 @@ export function AddTaskForm({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagesError, setImagesError] = useState<string | null>(null);
   const previews = useMemo(() => selectedFiles.map((file) => URL.createObjectURL(file)), [selectedFiles]);
   const [existingImages, setExistingImages] = useState<Tables<"tache_images">[]>(tache?.images ?? []);
   const [isDeletingImage, startImageTransition] = useTransition();
@@ -137,7 +145,23 @@ export function AddTaskForm({
   }
 
   function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSelectedFiles(Array.from(e.target.files ?? []));
+    const files = Array.from(e.target.files ?? []);
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+
+    if (totalBytes > MAX_IMAGES_TOTAL_BYTES) {
+      setImagesError("Image trop volumineuse, réessayez avec une photo plus légère.");
+      // Restaure la sélection précédente dans l'input : sinon son FileList
+      // (ce qui est réellement soumis) se viderait alors que les vignettes
+      // affichées (selectedFiles, inchangé) montreraient encore l'ancienne
+      // sélection — même technique DataTransfer que removeSelectedFile.
+      const dataTransfer = new DataTransfer();
+      selectedFiles.forEach((file) => dataTransfer.items.add(file));
+      e.target.files = dataTransfer.files;
+      return;
+    }
+
+    setImagesError(null);
+    setSelectedFiles(files);
   }
 
   function removeSelectedFile(index: number) {
@@ -398,6 +422,11 @@ export function AddTaskForm({
               )
           )}
         </div>
+        {imagesError && (
+          <p className={errorText} role="alert">
+            {imagesError}
+          </p>
+        )}
       </div>
 
       {tags.length > 0 && (
