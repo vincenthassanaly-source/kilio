@@ -31,10 +31,18 @@ export type DecisionAvantExecution = { type: "purger_immediat" } | { type: "exec
  * (`22P02: invalid input syntax for type uuid`, vérifié en base). Court-
  * circuite l'appel réseau pour purger l'action tout de suite plutôt que
  * d'attendre `SEUIL_ABANDON_TENTATIVES` tentatives inutiles — c'est ce qui
- * débloque dès le premier flush une file déjà coincée par ce scénario. */
+ * débloque dès le premier flush une file déjà coincée par ce scénario.
+ * `updateCourseItem` (renommage, lot B) est concerné au même titre que
+ * `toggleCourseItem`/`deleteCourseItem` : son premier argument est aussi un
+ * id ciblé par `.eq("id", ...)` — en pratique ce cas ne devrait jamais se
+ * produire (le renommage est bloqué côté UI et sa `mutationFn` tant que
+ * l'article reste `temp-`, voir CourseItemRow), cette purge n'est qu'une
+ * défense en profondeur supplémentaire côté file. */
 export function decisionAvantExecution(action: ActionEnAttente): DecisionAvantExecution {
   const ciblesTemporaireCourses = action.module === "courses"
-    && (action.action_name === "toggleCourseItem" || action.action_name === "deleteCourseItem")
+    && (action.action_name === "toggleCourseItem"
+      || action.action_name === "deleteCourseItem"
+      || action.action_name === "updateCourseItem")
     && estIdTemporaire(action.payload[0]);
 
   return ciblesTemporaireCourses ? { type: "purger_immediat" } : { type: "executer" };

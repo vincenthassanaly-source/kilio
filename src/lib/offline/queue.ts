@@ -5,7 +5,14 @@ import { decisionApresEchec, decisionAvantExecution } from "./flush-policy";
 import { showToast } from "@/components/toast/toast-store";
 import { toggleTache, deleteTache } from "@/app/actions/taches";
 import { toggleNoteItem, deleteNote } from "@/app/actions/notes";
-import { createCourseItem, toggleCourseItem, deleteCourseItem } from "@/app/actions/courses";
+import {
+  createCourseItem,
+  toggleCourseItem,
+  deleteCourseItem,
+  updateCourseItem,
+  deleteCourseItems,
+  restoreCourseItems,
+} from "@/app/actions/courses";
 import { enregistrerEntreeHabitude, supprimerHabitude } from "@/app/actions/habitudes";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,7 +24,14 @@ type ActionFn = (...args: any[]) => Promise<unknown>;
 const ACTIONS: Record<string, Record<string, ActionFn>> = {
   taches: { toggleTache, deleteTache },
   notes: { toggleNoteItem, deleteNote },
-  courses: { createCourseItem, toggleCourseItem, deleteCourseItem },
+  courses: {
+    createCourseItem,
+    toggleCourseItem,
+    deleteCourseItem,
+    updateCourseItem,
+    deleteCourseItems,
+    restoreCourseItems,
+  },
   habitudes: { enregistrerEntreeHabitude, supprimerHabitude },
 };
 
