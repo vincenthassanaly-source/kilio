@@ -27,7 +27,7 @@ import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { ListView } from "./ListView";
 import { parseISODate, toISODate } from "./date-utils";
-import { errorText } from "@/lib/ui";
+import { errorText, secondaryButton } from "@/lib/ui";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 
@@ -75,7 +75,12 @@ export function AgendaView() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const { data: taches, isLoading: tachesLoading, isError: tachesError } = useQuery({
+  const {
+    data: taches,
+    isLoading: tachesLoading,
+    isError: tachesError,
+    refetch: refetchTaches,
+  } = useQuery({
     queryKey: queryKeys.taches,
     queryFn: getTachesAvecRelations,
   });
@@ -250,7 +255,7 @@ export function AgendaView() {
       <button
         type="button"
         onClick={() => setFabOpen(true)}
-        aria-label="Ajouter un événement"
+        aria-label="Ajouter une tâche"
         className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-on-agenda shadow-card"
         style={{ background: "var(--accent-agenda)", bottom: "calc(env(safe-area-inset-bottom) + 90px)" }}
       >
@@ -261,7 +266,7 @@ export function AgendaView() {
 
       <AnimatePresence>
         {fabOpen && (
-          <Modal key="nouvel-evenement" title="Nouvel événement" onClose={() => setFabOpen(false)}>
+          <Modal key="nouvelle-tache" title="Nouvelle tâche" onClose={() => setFabOpen(false)}>
             <AddTaskForm
               listes={listes}
               tags={tags}
@@ -308,7 +313,12 @@ export function AgendaView() {
           <ListItemSkeletonGroup count={5} withSubtitle />
         </div>
       ) : tachesError || !taches ? (
-        <p className={errorText}>Erreur de chargement de l&apos;agenda. Réessaie.</p>
+        <div className="flex flex-col items-center gap-3 py-4 text-center" role="alert">
+          <p className={errorText}>Erreur de chargement de l&apos;agenda. Réessaie.</p>
+          <button type="button" onClick={() => refetchTaches()} className={secondaryButton}>
+            Réessayer
+          </button>
+        </div>
       ) : (
         <>
           {view !== "liste" && (

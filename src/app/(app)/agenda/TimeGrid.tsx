@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import type { CreneauDuJour } from "@/lib/agenda/planning-travail";
 import { getBlocInterval } from "@/lib/agenda/compute";
 import { heureToMinutes } from "./date-utils";
@@ -238,5 +238,51 @@ export function WorkHoursBand({ creneaux, zoom }: { creneaux: CreneauDuJour[]; z
         );
       })}
     </>
+  );
+}
+
+function nowMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+// Repère "maintenant" : ligne horizontale à la minute courante, affichée
+// dans la vue Jour quand le jour affiché est aujourd'hui, et dans la
+// colonne du jour courant en vue Semaine (cf. DayView/WeekView). Mise à
+// jour toutes les 60s ; en pause (pas de re-render) quand l'onglet est en
+// arrière-plan (`document.hidden`) plutôt que de continuer à calculer une
+// position invisible — un `visibilitychange` au retour au premier plan
+// rattrape immédiatement la position sans attendre le prochain intervalle.
+// `aria-hidden`/`pointer-events-none` : purement décoratif, ne doit
+// intercepter ni le tap sur un bloc de tâche ni le swipe/pinch-zoom de la
+// grille. Masqué avant 06h (hors de la plage affichée par la grille,
+// cf. GRID_START_HOUR) — jamais après 24h, une journée ne dépassant pas
+// 23h59.
+export function NowLine({ zoom }: { zoom: number }) {
+  const [minutes, setMinutes] = useState(nowMinutes);
+
+  useEffect(() => {
+    function update() {
+      if (document.hidden) return;
+      setMinutes(nowMinutes());
+    }
+    const interval = setInterval(update, 60_000);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+
+  if (minutes < GRID_START_HOUR * 60) return null;
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-agenda"
+      style={{ top: minutesToPx(minutes, zoom) }}
+    >
+      <span className="absolute -left-0.5 -top-[5px] h-2.5 w-2.5 rounded-full bg-agenda" />
+    </div>
   );
 }

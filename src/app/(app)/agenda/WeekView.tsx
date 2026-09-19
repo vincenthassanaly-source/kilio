@@ -8,6 +8,7 @@ import {
   format,
   isSameDay,
   isToday,
+  startOfToday,
   startOfWeek,
   subWeeks,
 } from "date-fns";
@@ -15,12 +16,13 @@ import { fr } from "date-fns/locale";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
 import { layoutChevauchements } from "@/lib/agenda/compute";
-import { ghostButton } from "@/lib/ui";
+import { PeriodHeader } from "./PeriodHeader";
 import { parseISODate } from "./date-utils";
 import {
   computeInitialScrollMinutes,
   gridHeight,
   HourLines,
+  NowLine,
   TimeGutter,
   UNSCHEDULED_BAND_HEIGHT,
   useInitialScroll,
@@ -95,27 +97,15 @@ export function WeekView({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onChangeDate(subWeeks(selectedDate, 1))}
-          className={ghostButton}
-          aria-label="Semaine précédente"
-        >
-          ←
-        </button>
-        <span className="text-sm font-semibold text-ink">
-          {format(weekStart, "d MMM", { locale: fr })} – {format(weekEnd, "d MMM yyyy", { locale: fr })}
-        </span>
-        <button
-          type="button"
-          onClick={() => onChangeDate(addWeeks(selectedDate, 1))}
-          className={ghostButton}
-          aria-label="Semaine suivante"
-        >
-          →
-        </button>
-      </div>
+      <PeriodHeader
+        title={`${format(weekStart, "d MMM", { locale: fr })} – ${format(weekEnd, "d MMM yyyy", { locale: fr })}`}
+        prevLabel="Semaine précédente"
+        nextLabel="Semaine suivante"
+        onPrev={() => onChangeDate(subWeeks(selectedDate, 1))}
+        onNext={() => onChangeDate(addWeeks(selectedDate, 1))}
+        showToday={!weekContainsToday}
+        onToday={() => onChangeDate(startOfToday())}
+      />
 
       <div className="overflow-hidden rounded-2xl border border-line bg-surface">
         <div
@@ -188,6 +178,7 @@ export function WeekView({
                   >
                     <HourLines zoom={zoom} />
                     <WorkHoursBand creneaux={creneauxJour} zoom={zoom} />
+                    {isToday(day) && <NowLine zoom={zoom} />}
                     {dayTachesAvecHeure.map((t) => (
                       <TacheBlock key={t.id} tache={t} zoom={zoom} position={positions.get(t.id)} compact />
                     ))}

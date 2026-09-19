@@ -38,6 +38,13 @@ export const addCardIcon =
 
 export const ghostButton =
   `rounded-xl border border-line px-2.5 py-1.5 text-sm font-medium text-ink transition active:scale-[0.97] hover:bg-surface-alt ${focusRing}`;
+// Variante de `ghostButton` dédiée aux flèches de navigation de période
+// (Agenda : jour/semaine/mois précédent-suivant) — cible tactile 44×44px
+// minimum (h-11 w-11), contrairement à `ghostButton` (compact, utilisé
+// ailleurs dans l'app) qu'on ne modifie pas pour ne pas grossir tous ses
+// autres usages.
+export const navArrowButton =
+  `flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink transition active:scale-[0.97] hover:bg-surface-alt ${focusRing}`;
 export const dangerButton =
   `rounded-xl border border-alert/30 px-2.5 py-1.5 text-sm font-medium text-alert transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
 export const linkButton = `text-sm font-semibold text-kcal ${focusRing}`;

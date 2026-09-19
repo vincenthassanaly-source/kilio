@@ -9,13 +9,14 @@ import {
   isSameMonth,
   isToday,
   startOfMonth,
+  startOfToday,
   startOfWeek,
   subMonths,
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
-import { ghostButton } from "@/lib/ui";
+import { PeriodHeader } from "./PeriodHeader";
 import { toISODate } from "./date-utils";
 
 type Tache = Tables<"taches">;
@@ -61,27 +62,16 @@ export function MonthView({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onChangeDate(subMonths(selectedDate, 1))}
-          className={ghostButton}
-          aria-label="Mois précédent"
-        >
-          ←
-        </button>
-        <span className="text-sm font-semibold capitalize text-ink">
-          {format(selectedDate, "MMMM yyyy", { locale: fr })}
-        </span>
-        <button
-          type="button"
-          onClick={() => onChangeDate(addMonths(selectedDate, 1))}
-          className={ghostButton}
-          aria-label="Mois suivant"
-        >
-          →
-        </button>
-      </div>
+      <PeriodHeader
+        title={format(selectedDate, "MMMM yyyy", { locale: fr })}
+        capitalizeTitle
+        prevLabel="Mois précédent"
+        nextLabel="Mois suivant"
+        onPrev={() => onChangeDate(subMonths(selectedDate, 1))}
+        onNext={() => onChangeDate(addMonths(selectedDate, 1))}
+        showToday={!isSameMonth(selectedDate, new Date())}
+        onToday={() => onChangeDate(startOfToday())}
+      />
 
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-ink-2">
         {WEEKDAY_LABELS.map((label, i) => (
@@ -113,6 +103,24 @@ export function MonthView({
             </button>
           );
         })}
+      </div>
+
+      {/* Légende décorative : le statut "jour travaillé"/nombre de tâches
+          est déjà annoncé par case via monthCellAriaLabel ci-dessus, donc
+          masquée aux lecteurs d'écran pour ne pas doubler l'annonce. */}
+      <div aria-hidden className="flex items-center justify-center gap-1.5 text-[10px] font-medium text-ink-2">
+        <span className="flex items-center gap-1">
+          <span
+            className="h-2.5 w-2.5 rounded-[3px]"
+            style={{ backgroundColor: "var(--accent-planning-travail-soft)" }}
+          />
+          jour travaillé
+        </span>
+        <span>·</span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-agenda" />
+          tâche(s)
+        </span>
       </div>
     </div>
   );
