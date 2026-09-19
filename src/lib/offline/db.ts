@@ -9,6 +9,12 @@ export type PendingAction = {
   action_name: string;
   payload: unknown[];
   created_at: string;
+  // Nombre d'échecs non réseau déjà comptabilisés (voir flush-policy.ts,
+  // SEUIL_ABANDON_TENTATIVES) — absent tant qu'aucun échec non réseau n'a eu
+  // lieu (équivalent à 0). Champ non indexé : aucun bump de version Dexie
+  // nécessaire pour l'ajouter, Dexie stocke l'objet entier quel que soit le
+  // schéma déclaré ci-dessous.
+  tentatives?: number;
 };
 
 class OfflineDB extends Dexie {

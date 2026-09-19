@@ -16,3 +16,15 @@ export function grouperItemsCourses(items: Tables<"courses_items">[]): {
     archives: items.filter((item) => item.coche),
   };
 }
+
+/** Un article créé hors ligne reçoit un id optimiste `temp-<uuid>`
+ * (`AddCourseForm.onMutate`) tant que la création n'a pas été confirmée par
+ * le serveur — `courses_items.id` étant une colonne `uuid`, aucune action
+ * ciblant cet id ne peut jamais aboutir en base. Utilisé à la fois par le
+ * garde-fou d'UI (`CourseItemRow`, désactive cocher/supprimer) et par la
+ * politique de la file offline (`src/lib/offline/flush-policy.ts`, purge
+ * immédiate sans appel serveur) — voir reports/2026-09-19-audit-module-courses.md
+ * constats #13/#15. */
+export function estIdTemporaire(id: unknown): boolean {
+  return typeof id === "string" && id.startsWith("temp-");
+}

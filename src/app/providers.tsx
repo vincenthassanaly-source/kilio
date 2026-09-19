@@ -35,9 +35,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(getQueryClient);
   // Écoute online/offline et rejoue la file d'attente offline (voir
   // src/lib/offline/) au retour en ligne, pour toute l'app.
-  // Après un rejeu réussi, on invalide tout : la file couvre plusieurs
-  // modules (tâches, notes, courses, habitudes) et un refetch parti à la
-  // reconnexion a pu lire l'état serveur avant le rejeu.
+  // Après un rejeu qui a synchronisé OU abandonné au moins une action, on
+  // invalide tout : la file couvre plusieurs modules (tâches, notes,
+  // courses, habitudes), un refetch parti à la reconnexion a pu lire l'état
+  // serveur avant le rejeu, et un abandon peut laisser un article optimiste
+  // fantôme à l'écran (voir flush-policy.ts).
   useOnlineSync(() => {
     queryClient.invalidateQueries();
   });

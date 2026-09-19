@@ -11,12 +11,19 @@ import { confirmDelete } from "@/lib/confirm";
 import { CheckToggle } from "@/components/CheckToggle";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
+import { estIdTemporaire } from "@/lib/courses/compute";
 
 // Extrait de CoursesList pour être réutilisé tel quel par
 // ArchivedCoursesSection (mêmes mutations optimistes toggle/suppression pour
 // les articles archivés), sans import circulaire entre les deux fichiers.
 export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
   const queryClient = useQueryClient();
+  // Article créé hors ligne, encore affiché avec son id optimiste
+  // `temp-<uuid>` tant que la création n'a pas été confirmée par le serveur
+  // (voir AddCourseForm.onMutate) : cocher/supprimer ne peut jamais aboutir
+  // pour cet id (colonne uuid en base) et mettrait en file une action
+  // irrécupérable — voir reports/2026-09-19-audit-module-courses.md #13/#15.
+  const enAttenteDeCreation = estIdTemporaire(item.id);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.courses });
@@ -31,6 +38,13 @@ export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
         await toggleCourseItem(item.id, !item.coche);
       } catch (err) {
         if (!isNetworkError(err)) throw err;
+        // Défense en profondeur : le bouton est déjà désactivé tant que
+        // `enAttenteDeCreation` est vrai (ci-dessous), donc ce chemin ne
+        // devrait jamais s'exécuter en usage normal. On ne met jamais en
+        // file une action ciblant un id temporaire (elle échouerait de toute
+        // façon au rejeu, cf. flush-policy.ts) : on relance, ce qui déclenche
+        // le rollback + toast d'erreur habituels de `onError`.
+        if (enAttenteDeCreation) throw err;
         await enqueueAction("courses", "toggleCourseItem", [item.id, !item.coche]);
         showToast("Enregistré, sera synchronisé à la reconnexion");
       }
@@ -56,6 +70,8 @@ export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
         await deleteCourseItem(item.id);
       } catch (err) {
         if (!isNetworkError(err)) throw err;
+        // Voir le commentaire équivalent dans toggleMutation ci-dessus.
+        if (enAttenteDeCreation) throw err;
         await enqueueAction("courses", "deleteCourseItem", [item.id]);
         showToast("Enregistré, sera synchronisé à la reconnexion");
       }
@@ -83,21 +99,27 @@ export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.18 }}
       className={listCard}
+      aria-busy={enAttenteDeCreation || undefined}
     >
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center gap-3 ${enAttenteDeCreation ? "opacity-60" : ""}`}>
         <CheckToggle
           checked={item.coche}
-          disabled={toggleMutation.isPending}
+          disabled={toggleMutation.isPending || enAttenteDeCreation}
           onToggle={() => toggleMutation.mutate()}
           color="var(--accent-courses)"
           label={item.coche ? "Décocher l'article" : "Cocher l'article"}
         />
-        <p className={`flex-1 ${nameText} ${item.coche ? "text-ink-2 line-through" : ""}`}>
-          {item.libelle}
-        </p>
+        <div className="flex flex-1 flex-col gap-0.5">
+          <p className={`${nameText} ${item.coche ? "text-ink-2 line-through" : ""}`}>
+            {item.libelle}
+          </p>
+          {enAttenteDeCreation && (
+            <span className="text-xs text-ink-2">En attente de synchro</span>
+          )}
+        </div>
         <button
           type="button"
-          disabled={deleteMutation.isPending}
+          disabled={deleteMutation.isPending || enAttenteDeCreation}
           onClick={() => {
             if (!confirmDelete(`Supprimer « ${item.libelle} » de la liste de courses ?`)) return;
             deleteMutation.mutate();
