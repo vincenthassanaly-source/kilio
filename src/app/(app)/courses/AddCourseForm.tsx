@@ -19,6 +19,10 @@ export function AddCourseForm({ onDone }: { onDone?: () => void }) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
+    // Voir le commentaire équivalent dans CourseItemRow.tsx (toggleMutation) :
+    // sans cette option, une création hors ligne resterait en pause côté
+    // TanStack Query et n'atteindrait jamais le repli Dexie ci-dessous.
+    networkMode: "always",
     mutationFn: async (value: string) => {
       try {
         await createCourseItem(value);

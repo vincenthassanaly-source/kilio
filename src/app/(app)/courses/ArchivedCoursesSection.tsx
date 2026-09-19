@@ -1,32 +1,109 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Tables } from "@/lib/supabase/types";
+import { deleteCourseItems, type CourseItemARestaurer } from "@/app/actions/courses";
+import { queryKeys } from "@/lib/query/keys";
+import { showActionToast, showToast } from "@/components/toast/toast-store";
+import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
+import { restaurerArticlesCourses } from "./undo";
 import { CourseItemRow } from "./CourseItemRow";
-import { card, sectionTitle } from "@/lib/ui";
+import { card, ghostButton, sectionTitle } from "@/lib/ui";
+
+function versSnapshot(item: Tables<"courses_items">): CourseItemARestaurer {
+  return {
+    id: item.id,
+    libelle: item.libelle,
+    coche: item.coche,
+    created_at: item.created_at,
+    termine_le: item.termine_le,
+  };
+}
 
 export function ArchivedCoursesSection({ items }: { items: Tables<"courses_items">[] }) {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Bouton « Vider les cochés » : les ids exacts des articles archivés
+  // affichés (jamais un `where coche = true` côté serveur), pour que
+  // « Annuler » restaure précisément le même ensemble, même si un autre
+  // article a été coché entre-temps. `networkMode: "always"` : même motif
+  // que CourseItemRow (voir son commentaire), pour que la mutation
+  // s'exécute réellement hors ligne et rejoigne la file plutôt que de rester
+  // en pause.
+  const viderMutation = useMutation({
+    networkMode: "always",
+    mutationFn: async (snapshot: CourseItemARestaurer[]) => {
+      const ids = snapshot.map((item) => item.id);
+      try {
+        await deleteCourseItems(ids);
+      } catch (err) {
+        if (!isNetworkError(err)) throw err;
+        await enqueueAction("courses", "deleteCourseItems", [ids]);
+      }
+    },
+    onMutate: async (snapshot) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.courses });
+      const previous = queryClient.getQueryData<Tables<"courses_items">[]>(queryKeys.courses);
+      const ids = new Set(snapshot.map((item) => item.id));
+      queryClient.setQueryData<Tables<"courses_items">[]>(queryKeys.courses, (old) =>
+        old?.filter((i) => !ids.has(i.id))
+      );
+      return { previous };
+    },
+    onSuccess: (_data, snapshot) => {
+      const n = snapshot.length;
+      showActionToast(`${n} article${n > 1 ? "s" : ""} supprimé${n > 1 ? "s" : ""}`, {
+        label: `Annuler la suppression de ${n} article${n > 1 ? "s" : ""}`,
+        onAction: () => restaurerArticlesCourses(queryClient, snapshot),
+      });
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.courses, context.previous);
+      showToast("Impossible de supprimer les articles cochés.");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.courses }),
+  });
 
   if (items.length === 0) return null;
 
+  function handleVider() {
+    if (items.length === 0) return;
+    viderMutation.mutate(items.map(versSnapshot));
+  }
+
   return (
     <div className={card}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2"
-        aria-expanded={open}
-      >
-        <span className={sectionTitle}>Articles archivés ({items.length})</span>
-        <span
-          className={`text-ink-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          aria-hidden
+      {/* Deux contrôles distincts côte à côte (pas de <button> imbriqué dans
+          un autre) : le dépliage à gauche, « Vider les cochés » à droite —
+          visible même section repliée, pour vider en sortant du magasin
+          sans avoir à déplier. */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1.5 py-1"
+          aria-expanded={open}
         >
-          ▾
-        </span>
-      </button>
+          <span className={sectionTitle}>Articles archivés ({items.length})</span>
+          <span
+            className={`text-ink-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            aria-hidden
+          >
+            ▾
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handleVider}
+          disabled={viderMutation.isPending}
+          className={ghostButton}
+        >
+          Vider les cochés
+        </button>
+      </div>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
