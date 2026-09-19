@@ -12,6 +12,7 @@ import {
   updateCourseItem,
   deleteCourseItems,
   restoreCourseItems,
+  ajouterArticlesCourses,
 } from "@/app/actions/courses";
 import { enregistrerEntreeHabitude, supprimerHabitude } from "@/app/actions/habitudes";
 
@@ -31,6 +32,7 @@ const ACTIONS: Record<string, Record<string, ActionFn>> = {
     updateCourseItem,
     deleteCourseItems,
     restoreCourseItems,
+    ajouterArticlesCourses,
   },
   habitudes: { enregistrerEntreeHabitude, supprimerHabitude },
 };
