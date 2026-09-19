@@ -32,9 +32,13 @@ export function AddCourseToggle() {
   return (
     <AnimatedAddCard open={open} trigger={trigger}>
       <div className={card}>
-        <AddCourseForm onDone={() => setOpen(false)} />
+        <AddCourseForm />
+        {/* Le formulaire reste ouvert après chaque ajout (#1) : ce bouton
+            est désormais la seule façon de refermer la carte volontairement
+            (avec le retour, via useBackClose ci-dessus) — "Fermer" plutôt
+            que "Annuler", puisqu'il n'annule plus rien en cours. */}
         <button type="button" onClick={() => setOpen(false)} className="mt-2 text-sm text-ink-2 underline">
-          Annuler
+          Fermer
         </button>
       </div>
     </AnimatedAddCard>

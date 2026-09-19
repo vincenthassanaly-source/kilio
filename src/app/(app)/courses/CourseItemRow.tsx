@@ -266,7 +266,14 @@ export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
           type="button"
           disabled={deleteMutation.isPending || enAttenteDeCreation}
           onClick={() => deleteMutation.mutate()}
-          className={dangerButton}
+          // `dangerButton` (src/lib/ui.ts) mesure ~34px de haut, partagé par
+          // une vingtaine d'écrans : on ne le modifie pas pour ne pas
+          // agrandir tous ses autres usages (même motif que `navArrowButton`
+          // dans ui.ts). `min-h-11` (44px) porte la cible de tap de CE
+          // bouton précis au minimum recommandé, sans changer sa couleur,
+          // son rayon ni sa police — juste un peu plus de hauteur, centrée
+          // sur le texte.
+          className={`${dangerButton} flex min-h-11 items-center justify-center`}
         >
           Suppr.
         </button>
