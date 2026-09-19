@@ -251,7 +251,7 @@ export function AgendaView() {
         type="button"
         onClick={() => setFabOpen(true)}
         aria-label="Ajouter un événement"
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-card"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-on-agenda shadow-card"
         style={{ background: "var(--accent-agenda)", bottom: "calc(env(safe-area-inset-bottom) + 90px)" }}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -284,6 +284,7 @@ export function AgendaView() {
               key={v.key}
               type="button"
               onClick={() => setView(v.key)}
+              aria-pressed={view === v.key}
               className="relative flex-1 rounded-xl py-2 text-[13px] font-semibold"
             >
               {view === v.key && (
@@ -293,7 +294,7 @@ export function AgendaView() {
                   transition={vuePillTransition(reduceMotion)}
                 />
               )}
-              <span className={`relative transition-colors ${view === v.key ? "text-white" : "text-ink-2"}`}>
+              <span className={`relative transition-colors ${view === v.key ? "text-on-agenda" : "text-ink-2"}`}>
                 {v.label}
               </span>
             </button>

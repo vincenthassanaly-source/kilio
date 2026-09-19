@@ -18,6 +18,12 @@
   --accent-warning: oklch(0.6 0.15 55);
   --accent-alert: oklch(0.55 0.19 25);
   --accent-agenda: oklch(0.55 0.14 230);
+  /* Texte/icône posés sur un fond --accent-agenda plein (segment actif du
+     sélecteur de vues, icône du FAB) : blanc en clair (≥4,5:1 sur
+     accent-agenda clair), encre très sombre en sombre (accent-agenda sombre
+     est trop clair pour du blanc, ~2,4:1) — voir
+     reports/2026-09-19-agenda-lot-2-lisibilite.md pour les ratios mesurés. */
+  --on-agenda: oklch(1 0 0);
   --accent-planning-travail: oklch(0.38 0.09 150);
   --accent-planning-travail-soft: oklch(0.38 0.09 150 / 0.3);
   --accent-habitudes: oklch(0.55 0.14 45);
@@ -56,6 +62,7 @@
   --accent-warning: oklch(0.75 0.14 55);
   --accent-alert: oklch(0.7 0.17 25);
   --accent-agenda: oklch(0.72 0.13 230);
+  --on-agenda: oklch(0.16 0.02 230);
   --accent-planning-travail: oklch(0.5 0.1 150);
   --accent-planning-travail-soft: oklch(0.5 0.1 150 / 0.3);
   --accent-habitudes: oklch(0.72 0.13 45);
@@ -95,6 +102,7 @@
   --color-warning: var(--accent-warning);
   --color-alert: var(--accent-alert);
   --color-agenda: var(--accent-agenda);
+  --color-on-agenda: var(--on-agenda);
   --color-planning-travail: var(--accent-planning-travail);
   --color-planning-travail-soft: var(--accent-planning-travail-soft);
   --color-habitudes: var(--accent-habitudes);

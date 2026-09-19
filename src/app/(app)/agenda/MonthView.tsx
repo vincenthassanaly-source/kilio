@@ -22,6 +22,16 @@ type Tache = Tables<"taches">;
 
 const WEEKDAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 
+// "jour travaillé" n'est annoncé que si des créneaux de planning-travail
+// existent effectivement ce jour-là (cf. `jourTravaille` ci-dessous) : ne
+// pas l'annoncer par défaut évite de donner une fausse information à un
+// utilisateur de lecteur d'écran un jour sans créneau.
+function monthCellAriaLabel(day: Date, count: number, jourTravaille: boolean): string {
+  const dateLabel = format(day, "EEEE d MMMM", { locale: fr });
+  const tachesLabel = count === 0 ? "aucune tâche" : count === 1 ? "1 tâche" : `${count} tâches`;
+  return jourTravaille ? `${dateLabel}, ${tachesLabel}, jour travaillé` : `${dateLabel}, ${tachesLabel}`;
+}
+
 export function MonthView({
   taches,
   creneaux,
@@ -91,6 +101,8 @@ export function MonthView({
               key={day.toISOString()}
               type="button"
               onClick={() => onSelectDay(day)}
+              aria-label={monthCellAriaLabel(day, count, jourTravaille)}
+              aria-current={isToday(day) ? "date" : undefined}
               className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl border text-[13px] ${
                 isToday(day) ? "border-agenda" : "border-line"
               } ${inMonth ? "text-ink" : "text-ink-3"} ${jourTravaille ? "" : "bg-surface"}`}

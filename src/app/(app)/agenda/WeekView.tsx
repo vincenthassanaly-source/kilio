@@ -151,6 +151,7 @@ export function WeekView({
                   <button
                     type="button"
                     onClick={() => onSelectDay(day)}
+                    aria-current={isToday(day) ? "date" : undefined}
                     className={`sticky top-0 z-10 flex h-11 flex-col items-center justify-center gap-0 border-b border-line bg-surface text-center ${
                       isToday(day) ? "text-agenda" : "text-ink"
                     }`}
@@ -168,13 +169,13 @@ export function WeekView({
                     {dayTachesSansHeure.slice(0, 2).map((t) => (
                       <span
                         key={t.id}
-                        className="truncate rounded bg-surface-alt px-1 py-0.5 text-[9.5px] font-medium text-ink-2"
+                        className="truncate rounded bg-surface-alt px-1 py-0.5 text-[10px] font-medium text-ink-2"
                       >
                         {t.titre}
                       </span>
                     ))}
                     {dayTachesSansHeure.length > 2 && (
-                      <span className="text-[9.5px] text-ink-2">+{dayTachesSansHeure.length - 2}</span>
+                      <span className="text-[10px] text-ink-2">+{dayTachesSansHeure.length - 2}</span>
                     )}
                   </button>
 
