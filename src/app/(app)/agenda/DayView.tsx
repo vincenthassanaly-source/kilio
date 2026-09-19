@@ -10,46 +10,15 @@ import { showToast } from "@/components/toast/toast-store";
 import { DUREE_TOAST_AVERTISSEMENT_MS } from "@/lib/taches/compute";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
+import { layoutChevauchements } from "@/lib/agenda/compute";
 import { AddTaskToggle } from "../taches/AddTaskToggle";
 import { TaskCard } from "../taches/TasksList";
 import { ghostButton, sectionTitle } from "@/lib/ui";
 import { ArchivedTasksSection } from "./ArchivedTasksSection";
 import { parseISODate, sortByHeure, toISODate } from "./date-utils";
-import {
-  computeInitialScrollMinutes,
-  getTacheBlockStyle,
-  gridHeight,
-  HourLines,
-  TimeGutter,
-  useInitialScroll,
-  WorkHoursBand,
-} from "./TimeGrid";
+import { computeInitialScrollMinutes, gridHeight, HourLines, TimeGutter, useInitialScroll, WorkHoursBand } from "./TimeGrid";
+import { TacheBlock } from "./TacheBlock";
 import { useAgendaZoom } from "./useAgendaZoom";
-
-const PRIORITE_BLOCK_CLASS: Record<TacheAvecRelations["priorite"], string> = {
-  aucune: "bg-surface-alt text-ink",
-  basse: "bg-agenda/15 text-agenda",
-  moyenne: "bg-carbs/15 text-carbs",
-  haute: "bg-alert/15 text-alert",
-};
-
-function TacheBlock({ tache, zoom }: { tache: TacheAvecRelations; zoom: number }) {
-  const style = getTacheBlockStyle(tache, zoom);
-  if (!style) return null;
-
-  const plage = tache.heure_fin
-    ? `${tache.heure?.slice(0, 5)} – ${tache.heure_fin.slice(0, 5)}`
-    : tache.heure?.slice(0, 5);
-
-  return (
-    <div
-      className={`absolute inset-x-1 overflow-hidden rounded-lg px-2 py-1 text-[12px] leading-tight font-semibold shadow-sm ${PRIORITE_BLOCK_CLASS[tache.priorite]}`}
-      style={{ top: style.top, height: style.height }}
-    >
-      <span className="block truncate">{plage} {tache.titre}</span>
-    </div>
-  );
-}
 
 export function DayView({
   taches,
@@ -60,6 +29,7 @@ export function DayView({
   selectedDate,
   onChangeDate,
   tacheEnSurbrillanceId = null,
+  onSelectTache,
 }: {
   taches: TacheAvecRelations[];
   listes: Tables<"listes_taches">[];
@@ -72,6 +42,9 @@ export function DayView({
   // surbrillance + scrollée en vue, qu'elle soit dans la liste active ou
   // archivée du jour. `null` en usage normal (aucune mise en surbrillance).
   tacheEnSurbrillanceId?: string | null;
+  // Tap sur un bloc de la grille (cf. AgendaView) : surligne la tâche et la
+  // scrolle en vue dans la liste ci-dessous.
+  onSelectTache: (id: string) => void;
 }) {
   // Les tâches sans heure sont regroupées après celles ayant une heure
   // (cohérent avec le tri "échéance nullsFirst: false" déjà utilisé par la
@@ -85,6 +58,7 @@ export function DayView({
 
   const dayTachesAvecHeure = dayTaches.filter((t) => t.heure);
   const dayTachesSansHeure = dayTachesJour.filter((t) => !t.fait && !t.heure);
+  const positions = layoutChevauchements(dayTachesAvecHeure);
 
   const creneauxJour = getCreneauxDuJour(creneaux, selectedDate, exceptions);
   const { zoom, touchHandlers } = useAgendaZoom();
@@ -156,7 +130,13 @@ export function DayView({
               <HourLines zoom={zoom} />
               <WorkHoursBand creneaux={creneauxJour} zoom={zoom} />
               {dayTachesAvecHeure.map((t) => (
-                <TacheBlock key={t.id} tache={t} zoom={zoom} />
+                <TacheBlock
+                  key={t.id}
+                  tache={t}
+                  zoom={zoom}
+                  position={positions.get(t.id)}
+                  onSelect={onSelectTache}
+                />
               ))}
             </div>
           </div>

@@ -14,11 +14,11 @@ import {
 import { fr } from "date-fns/locale";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
+import { layoutChevauchements } from "@/lib/agenda/compute";
 import { ghostButton } from "@/lib/ui";
 import { parseISODate } from "./date-utils";
 import {
   computeInitialScrollMinutes,
-  getTacheBlockStyle,
   gridHeight,
   HourLines,
   TimeGutter,
@@ -26,6 +26,7 @@ import {
   useInitialScroll,
   WorkHoursBand,
 } from "./TimeGrid";
+import { TacheBlock } from "./TacheBlock";
 import {
   BASE_DAY_COLUMN_WIDTH,
   computeMinZoomForWeekWidth,
@@ -40,27 +41,6 @@ import {
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 type Tache = Tables<"taches">;
-
-const PRIORITE_BLOCK_CLASS: Record<Tache["priorite"], string> = {
-  aucune: "bg-surface-alt text-ink",
-  basse: "bg-agenda/15 text-agenda",
-  moyenne: "bg-carbs/15 text-carbs",
-  haute: "bg-alert/15 text-alert",
-};
-
-function TacheBlock({ tache, zoom }: { tache: Tache; zoom: number }) {
-  const style = getTacheBlockStyle(tache, zoom);
-  if (!style) return null;
-
-  return (
-    <div
-      className={`absolute inset-x-0.5 overflow-hidden rounded-md px-1 py-0.5 text-[10px] leading-tight font-semibold ${PRIORITE_BLOCK_CLASS[tache.priorite]}`}
-      style={{ top: style.top, height: style.height }}
-    >
-      <span className="block truncate">{tache.heure?.slice(0, 5)} {tache.titre}</span>
-    </div>
-  );
-}
 
 export function WeekView({
   taches,
@@ -160,6 +140,7 @@ export function WeekView({
               const dayTachesSansHeure = taches.filter(
                 (t) => !t.fait && t.echeance && isSameDay(parseISODate(t.echeance), day) && !t.heure
               );
+              const positions = layoutChevauchements(dayTachesAvecHeure);
 
               return (
                 <div
@@ -207,7 +188,7 @@ export function WeekView({
                     <HourLines zoom={zoom} />
                     <WorkHoursBand creneaux={creneauxJour} zoom={zoom} />
                     {dayTachesAvecHeure.map((t) => (
-                      <TacheBlock key={t.id} tache={t} zoom={zoom} />
+                      <TacheBlock key={t.id} tache={t} zoom={zoom} position={positions.get(t.id)} compact />
                     ))}
                   </button>
                 </div>

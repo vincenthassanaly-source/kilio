@@ -173,6 +173,21 @@ export function AgendaView() {
     setView("jour");
   }
 
+  // Tap sur un bloc de la grille Jour (cf. DayView/TacheBlock) : surligne la
+  // tâche et scrolle sa TaskCard en vue, en réutilisant le mécanisme déjà en
+  // place pour le deep-link de notification. Un retap sur le même bloc doit
+  // rejouer l'effet (scroll + anneau) alors que l'id sélectionné ne change
+  // pas : `setTacheEnSurbrillanceId(id)` seul ne re-rendrait rien (React
+  // bail out sur un state primitif identique), donc aucun effet keyé sur
+  // `highlighted` (TaskCard) ne se redéclencherait. On repasse d'abord par
+  // `null` (retire réellement la surbrillance le temps d'un repaint) puis on
+  // refixe l'id à la frame suivante — un aller-retour false→true garanti,
+  // que ce soit une nouvelle sélection ou la même qu'avant.
+  function handleSelectTache(id: string) {
+    setTacheEnSurbrillanceId(null);
+    requestAnimationFrame(() => setTacheEnSurbrillanceId(id));
+  }
+
   function handleChangeDate(date: Date) {
     if (date.getTime() > selectedDate.getTime()) setDirection(1);
     else if (date.getTime() < selectedDate.getTime()) setDirection(-1);
@@ -311,6 +326,7 @@ export function AgendaView() {
                     selectedDate={selectedDate}
                     onChangeDate={handleChangeDate}
                     tacheEnSurbrillanceId={tacheEnSurbrillanceId}
+                    onSelectTache={handleSelectTache}
                   />
                 )}
                 {view === "semaine" && (

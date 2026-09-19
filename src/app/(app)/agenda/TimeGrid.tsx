@@ -2,6 +2,7 @@
 
 import { useEffect, type RefObject } from "react";
 import type { CreneauDuJour } from "@/lib/agenda/planning-travail";
+import { getBlocInterval } from "@/lib/agenda/compute";
 import { heureToMinutes } from "./date-utils";
 import { BASE_HOUR_HEIGHT, GUTTER_WIDTH } from "./useAgendaZoom";
 
@@ -11,9 +12,9 @@ import { BASE_HOUR_HEIGHT, GUTTER_WIDTH } from "./useAgendaZoom";
 // ne s'y passe jamais rien côté usage réel) : la grille commence à 06h et
 // finit à 24h, ce qui fait gagner de la place à tous les niveaux de zoom.
 // Une tâche avec heure mais sans heure_fin reste visible comme un bloc
-// plutôt qu'un simple repère ponctuel : 30 min par défaut, cohérent avec
-// les pas de rappel existants (5/15/30 min).
-export const DEFAULT_TASK_DURATION_MINUTES = 30;
+// plutôt qu'un simple repère ponctuel : 30 min par défaut (cf.
+// getBlocInterval dans src/lib/agenda/compute.ts, seule source de vérité
+// pour ces bornes — aussi utilisée par layoutChevauchements).
 export const MIN_BLOCK_HEIGHT = 18;
 export const GRID_START_HOUR = 6;
 // Hauteur réservée, identique pour toutes les colonnes (y compris la
@@ -63,15 +64,12 @@ export function getTacheBlockStyle(
   },
   zoom: number
 ): { top: number; height: number } | null {
-  const start = heureToMinutes(tache.heure);
-  if (start === null) return null;
-
-  const endRaw = heureToMinutes(tache.heure_fin);
-  const end = endRaw !== null && endRaw > start ? endRaw : start + DEFAULT_TASK_DURATION_MINUTES;
+  const interval = getBlocInterval(tache);
+  if (!interval) return null;
 
   return {
-    top: minutesToPx(start, zoom),
-    height: Math.max(durationToPx(end - start, zoom), MIN_BLOCK_HEIGHT),
+    top: minutesToPx(interval.start, zoom),
+    height: Math.max(durationToPx(interval.end - interval.start, zoom), MIN_BLOCK_HEIGHT),
   };
 }
 
