@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import sharp from "sharp";
-import { recupererMetadonneesTiktok } from "@/lib/collection/tiktok";
+import { estTypeVideo, recupererMetadonneesVideo } from "@/lib/collection/video";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables, TablesInsert } from "@/lib/supabase/types";
 
@@ -219,17 +219,17 @@ export async function uploadCollectionPhotos(collectionId: string, formData: For
   revalidateCollectionsPaths(collectionId);
 }
 
-// Ajoute un lien vidéo TikTok à une collection : récupère ses métadonnées
-// (miniature, titre) via oEmbed puis insère un collection_items de type
-// 'tiktok'. Suit le même pattern (throw + gestion d'erreur côté composant)
+// Ajoute un lien vidéo (TikTok ou YouTube, détecté depuis l'URL) à une
+// collection : récupère ses métadonnées (miniature, titre) via oEmbed puis
+// insère un collection_items du type correspondant ('tiktok' / 'youtube'). Suit le même pattern (throw + gestion d'erreur côté composant)
 // que uploadCollectionPhotos, plutôt qu'un useActionState : c'est le champ
 // d'ajout inline le plus proche dans AddPhotoButton.
-export async function ajouterLienTiktok(collectionId: string, url: string) {
+export async function ajouterLienVideo(collectionId: string, url: string) {
   const lien = url.trim();
   if (!lien) throw new Error("Le lien est requis.");
 
-  const metadonnees = await recupererMetadonneesTiktok(lien);
-  if (!metadonnees) throw new Error("Lien TikTok invalide ou introuvable.");
+  const metadonnees = await recupererMetadonneesVideo(lien);
+  if (!metadonnees) throw new Error("Lien TikTok ou YouTube invalide ou introuvable.");
 
   const supabase = createAdminClient();
 
@@ -243,7 +243,7 @@ export async function ajouterLienTiktok(collectionId: string, url: string) {
 
   const { error } = await supabase.from("collection_items").insert({
     collection_id: collectionId,
-    type: "tiktok",
+    type: metadonnees.type,
     url: metadonnees.url,
     thumbnail_url: metadonnees.thumbnailUrl,
     titre: metadonnees.titre || null,
@@ -290,16 +290,17 @@ export async function uploaderPhotosPartagees(fichiers: File[]): Promise<string[
   return urls;
 }
 
-// Équivalent de uploaderPhotosPartagees pour un lien TikTok partagé : récupère
+// Équivalent de uploaderPhotosPartagees pour un lien vidéo (TikTok ou
+// YouTube) partagé : récupère
 // ses métadonnées immédiatement (sans les rattacher à une collection), pour
 // que route.ts les propage en query params vers /collection/partage/choisir.
-export async function recupererLienTiktokPartage(url: string) {
-  return recupererMetadonneesTiktok(url);
+export async function recupererLienVideoPartage(url: string) {
+  return recupererMetadonneesVideo(url);
 }
 
 export type RattacherPhotoFormState = { error: string | null };
 
-// Rattache une ou plusieurs photos et/ou un lien TikTok déjà résolus
+// Rattache une ou plusieurs photos et/ou un lien vidéo déjà résolus
 // (partage natif) à une collection existante ou à une nouvelle collection
 // créée à la volée, puis redirige vers la vue de la collection. Signature
 // (prevState, formData) pour être pilotée par useActionState, comme le reste
@@ -312,11 +313,13 @@ export async function rattacherPhotoACollection(
   const collectionIdChoisie = String(formData.get("collection_id") ?? "").trim();
   const nouvelleCollectionNom = String(formData.get("nouvelle_collection") ?? "").trim();
   const urls = formData.getAll("url").map(String).filter(Boolean);
-  const tiktokUrl = String(formData.get("tiktok_url") ?? "").trim();
-  const tiktokThumbnail = String(formData.get("tiktok_thumbnail") ?? "").trim();
-  const tiktokTitre = String(formData.get("tiktok_titre") ?? "").trim();
+  const videoUrl = String(formData.get("video_url") ?? "").trim();
+  const videoThumbnail = String(formData.get("video_thumbnail") ?? "").trim();
+  const videoTitre = String(formData.get("video_titre") ?? "").trim();
+  const videoType = String(formData.get("video_type") ?? "").trim();
 
-  if (urls.length === 0 && !tiktokUrl) return { error: "Rien à rattacher." };
+  if (urls.length === 0 && !videoUrl) return { error: "Rien à rattacher." };
+  if (videoUrl && !estTypeVideo(videoType)) return { error: "Type de vidéo inconnu." };
   if (!collectionIdChoisie && !nouvelleCollectionNom) {
     return { error: "Choisis une collection ou crée-en une nouvelle." };
   }
@@ -343,13 +346,13 @@ export async function rattacherPhotoACollection(
       ordre: ordre++,
     }));
 
-    if (tiktokUrl) {
+    if (videoUrl) {
       items.push({
         collection_id: collectionId,
-        type: "tiktok",
-        url: tiktokUrl,
-        thumbnail_url: tiktokThumbnail || null,
-        titre: tiktokTitre || null,
+        type: videoType,
+        url: videoUrl,
+        thumbnail_url: videoThumbnail || null,
+        titre: videoTitre || null,
         ordre: ordre++,
       });
     }

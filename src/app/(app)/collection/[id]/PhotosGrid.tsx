@@ -9,19 +9,43 @@ import { showToast } from "@/components/toast/toast-store";
 import { FadeInImage } from "@/components/FadeInImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TiktokLightbox } from "@/components/TiktokLightbox";
+import { YoutubeLightbox } from "@/components/YoutubeLightbox";
+import { estTypeVideo } from "@/lib/collection/video";
 import type { Tables } from "@/lib/supabase/types";
 import { vibrate } from "@/lib/haptics";
 
-function TiktokBadge() {
+function TiktokIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M14 4v10.2a3.3 3.3 0 1 1-2.6-3.23" />
+      <path d="M14 4c.3 2.2 1.9 3.8 4 4" />
+    </svg>
+  );
+}
+
+function YoutubeIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
+      <path d="M10 9.2v5.6l4.8-2.8L10 9.2z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function VideoBadge({ type }: { type: string }) {
+  const estYoutube = type === "youtube";
   return (
     <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d="M14 4v10.2a3.3 3.3 0 1 1-2.6-3.23" />
-        <path d="M14 4c.3 2.2 1.9 3.8 4 4" />
-      </svg>
-      TikTok
+      {estYoutube ? <YoutubeIcon /> : <TiktokIcon />}
+      {estYoutube ? "YouTube" : "TikTok"}
     </span>
   );
+}
+
+function ariaLabelOuverture(type: string): string {
+  if (type === "tiktok") return "Lire la vidéo TikTok";
+  if (type === "youtube") return "Lire la vidéo YouTube";
+  return "Agrandir la photo";
 }
 
 export function PhotosGrid({
@@ -71,8 +95,8 @@ export function PhotosGrid({
       <ul className="grid grid-cols-2 gap-2">
         <AnimatePresence initial={false}>
           {photos.map((photo, index) => {
-            const estTiktok = photo.type === "tiktok";
-            const src = estTiktok ? (photo.thumbnail_url ?? photo.url) : photo.url;
+            const estVideo = estTypeVideo(photo.type);
+            const src = estVideo ? (photo.thumbnail_url ?? photo.url) : photo.url;
 
             return (
               <motion.li
@@ -87,7 +111,7 @@ export function PhotosGrid({
                 <button
                   type="button"
                   onClick={() => setLightboxItem(photo)}
-                  aria-label={estTiktok ? "Lire la vidéo TikTok" : "Agrandir la photo"}
+                  aria-label={ariaLabelOuverture(photo.type)}
                   className="relative block h-full w-full"
                 >
                   <FadeInImage
@@ -95,11 +119,11 @@ export function PhotosGrid({
                     alt=""
                     fill
                     sizes="50vw"
-                    unoptimized={estTiktok}
+                    unoptimized={estVideo}
                     style={index === 0 ? { viewTransitionName: `collection-cover-${collectionId}` } : undefined}
                     className="object-cover"
                   />
-                  {estTiktok && <TiktokBadge />}
+                  {estVideo && <VideoBadge type={photo.type} />}
                 </button>
                 <button
                   type="button"
@@ -120,6 +144,8 @@ export function PhotosGrid({
       {lightboxItem &&
         (lightboxItem.type === "tiktok" ? (
           <TiktokLightbox url={lightboxItem.url} onClose={() => setLightboxItem(null)} />
+        ) : lightboxItem.type === "youtube" ? (
+          <YoutubeLightbox url={lightboxItem.url} onClose={() => setLightboxItem(null)} />
         ) : (
           <ImageLightbox src={lightboxItem.url} onClose={() => setLightboxItem(null)} />
         ))}

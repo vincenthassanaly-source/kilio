@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ajouterLienTiktok, uploadCollectionPhotos } from "@/app/actions/collections";
+import { ajouterLienVideo, uploadCollectionPhotos } from "@/app/actions/collections";
 import { queryKeys } from "@/lib/query/keys";
 import { errorText, input, primaryButton } from "@/lib/ui";
 
@@ -28,11 +28,13 @@ function GalerieIcon() {
   );
 }
 
-function TiktokIcon() {
+// Icône neutre (lecture) plutôt qu'un logo de plateforme : le même champ
+// accepte indifféremment un lien TikTok ou YouTube.
+function VideoIcon() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 4v10.2a3.3 3.3 0 1 1-2.6-3.23" />
-      <path d="M14 4c.3 2.2 1.9 3.8 4 4" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M10.2 8.8v6.4l5-3.2-5-3.2z" />
     </svg>
   );
 }
@@ -48,10 +50,10 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [tiktokOpen, setTiktokOpen] = useState(false);
-  const [tiktokUrl, setTiktokUrl] = useState("");
-  const [tiktokPending, startTiktokTransition] = useTransition();
-  const [tiktokError, setTiktokError] = useState<string | null>(null);
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoPending, startVideoTransition] = useTransition();
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.collection(collectionId) });
@@ -77,20 +79,20 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
     });
   }
 
-  function handleAjouterTiktok(e: React.FormEvent) {
+  function handleAjouterVideo(e: React.FormEvent) {
     e.preventDefault();
-    const lien = tiktokUrl.trim();
+    const lien = videoUrl.trim();
     if (!lien) return;
 
-    setTiktokError(null);
-    startTiktokTransition(async () => {
+    setVideoError(null);
+    startVideoTransition(async () => {
       try {
-        await ajouterLienTiktok(collectionId, lien);
+        await ajouterLienVideo(collectionId, lien);
         invalidate();
-        setTiktokUrl("");
-        setTiktokOpen(false);
+        setVideoUrl("");
+        setVideoOpen(false);
       } catch (err) {
-        setTiktokError(err instanceof Error ? err.message : "Erreur lors de l'ajout.");
+        setVideoError(err instanceof Error ? err.message : "Erreur lors de l'ajout.");
       }
     });
   }
@@ -133,33 +135,36 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setTiktokOpen((v) => !v)}
-          className={`${ADD_PHOTO_BUTTON} ${tiktokPending ? "opacity-60" : ""}`}
+          onClick={() => setVideoOpen((v) => !v)}
+          className={`${ADD_PHOTO_BUTTON} ${videoPending ? "opacity-60" : ""}`}
         >
-          <TiktokIcon />
-          Lien TikTok
+          <VideoIcon />
+          Lien vidéo
         </button>
       </div>
 
-      {tiktokOpen && (
-        <form onSubmit={handleAjouterTiktok} className="flex gap-2">
+      {videoOpen && (
+        <form onSubmit={handleAjouterVideo} className="flex gap-2">
           <input
             autoFocus
-            value={tiktokUrl}
-            onChange={(e) => setTiktokUrl(e.target.value)}
-            placeholder="https://www.tiktok.com/…"
-            disabled={tiktokPending}
-            className={`${input} flex-1`}
+            type="url"
+            inputMode="url"
+            aria-label="Lien TikTok ou YouTube"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://www.tiktok.com/… ou https://youtube.com/…"
+            disabled={videoPending}
+            className={`${input} min-w-0 flex-1`}
           />
-          <button type="submit" disabled={tiktokPending} className={primaryButton}>
-            {tiktokPending ? "…" : "OK"}
+          <button type="submit" disabled={videoPending} className={primaryButton}>
+            {videoPending ? "…" : "OK"}
           </button>
         </form>
       )}
 
-      {(error || tiktokError) && (
+      {(error || videoError) && (
         <p className={errorText} role="alert">
-          {error ?? tiktokError}
+          {error ?? videoError}
         </p>
       )}
     </div>

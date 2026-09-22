@@ -3,9 +3,9 @@
 // des métadonnées via l'endpoint oEmbed public de TikTok.
 
 const VIDEO_ID_PATTERN = /\/video\/(\d+)/;
-const TIKTOK_URL_IN_TEXT_PATTERN = /https?:\/\/(?:[\w-]+\.)?tiktok\.com\/\S+/i;
+export const TIKTOK_URL_IN_TEXT_PATTERN = /https?:\/\/(?:[\w-]+\.)?tiktok\.com\/\S+/i;
 
-function estHoteTiktok(hostname: string): boolean {
+export function estHoteTiktok(hostname: string): boolean {
   return hostname === "tiktok.com" || hostname.endsWith(".tiktok.com");
 }
 

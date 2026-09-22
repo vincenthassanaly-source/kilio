@@ -1,4 +1,5 @@
 import { FadeInImage } from "@/components/FadeInImage";
+import { estTypeVideo } from "@/lib/collection/video";
 import type { ApercuItem } from "@/app/actions/collections";
 
 function PhotoPlaceholderIcon() {
@@ -36,7 +37,7 @@ export function CollectionMosaic({
           alt=""
           fill
           sizes="50vw"
-          unoptimized={photos[0].type === "tiktok"}
+          unoptimized={estTypeVideo(photos[0].type)}
           style={{ viewTransitionName }}
           className="object-cover"
         />
@@ -54,7 +55,7 @@ export function CollectionMosaic({
               alt=""
               fill
               sizes="25vw"
-              unoptimized={photo.type === "tiktok"}
+              unoptimized={estTypeVideo(photo.type)}
               style={i === 0 ? { viewTransitionName } : undefined}
               className="object-cover"
             />
@@ -73,7 +74,7 @@ export function CollectionMosaic({
             alt=""
             fill
             sizes="25vw"
-            unoptimized={photos[0].type === "tiktok"}
+            unoptimized={estTypeVideo(photos[0].type)}
             style={{ viewTransitionName }}
             className="object-cover"
           />
@@ -85,7 +86,7 @@ export function CollectionMosaic({
               alt=""
               fill
               sizes="25vw"
-              unoptimized={photos[1].type === "tiktok"}
+              unoptimized={estTypeVideo(photos[1].type)}
               className="object-cover"
             />
           </div>
@@ -95,7 +96,7 @@ export function CollectionMosaic({
               alt=""
               fill
               sizes="25vw"
-              unoptimized={photos[2].type === "tiktok"}
+              unoptimized={estTypeVideo(photos[2].type)}
               className="object-cover"
             />
           </div>
@@ -113,7 +114,7 @@ export function CollectionMosaic({
             alt=""
             fill
             sizes="25vw"
-            unoptimized={photo.type === "tiktok"}
+            unoptimized={estTypeVideo(photo.type)}
             style={i === 0 ? { viewTransitionName } : undefined}
             className="object-cover"
           />

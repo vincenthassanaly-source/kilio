@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { rattacherPhotoACollection, type RattacherPhotoFormState } from "@/app/actions/collections";
+import type { TypeVideo } from "@/lib/collection/video";
 import type { Tables } from "@/lib/supabase/types";
 import { card, checkCircle, errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
 
@@ -10,11 +11,11 @@ const initialState: RattacherPhotoFormState = { error: null };
 export function ChoisirCollectionForm({
   collections,
   photos,
-  tiktok,
+  video,
 }: {
   collections: Tables<"collections">[];
   photos: string[];
-  tiktok?: { url: string; thumbnailUrl: string; titre: string } | null;
+  video?: { url: string; thumbnailUrl: string; titre: string; type: TypeVideo } | null;
 }) {
   const [state, formAction, pending] = useActionState(rattacherPhotoACollection, initialState);
   const [collectionId, setCollectionId] = useState<string | null>(null);
@@ -25,11 +26,12 @@ export function ChoisirCollectionForm({
       {photos.map((url) => (
         <input key={url} type="hidden" name="url" value={url} />
       ))}
-      {tiktok && (
+      {video && (
         <>
-          <input type="hidden" name="tiktok_url" value={tiktok.url} />
-          <input type="hidden" name="tiktok_thumbnail" value={tiktok.thumbnailUrl} />
-          <input type="hidden" name="tiktok_titre" value={tiktok.titre} />
+          <input type="hidden" name="video_url" value={video.url} />
+          <input type="hidden" name="video_thumbnail" value={video.thumbnailUrl} />
+          <input type="hidden" name="video_titre" value={video.titre} />
+          <input type="hidden" name="video_type" value={video.type} />
         </>
       )}
       <input type="hidden" name="collection_id" value={collectionId ?? ""} />
