@@ -36,7 +36,47 @@ const fixtures = {
   ],
 };
 
+// Une tâche due aujourd'hui (date UTC, comme aujourdhuiISO côté serveur) pour
+// vérifier que la cocher depuis le Dashboard met à jour /taches (parité des
+// mutations optimistes TanStack Query, e2e/parite.spec.ts).
+const LISTE_ID = "00000000-0000-4000-8000-000000000001";
+fixtures.listes_taches = [
+  { id: LISTE_ID, nom: "Perso", couleur: null, ordre: 0, created_at: "2026-09-01T00:00:00+00:00", updated_at: "2026-09-01T00:00:00+00:00" },
+];
+fixtures.taches = [
+  {
+    id: "00000000-0000-4000-8000-000000000002",
+    titre: "Tâche e2e du jour",
+    echeance: "__TODAY__",
+    fait: false,
+    heure: null,
+    heure_fin: null,
+    liste_id: LISTE_ID,
+    notes: null,
+    ordre: 0,
+    priorite: "aucune",
+    programme_jour: false,
+    rappel_envoye_le: null,
+    rappel_minutes: null,
+    recurrence_fin: null,
+    recurrence_frequence: null,
+    termine_le: null,
+    toute_la_journee: false,
+    created_at: "2026-09-01T00:00:00+00:00",
+    updated_at: "2026-09-01T00:00:00+00:00",
+    liste: { id: LISTE_ID, nom: "Perso", couleur: null },
+    sous_taches: [],
+    taches_tags: [],
+    tache_images: [],
+  },
+];
+
 const initialFixtures = JSON.parse(JSON.stringify(fixtures));
+
+function withToday(rows) {
+  const today = new Date().toISOString().slice(0, 10);
+  return JSON.parse(JSON.stringify(rows).replaceAll('"__TODAY__"', JSON.stringify(today)));
+}
 
 function send(res, status, body, headers = {}) {
   setTimeout(() => {
@@ -84,7 +124,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const rows = fixtures[table] ?? [];
+  const rows = withToday(fixtures[table] ?? []);
 
   if (req.method === "PATCH" && body && fixtures[table]) {
     fixtures[table] = rows.map((row) => ({ ...row, ...body }));
