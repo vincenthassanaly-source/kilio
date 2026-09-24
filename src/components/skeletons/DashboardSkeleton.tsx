@@ -3,6 +3,17 @@ import { CardSkeleton } from "./CardSkeleton";
 import { ListItemSkeletonGroup } from "./ListItemSkeleton";
 import { card } from "@/lib/ui";
 
+/** En-tête (date + salutation) du dashboard, en attente de la date du jour :
+ * fallback du <Suspense> de l'en-tête dans src/app/(app)/page.tsx. */
+export function DashboardHeaderSkeleton() {
+  return (
+    <header className="flex flex-col gap-1.5">
+      <Skeleton className="h-3 w-32" />
+      <Skeleton className="h-6 w-44" />
+    </header>
+  );
+}
+
 /** Reproduit la mise en page de la page d'accueil (src/app/(app)/page.tsx) :
  * en-tête, carte nutrition (ring), carte "Aujourd'hui" (liste de tâches),
  * carte "Prochain événement", puis la rangée d'habitudes. Affiché pendant
@@ -10,10 +21,7 @@ import { card } from "@/lib/ui";
 export function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1.5">
-        <Skeleton className="h-3 w-32" />
-        <Skeleton className="h-6 w-44" />
-      </header>
+      <DashboardHeaderSkeleton />
 
       <Skeleton className="h-11 w-full rounded-2xl" />
 

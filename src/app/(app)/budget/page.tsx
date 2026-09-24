@@ -8,10 +8,6 @@ import { card, eyebrow, screenTitle, sectionTitle } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { connection } from "next/server";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 const ICON_PROPS = {
   width: 15,
   height: 15,
@@ -55,7 +51,9 @@ function StatistiquesIcon() {
 }
 
 export default async function BudgetPage() {
-  // TODO: Cache Components adoption. Added to unblock the build: remove this boundary to re-trigger the error and review the documented options.
+  // Page entièrement de requête (mois courant, occurrences récurrentes
+  // générées à chaque chargement) : connection() avant le new Date() de
+  // premierJourDuMois. La coquille instantanée est le loading.tsx du segment.
   await connection();
   const periode = premierJourDuMois();
 

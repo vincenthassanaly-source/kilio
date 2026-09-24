@@ -51,7 +51,7 @@ function HabitudesSkeleton() {
 // racine de useViewTransitionNavigate lors d'une navigation vers /). Les
 // classes `dashboard-reveal-exit`/`dashboard-reveal-enter` sont définies
 // dans globals.css.
-export function DashboardView({ today }: { today: string }) {
+export function DashboardView() {
   return (
     <>
       <Suspense
@@ -62,7 +62,7 @@ export function DashboardView({ today }: { today: string }) {
         }
       >
         <ViewTransition enter="dashboard-reveal-enter" default="none">
-          <DashboardNutritionCard today={today} />
+          <DashboardNutritionCard />
         </ViewTransition>
       </Suspense>
 
@@ -74,7 +74,7 @@ export function DashboardView({ today }: { today: string }) {
         }
       >
         <ViewTransition enter="dashboard-reveal-enter" default="none">
-          <DashboardTachesCard today={today} />
+          <DashboardTachesCard />
         </ViewTransition>
       </Suspense>
 
@@ -86,7 +86,7 @@ export function DashboardView({ today }: { today: string }) {
         }
       >
         <ViewTransition enter="dashboard-reveal-enter" default="none">
-          <DashboardHabitudesCard today={today} />
+          <DashboardHabitudesCard />
         </ViewTransition>
       </Suspense>
 

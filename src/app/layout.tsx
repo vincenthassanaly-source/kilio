@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
 import { Sora, Inter } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { AppResumeRefresh } from "@/components/AppResumeRefresh";
-import { THEME_COOKIE_KEY, themeInitScript } from "@/lib/theme";
+import { themeInitScript } from "@/lib/theme";
 import "./globals.css";
-
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
 
 const sora = Sora({
   variable: "--font-sora",
@@ -42,15 +37,15 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const cookieStore = await cookies();
-  const isDark = cookieStore.get(THEME_COOKIE_KEY)?.value === "dark";
-
+// Aucune lecture de requête ici (layout racine = coquille statique de toute
+// l'app) : la classe `dark` est posée par themeInitScript avant le premier
+// paint, à partir du cookie de thème (voir lib/theme.ts).
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${sora.variable} ${inter.variable} h-full antialiased${isDark ? " dark" : ""}`}
+      className={`${sora.variable} ${inter.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />

@@ -28,9 +28,9 @@ function toggleTheme() {
 }
 
 /** Bouton rond pour basculer clair/sombre. Persisté en localStorage ET en
- * cookie (lu côté serveur par layout.tsx pour appliquer la classe `dark` dès
- * le SSR — plus robuste que le seul localStorage, qui peut être purgé sous
- * pression de stockage en PWA), appliqué via la classe `dark` sur <html>
+ * cookie (lu en priorité par themeInitScript avant le premier paint — plus
+ * robuste que le seul localStorage, qui peut être purgé sous pression de
+ * stockage en PWA), appliqué via la classe `dark` sur <html>
  * (voir lib/theme.ts pour le script anti-flash). Les deux icônes sont
  * rendues côté serveur, la classe `dark:` choisit laquelle afficher : pas
  * d'état React, donc pas de flash ni de mismatch d'hydratation. */

@@ -1,23 +1,26 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { HabitudesView } from "./HabitudesView";
+import { HabitudesSkeleton } from "./HabitudesSkeleton";
 import { screenTitle } from "@/lib/ui";
 import { toISODate } from "./date-utils";
-import { connection } from "next/server";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
-export default async function HabitudesPage() {
-  // TODO: Cache Components adoption. Added to unblock the build: remove this boundary to re-trigger the error and review the documented options.
+// La date du jour est une donnée de requête : lue après connection(), sous
+// <Suspense>, pour que le titre reste dans la coquille statique.
+async function HabitudesDuJour() {
   await connection();
-  const today = toISODate(new Date());
+  return <HabitudesView today={toISODate(new Date())} />;
+}
 
+export default function HabitudesPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className={screenTitle} style={{ viewTransitionName: "habitudes-titre-dashboard" }}>
         Habitudes
       </h1>
-      <HabitudesView today={today} />
+      <Suspense fallback={<HabitudesSkeleton />}>
+        <HabitudesDuJour />
+      </Suspense>
     </div>
   );
 }

@@ -1,52 +1,54 @@
+import { Suspense } from "react";
 import { eyebrow } from "@/lib/ui";
+import { DashboardHeaderSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 import { DashboardView } from "./DashboardView";
 import { PullToRefresh } from "@/components/PullToRefresh";
-import { connection } from "next/server";
+import { getToday } from "./today";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
-function greeting() {
-  const h = new Date().getHours();
+function greeting(date: Date) {
+  const h = date.getHours();
   if (h < 12) return "Bonjour";
   if (h < 18) return "Bon après-midi";
   return "Bonsoir";
 }
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-// Le header (statique, instantané) est rendu côté serveur, sans aucun await
-// avant le retour du JSX. Chaque carte du dashboard est un Server Component
-// async indépendant (voir DashboardView.tsx), streamée via son propre
-// <Suspense> : elle s'affiche dès que SA requête est prête, sans attendre
-// les autres. Voir reports/2026-09-04-dashboard-streaming-par-section.md.
-export default async function DashboardPage() {
-  // TODO: Cache Components adoption. Added to unblock the build: remove this boundary to re-trigger the error and review the documented options.
-  await connection();
-  const today = todayISO();
-  const dateLabel = new Date(`${today}T00:00:00`).toLocaleDateString("fr-FR", {
+async function DashboardHeader() {
+  const date = await getToday();
+  const dateLabel = new Date(`${date}T00:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-0.5">
-        <p className={`${eyebrow} capitalize`}>{dateLabel}</p>
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="font-display text-[25px] font-bold tracking-tight text-ink">{greeting()}</h1>
-        </div>
-      </header>
+    <header className="flex flex-col gap-0.5">
+      <p className={`${eyebrow} capitalize`}>{dateLabel}</p>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-display text-[25px] font-bold tracking-tight text-ink">{greeting(new Date())}</h1>
+      </div>
+    </header>
+  );
+}
+
+// Coquille statique (instantanée, y compris au chargement initial) : la
+// structure de la page, la barre de recherche et les skeletons de chaque
+// carte. Seuls l'en-tête daté et les cartes attendent la date du jour
+// (getToday) puis leur requête, chacun sous son propre <Suspense> :
+// chaque carte apparaît dès que SA requête est prête, sans attendre les
+// autres. Voir reports/2026-09-04-dashboard-streaming-par-section.md et
+// reports/2026-09-24-navigation-instantanee-cache-components.md.
+export default function DashboardPage() {
+  return (
+    <div data-testid="dashboard-shell" className="flex flex-col gap-4">
+      <Suspense fallback={<DashboardHeaderSkeleton />}>
+        <DashboardHeader />
+      </Suspense>
 
       <GlobalSearchBar />
 
       <PullToRefresh>
-        <DashboardView today={today} />
+        <DashboardView />
       </PullToRefresh>
     </div>
   );
