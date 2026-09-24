@@ -8,6 +8,11 @@ import { EtapesManager } from "./EtapesManager";
 import { hasNutritionOverride, nutritionFromOverride, nutritionRecette } from "@/lib/nutrition/compute";
 import { pillTag, sectionTitle } from "@/lib/ui";
 
+// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
+// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
+// See: https://nextjs.org/docs/app/guides/adopting-partial-prefetching
+export const prefetch = 'partial'
+
 export default async function RecetteDetailPage({
   params,
 }: {

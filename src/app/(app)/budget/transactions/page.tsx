@@ -9,6 +9,11 @@ import { TransactionsFilters } from "./TransactionsFilters";
 import { TransactionsList } from "./TransactionsList";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
+// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
+// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
+// See: https://nextjs.org/docs/app/guides/adopting-partial-prefetching
+export const prefetch = 'partial'
+
 const ICON_PROPS = {
   width: 16,
   height: 16,

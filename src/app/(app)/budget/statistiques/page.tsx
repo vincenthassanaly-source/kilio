@@ -10,6 +10,11 @@ import { RepartitionComptes } from "./RepartitionComptes";
 import { TendanceChart } from "./TendanceChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
+// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
+// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
+// See: https://nextjs.org/docs/app/guides/adopting-partial-prefetching
+export const prefetch = 'partial'
+
 function CalendrierIcon() {
   return (
     <svg

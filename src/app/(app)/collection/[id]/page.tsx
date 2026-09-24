@@ -12,6 +12,11 @@ import { errorText, linkButton } from "@/lib/ui";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { GridSkeleton } from "@/components/skeletons/GridSkeleton";
 
+// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
+// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
+// (Page client : l'export `prefetch` n'y est pas autorisé ; données chargées
+// côté client par TanStack Query.)
+
 // Shell client (et non plus Server Component) : la collection est chargée
 // via TanStack Query (voir /taches, même patron), pour partager le cache
 // avec la mutation optimiste de PhotosGrid. `notFound()` de next/navigation
