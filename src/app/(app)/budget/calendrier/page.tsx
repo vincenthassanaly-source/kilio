@@ -8,8 +8,6 @@ import { Skeleton } from "@/components/skeletons/Skeleton";
 import { PeriodeNavigation } from "../PeriodeNavigation";
 import { genererOccurrencesDuesPourLaRequete, lirePeriodeMensuelle } from "../requete";
 
-// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
-// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
 const JOURS_SEMAINE = ["L", "M", "M", "J", "V", "S", "D"];
 
 function ListeIcon() {

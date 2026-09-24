@@ -7,9 +7,6 @@ import { JournalJourSkeleton } from "./JournalJourSkeleton";
 import { JournalDateLibelle, JournalJour, JournalJourNavigation, JournalJourOnglets } from "./JournalJour";
 import type { JournalSearchParams } from "./jour";
 
-// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
-// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
-
 // La page elle-même ne lit ni l'URL, ni la date, ni Supabase : sous-navigation,
 // titre et cadre de navigation par jour forment la coquille, instantanée au
 // chargement comme au changement de jour. Chaque partie qui dépend du jour

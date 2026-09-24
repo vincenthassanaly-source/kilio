@@ -13,11 +13,6 @@ import { ObjectifSuiviValeur } from "./ObjectifSuiviValeur";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 
-// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
-// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
-// (Page client : l'export `prefetch` n'y est pas autorisé ; données chargées
-// côté client par TanStack Query.)
-
 // Shell client (et non plus Server Component) : l'objectif est chargé via
 // TanStack Query (voir /taches, même patron), pour partager le cache avec
 // les mutations optimistes de ObjectifSuiviEtapes/ObjectifSuiviBinaire.

@@ -9,9 +9,6 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { CardSkeleton } from "@/components/skeletons/CardSkeleton";
 import { lirePeriodeCategories } from "../requete";
 
-// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
-// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
-
 type CategoriesSearchParams = Promise<{ type_periode?: string; periode?: string }>;
 
 export default function CategoriesBudgetPage({ searchParams }: { searchParams: CategoriesSearchParams }) {

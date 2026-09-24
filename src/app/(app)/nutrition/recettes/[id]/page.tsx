@@ -8,15 +8,11 @@ import { EtapesManager } from "./EtapesManager";
 import { hasNutritionOverride, nutritionFromOverride, nutritionRecette } from "@/lib/nutrition/compute";
 import { pillTag, sectionTitle } from "@/lib/ui";
 
-// TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
-// See: https://nextjs.org/docs/app/guides/optimizing-prefetching
-export default async function RecetteDetailPage(
-  {
-    params,
-  }: {
-    params: Promise<{ id: string }>;
-  }
-) {
+export default async function RecetteDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const supabase = createAdminClient();
 
