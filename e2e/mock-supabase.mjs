@@ -3,13 +3,17 @@
 // Le sandbox cloud bloque l'accès sortant à Supabase : ce serveur répond à la
 // place de https://vsmtkopkqasrdnjceegp.supabase.co pendant `next build` et
 // `next start` (variable E2E_SUPABASE_URL lue par next.config.ts). Il ne sert
-// qu'à rendre les pages avec des données plausibles (listes vides sauf
-// quelques fixtures) et une latence réseau réaliste, pour que le streaming
-// derrière les <Suspense> soit observable.
+// qu'à rendre les pages avec des données plausibles et une latence réseau
+// réaliste, pour que le streaming derrière les <Suspense> soit observable.
+// Il applique les filtres PostgREST usuels (eq, gte, lt, in, or, order…) et
+// les écritures (insert, upsert, update, delete), pour que le préchargement
+// d'un jour ou d'un mois porte sur de vraies données et que les tests de
+// mutation relisent l'état modifié.
 //
 // Usage : node e2e/mock-supabase.mjs  (port MOCK_SUPABASE_PORT, défaut 54321)
 
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 
 const PORT = Number(process.env.MOCK_SUPABASE_PORT ?? 54321);
 const LATENCY_MS = Number(process.env.MOCK_SUPABASE_LATENCY_MS ?? 400);
@@ -71,11 +75,272 @@ fixtures.taches = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Données réalistes pour le Journal, les Recettes et le Budget (préchargement
+// de données : un préchargement de listes vides ne prouverait rien).
+// Dates relatives au jour du test (UTC, comme todayISO()/aujourdhuiISO() côté
+// serveur) : "__DAY(-1)__" = veille, "__MONTH(-2)__" = "YYYY-MM" il y a deux
+// mois. Remplacées à chaque lecture par withToday().
+// ---------------------------------------------------------------------------
+const ts = "2026-09-01T00:00:00+00:00";
+const uuid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
+const ALIMENTS = {
+  pain: { id: uuid(101), nom: "Pain de mie", unite: "piece", poids_unite_g: 25, kcal_100g: 265, proteines_100g: 8.5, glucides_100g: 49, lipides_100g: 3.5 },
+  poulet: { id: uuid(102), nom: "Blanc de poulet", unite: "g", poids_unite_g: null, kcal_100g: 110, proteines_100g: 23, glucides_100g: 0, lipides_100g: 1.8 },
+  riz: { id: uuid(103), nom: "Riz basmati cuit", unite: "g", poids_unite_g: null, kcal_100g: 130, proteines_100g: 2.7, glucides_100g: 28, lipides_100g: 0.3 },
+  skyr: { id: uuid(104), nom: "Skyr nature", unite: "g", poids_unite_g: null, kcal_100g: 63, proteines_100g: 11, glucides_100g: 4, lipides_100g: 0.2 },
+  lait: { id: uuid(105), nom: "Lait demi-écrémé", unite: "ml", poids_unite_g: null, kcal_100g: 46, proteines_100g: 3.2, glucides_100g: 4.8, lipides_100g: 1.6 },
+};
+fixtures.aliments = Object.values(ALIMENTS).map((a) => ({
+  categorie: null, fibres_100g: null, sel_100g: null, sucres_100g: null, acides_gras_satures_100g: null, created_at: ts, updated_at: ts, ...a,
+}));
+
+const RECETTE_BOLO = uuid(201);
+const RECETTE_HF = uuid(202);
+const recetteBase = {
+  description: null, temps_prepa_min: 30, ustensiles: null, source: "manuel", created_at: ts, updated_at: ts,
+  kcal_100g: null, proteines_100g: null, glucides_100g: null, lipides_100g: null, fibres_100g: null, sucres_100g: null, satures_100g: null, sel_100g: null,
+  kcal_portion: null, proteines_portion: null, glucides_portion: null, lipides_portion: null, fibres_portion: null, sucres_portion: null, satures_portion: null, sel_portion: null,
+};
+fixtures.recettes = [
+  { ...recetteBase, id: RECETTE_BOLO, nom: "Poulet riz meal prep", portions: 4 },
+  {
+    ...recetteBase, id: RECETTE_HF, nom: "Curry de légumes HelloFresh", portions: 2, source: "hellofresh", temps_prepa_min: 25,
+    ustensiles: ["Poêle", "Casserole"], kcal_portion: 640, proteines_portion: 18, glucides_portion: 82, lipides_portion: 24,
+  },
+];
+fixtures.recette_ingredients = [
+  { id: uuid(301), recette_id: RECETTE_BOLO, aliment_id: ALIMENTS.poulet.id, quantite: 600, unite: "g" },
+  { id: uuid(302), recette_id: RECETTE_BOLO, aliment_id: ALIMENTS.riz.id, quantite: 800, unite: "g" },
+];
+fixtures.recette_ingredients_libres = [
+  { id: uuid(311), recette_id: RECETTE_HF, nom: "Lait de coco", quantite: "200 ml", ordre: 0, created_at: ts },
+  { id: uuid(312), recette_id: RECETTE_HF, nom: "Pâte de curry", quantite: "1 sachet", ordre: 1, created_at: ts },
+];
+fixtures.recette_etapes = [
+  { id: uuid(321), recette_id: RECETTE_HF, ordre: 0, titre: "Préparer", consigne: "Émincer les légumes.", astuce: null, created_at: ts, updated_at: ts },
+  { id: uuid(322), recette_id: RECETTE_HF, ordre: 1, titre: "Cuire", consigne: "Faire revenir puis ajouter le lait de coco.", astuce: null, created_at: ts, updated_at: ts },
+];
+
+fixtures.objectifs_nutritionnels = [
+  { id: uuid(401), jour_type: "repos", kcal_cible: 2100, proteines_cible_g: 130, glucides_cible_g: 220, lipides_cible_g: 70, created_at: ts, updated_at: ts },
+  { id: uuid(402), jour_type: "entrainement", kcal_cible: 2500, proteines_cible_g: 150, glucides_cible_g: 290, lipides_cible_g: 75, created_at: ts, updated_at: ts },
+];
+
+const repas = (n, date, moment, alimentOuRecette, quantite) => ({
+  id: uuid(500 + n), date, moment, quantite, created_at: ts,
+  aliment_id: alimentOuRecette.startsWith("R") ? null : ALIMENTS[alimentOuRecette].id,
+  recette_id: alimentOuRecette === "R-bolo" ? RECETTE_BOLO : alimentOuRecette === "R-hf" ? RECETTE_HF : null,
+});
+fixtures.journal_repas = [
+  repas(1, "__TODAY__", "petit_dej", "pain", 50),
+  repas(2, "__TODAY__", "petit_dej", "skyr", 150),
+  repas(3, "__TODAY__", "dejeuner", "R-bolo", 1),
+  repas(4, "__DAY(-1)__", "petit_dej", "lait", 250),
+  repas(5, "__DAY(-1)__", "dejeuner", "poulet", 180),
+  repas(6, "__DAY(-1)__", "diner", "R-hf", 1),
+  repas(7, "__DAY(-2)__", "dejeuner", "riz", 200),
+  repas(8, "__DAY(1)__", "collation", "skyr", 125),
+];
+
+// Budget : deux comptes, catégories, budgets du mois courant, transactions
+// sur les trois derniers mois, une récurrence future (aucune génération
+// pendant les tests, sauf mutation explicite).
+const COMPTE_COURANT = uuid(601);
+const COMPTE_LIVRET = uuid(602);
+fixtures.comptes = [
+  { id: COMPTE_COURANT, nom: "Compte courant", type: "courant", solde_initial: 1200, created_at: "2026-01-01T00:00:00+00:00", updated_at: ts },
+  { id: COMPTE_LIVRET, nom: "Livret A", type: "epargne", solde_initial: 5000, created_at: "2026-01-02T00:00:00+00:00", updated_at: ts },
+];
+const CAT = { alim: uuid(701), logement: uuid(702), loisirs: uuid(703), salaire: uuid(704) };
+fixtures.categories_budget = [
+  { id: CAT.alim, nom: "Alimentation", type: "depense", icone: "🛒", categorie_parent_id: null, is_predefinie: true, created_at: ts, updated_at: ts },
+  { id: CAT.logement, nom: "Logement", type: "depense", icone: "🏠", categorie_parent_id: null, is_predefinie: true, created_at: ts, updated_at: ts },
+  { id: CAT.loisirs, nom: "Loisirs", type: "depense", icone: "🎬", categorie_parent_id: null, is_predefinie: false, created_at: ts, updated_at: ts },
+  { id: CAT.salaire, nom: "Salaire", type: "revenu", icone: "💶", categorie_parent_id: null, is_predefinie: true, created_at: ts, updated_at: ts },
+];
+fixtures.budgets = [
+  { id: uuid(801), categorie_id: CAT.alim, montant_cible: 300, periode: "__MONTH(0)__-01", type_periode: "mensuel", created_at: ts, updated_at: ts },
+  { id: uuid(802), categorie_id: CAT.loisirs, montant_cible: 50, periode: "__MONTH(0)__-01", type_periode: "mensuel", created_at: ts, updated_at: ts },
+];
+let tx = 900;
+const transaction = (mois, jour, type, montant, categorie, libelle) => ({
+  id: uuid(++tx), compte_id: COMPTE_COURANT, compte_destination_id: null, categorie_id: categorie, type, montant, libelle,
+  date_operation: `__MONTH(${mois})__-${jour}`, transaction_recurrente_id: null, created_at: ts, updated_at: ts,
+});
+fixtures.transactions = [
+  transaction(0, "01", "revenu", 2400, CAT.salaire, "Salaire"),
+  transaction(0, "01", "depense", 750, CAT.logement, "Loyer"),
+  transaction(0, "01", "depense", 62.4, CAT.alim, "Courses marché"),
+  transaction(0, "01", "depense", 58, CAT.loisirs, "Cinéma et resto"),
+  transaction(-1, "01", "revenu", 2400, CAT.salaire, "Salaire"),
+  transaction(-1, "01", "depense", 750, CAT.logement, "Loyer"),
+  transaction(-1, "12", "depense", 184.3, CAT.alim, "Supermarché"),
+  transaction(-1, "20", "depense", 32, CAT.loisirs, "Concert"),
+  transaction(-2, "01", "revenu", 2350, CAT.salaire, "Salaire"),
+  transaction(-2, "01", "depense", 750, CAT.logement, "Loyer"),
+  transaction(-2, "15", "depense", 211.9, CAT.alim, "Supermarché"),
+  { ...transaction(-1, "05", "virement", 200, null, "Épargne"), compte_destination_id: COMPTE_LIVRET },
+];
+fixtures.transactions_recurrentes = [
+  {
+    id: uuid(1001), compte_id: COMPTE_COURANT, compte_destination_id: null, categorie_id: CAT.logement, type: "depense", montant: 750,
+    libelle: "Loyer", frequence: "mensuel", active: true, date_debut: "2026-01-01", date_fin: null,
+    prochaine_occurrence: "__MONTH(1)__-01", created_at: ts, updated_at: ts,
+  },
+];
+
+// Embeds PostgREST (`alias:table(...)`) : reconstitués à la lecture à partir
+// des clés étrangères, uniquement si la requête les demande dans `select`.
+const pick = (table, id) => (id ? fixtures[table]?.find((r) => r.id === id) ?? null : null);
+const RELATIONS = {
+  journal_repas: {
+    aliment: (r) => pick("aliments", r.aliment_id),
+    recette: (r) => {
+      const recette = pick("recettes", r.recette_id);
+      return recette && { ...recette, recette_ingredients: ingredientsDe(recette.id) };
+    },
+  },
+  recettes: {
+    recette_ingredients: (r) => ingredientsDe(r.id),
+    recette_ingredients_libres: (r) => (fixtures.recette_ingredients_libres ?? []).filter((i) => i.recette_id === r.id),
+  },
+  recette_ingredients: { aliment: (r) => pick("aliments", r.aliment_id) },
+  transactions: {
+    compte: (r) => pick("comptes", r.compte_id),
+    compte_destination: (r) => pick("comptes", r.compte_destination_id),
+    categorie: (r) => pick("categories_budget", r.categorie_id),
+  },
+  transactions_recurrentes: {
+    compte: (r) => pick("comptes", r.compte_id),
+    compte_destination: (r) => pick("comptes", r.compte_destination_id),
+    categorie: (r) => pick("categories_budget", r.categorie_id),
+  },
+};
+function ingredientsDe(recetteId) {
+  return (fixtures.recette_ingredients ?? [])
+    .filter((i) => i.recette_id === recetteId)
+    .map((i) => ({ ...i, aliment: pick("aliments", i.aliment_id) }));
+}
+function withRelations(table, rows, select) {
+  const relations = RELATIONS[table];
+  if (!relations || !select) return rows;
+  const wanted = Object.keys(relations).filter((key) => new RegExp(`(^|[,(])${key}[:(!]`).test(select));
+  if (wanted.length === 0) return rows;
+  return rows.map((row) => {
+    const out = { ...row };
+    for (const key of wanted) out[key] = relations[key](row);
+    return out;
+  });
+}
+
 const initialFixtures = JSON.parse(JSON.stringify(fixtures));
 
+function isoDay(offset) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+function isoMonth(offset) {
+  const d = new Date();
+  const m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + offset, 1));
+  return m.toISOString().slice(0, 7);
+}
 function withToday(rows) {
-  const today = new Date().toISOString().slice(0, 10);
-  return JSON.parse(JSON.stringify(rows).replaceAll('"__TODAY__"', JSON.stringify(today)));
+  const json = JSON.stringify(rows)
+    .replaceAll('"__TODAY__"', JSON.stringify(isoDay(0)))
+    .replace(/__DAY\((-?\d+)\)__/g, (_, n) => isoDay(Number(n)))
+    .replace(/__MONTH\((-?\d+)\)__/g, (_, n) => isoMonth(Number(n)));
+  return JSON.parse(json);
+}
+// Les fixtures sont stockées avec leurs jetons de date ; toute écriture les
+// fige d'abord pour que les filtres portent sur de vraies dates.
+function materialize(table) {
+  if (fixtures[table]) fixtures[table] = withToday(fixtures[table]);
+  return fixtures[table] ?? (fixtures[table] = []);
+}
+
+// Filtres PostgREST utilisés par l'app : eq, neq, gt, gte, lt, lte, in, is,
+// ilike, like, or=(…) ; tri `order=col.asc|desc,…` ; `limit`.
+function parseValue(raw) {
+  if (raw === "null") return null;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return raw;
+}
+function compare(a, b) {
+  if (a === b) return 0;
+  if (a === null || a === undefined) return -1;
+  if (b === null || b === undefined) return 1;
+  const na = Number(a);
+  const nb = Number(b);
+  if (typeof a === "number" || (!Number.isNaN(na) && !Number.isNaN(nb) && String(a).trim() !== "" && !/^\d{4}-\d{2}/.test(String(a)))) return na - nb;
+  return String(a) < String(b) ? -1 : 1;
+}
+function matchOne(row, column, expr) {
+  const negate = expr.startsWith("not.");
+  if (negate) expr = expr.slice(4);
+  const dot = expr.indexOf(".");
+  const op = expr.slice(0, dot);
+  const raw = expr.slice(dot + 1);
+  const v = row[column];
+  let ok;
+  switch (op) {
+    case "eq": ok = v !== null && v !== undefined && String(v) === raw; break;
+    case "neq": ok = String(v) !== raw; break;
+    case "gt": ok = v !== null && compare(v, raw) > 0; break;
+    case "gte": ok = v !== null && compare(v, raw) >= 0; break;
+    case "lt": ok = v !== null && compare(v, raw) < 0; break;
+    case "lte": ok = v !== null && compare(v, raw) <= 0; break;
+    case "is": ok = v === parseValue(raw) || (raw === "null" && v === undefined); break;
+    case "in": {
+      const list = raw.replace(/^\(|\)$/g, "").split(",").map((x) => x.replace(/^"|"$/g, ""));
+      ok = list.includes(String(v));
+      break;
+    }
+    case "like":
+    case "ilike": {
+      if (v === null || v === undefined) { ok = false; break; }
+      const re = new RegExp(`^${raw.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/[%*]/g, ".*")}$`, op === "ilike" ? "i" : "");
+      ok = re.test(String(v));
+      break;
+    }
+    default: ok = true;
+  }
+  return negate ? !ok : ok;
+}
+function matchOr(row, raw) {
+  const inner = raw.replace(/^\(|\)$/g, "");
+  return inner.split(",").some((part) => {
+    const dot = part.indexOf(".");
+    return matchOne(row, part.slice(0, dot), part.slice(dot + 1));
+  });
+}
+const RESERVED = new Set(["select", "order", "limit", "offset", "on_conflict", "columns"]);
+function applyFilters(rows, params) {
+  let out = rows;
+  for (const [key, value] of params) {
+    if (RESERVED.has(key)) continue;
+    if (key === "or") out = out.filter((row) => matchOr(row, value));
+    else out = out.filter((row) => matchOne(row, key, value));
+  }
+  return out;
+}
+function applyOrder(rows, params) {
+  const order = params.get("order");
+  if (!order) return rows;
+  const keys = order.split(",").map((k) => {
+    const [col, dir = "asc"] = k.split(".");
+    return { col, desc: dir === "desc" };
+  });
+  return [...rows].sort((a, b) => {
+    for (const { col, desc } of keys) {
+      const c = compare(a[col], b[col]);
+      if (c !== 0) return desc ? -c : c;
+    }
+    return 0;
+  });
 }
 
 function send(res, status, body, headers = {}) {
@@ -99,6 +364,9 @@ function readBody(req) {
   });
 }
 
+// Journal des écritures reçues (tests de mutation) : GET /__writes.
+const writes = [];
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
@@ -106,7 +374,12 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/__reset") {
     for (const key of Object.keys(fixtures)) delete fixtures[key];
     Object.assign(fixtures, JSON.parse(JSON.stringify(initialFixtures)));
+    writes.length = 0;
     res.writeHead(204).end();
+    return;
+  }
+  if (url.pathname === "/__writes") {
+    res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(writes));
     return;
   }
 
@@ -118,19 +391,52 @@ const server = http.createServer(async (req, res) => {
   const [, isRpc, table] = match;
   const wantsObject = (req.headers.accept ?? "").includes("vnd.pgrst.object");
   const body = req.method === "GET" || req.method === "HEAD" ? null : await readBody(req);
+  const params = url.searchParams;
 
   if (isRpc) {
     send(res, 200, []);
     return;
   }
 
-  const rows = withToday(fixtures[table] ?? []);
-
-  if (req.method === "PATCH" && body && fixtures[table]) {
-    fixtures[table] = rows.map((row) => ({ ...row, ...body }));
+  let result;
+  if (req.method === "GET" || req.method === "HEAD") {
+    const rows = applyOrder(applyFilters(withToday(fixtures[table] ?? []), params), params);
+    const limit = Number(params.get("limit") ?? NaN);
+    result = withRelations(table, Number.isFinite(limit) ? rows.slice(0, limit) : rows, params.get("select"));
+  } else {
+    writes.push({ method: req.method, table, query: url.search, body });
+    const rows = materialize(table);
+    if (req.method === "PATCH") {
+      const targets = new Set(applyFilters(rows, params));
+      fixtures[table] = rows.map((row) => (targets.has(row) ? { ...row, ...body } : row));
+      result = fixtures[table].filter((row, i) => targets.has(rows[i]));
+    } else if (req.method === "DELETE") {
+      const targets = new Set(applyFilters(rows, params));
+      fixtures[table] = rows.filter((row) => !targets.has(row));
+      result = [...targets];
+    } else {
+      // POST : insert ou upsert (on_conflict).
+      const inserted = (Array.isArray(body) ? body : body ? [body] : []).map((row) => ({
+        id: randomUUID(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...row,
+      }));
+      const conflict = params.get("on_conflict")?.split(",");
+      result = [];
+      for (const row of inserted) {
+        const existing = conflict ? rows.findIndex((r) => conflict.every((c) => String(r[c]) === String(row[c]))) : -1;
+        if (existing >= 0) {
+          rows[existing] = { ...rows[existing], ...row, id: rows[existing].id };
+          result.push(rows[existing]);
+        } else {
+          rows.push(row);
+          result.push(row);
+        }
+      }
+    }
+    result = withRelations(table, result, params.get("select"));
   }
-
-  const result = req.method === "GET" || req.method === "HEAD" ? rows : fixtures[table] ?? (Array.isArray(body) ? body : body ? [body] : []);
 
   if (wantsObject) {
     if (result.length !== 1) {
