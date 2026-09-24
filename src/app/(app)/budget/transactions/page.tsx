@@ -9,6 +9,10 @@ import { TransactionsFilters } from "./TransactionsFilters";
 import { TransactionsList } from "./TransactionsList";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 const ICON_PROPS = {
   width: 16,
   height: 16,
@@ -40,11 +44,6 @@ function RecurrentesIcon() {
     </svg>
   );
 }
-
-// Les transactions sont ajoutées quasi exclusivement en écriture directe en
-// base (hors Server Action) par Claude Code en session, donc rien ne doit
-// jamais mettre cette route en cache (cf. /nutrition/journal, même pattern).
-export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage({
   searchParams,

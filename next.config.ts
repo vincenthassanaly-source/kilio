@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
 
+// Rig instant() (voir instant-nav.rig.md) : ces deux variables ne sont
+// posées que par la commande de build du rig local, jamais sur Vercel.
+// E2E_SUPABASE_URL pointe vers le faux Supabase de e2e/mock-supabase.mjs
+// (le sandbox cloud bloque l'accès sortant à Supabase) ; EXPOSE_TESTING_API
+// compile l'API de test utilisée par instant() de @next/playwright.
+const e2eSupabaseUrl = process.env.E2E_SUPABASE_URL;
+const exposeTestingApi = process.env.EXPOSE_TESTING_API === "1";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  cacheComponents: true,
   env: {
-    NEXT_PUBLIC_SUPABASE_URL: "https://vsmtkopkqasrdnjceegp.supabase.co",
+    NEXT_PUBLIC_SUPABASE_URL: e2eSupabaseUrl ?? "https://vsmtkopkqasrdnjceegp.supabase.co",
   },
   images: {
     remotePatterns: [
@@ -15,6 +23,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    exposeTestingApiInProductionBuild: exposeTestingApi,
     serverActions: {
       // Défaut Next.js : 1 Mo, largement dépassé par une photo prise
       // directement avec l'appareil d'un téléphone (souvent 2-5 Mo), ce qui

@@ -6,6 +6,10 @@ import { ListesManager } from "./ListesManager";
 import { AddTagToggle } from "./AddTagToggle";
 import { TagsManager } from "./TagsManager";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export default async function ListesTachesPage() {
   const [listes, tags, comptes] = await Promise.all([getListes(), getTags(), getComptesTachesParListe()]);
 

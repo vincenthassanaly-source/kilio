@@ -4,6 +4,10 @@ import { FadeInImage } from "@/components/FadeInImage";
 import { estTypeVideo } from "@/lib/collection/video";
 import { screenTitle } from "@/lib/ui";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 // Atterrissage du Web Share Target (partage natif Android) : reçoit les
 // urls des photos déjà uploadées par la Route Handler /collection/partage
 // (query param `photo`, répété une fois par photo) et/ou les métadonnées

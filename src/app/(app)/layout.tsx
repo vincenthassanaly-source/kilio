@@ -5,6 +5,10 @@ import { TabSwipeWrapper } from "@/components/TabSwipeWrapper";
 import { NavigationEditProvider } from "@/lib/navigation/NavigationEditContext";
 import { getPreferencesNavigationResolues } from "@/app/actions/preferences-navigation";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 // Server Component : lit les préférences de navigation une seule fois par
 // requête et les passe en props à NavigationEditProvider, qui les garde en
 // state client (mises à jour ensuite via les Server Actions

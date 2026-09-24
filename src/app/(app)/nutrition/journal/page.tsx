@@ -17,15 +17,13 @@ import { NutritionSubNav } from "@/components/NutritionSubNav";
 import { JournalSwipeWrapper } from "./JournalSwipeWrapper";
 import { shiftDate } from "./date-utils";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
-
-// La page est déjà rendue dynamiquement (l'usage de `searchParams` est une
-// API de requête qui force ça), mais on le rend explicite : les entrées sont
-// désormais ajoutées quasi exclusivement en écriture directe en base (hors
-// Server Action), donc rien ne doit jamais mettre cette route en cache.
-export const dynamic = "force-dynamic";
 
 export default async function JournalPage({
   searchParams,

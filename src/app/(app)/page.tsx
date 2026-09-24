@@ -2,6 +2,11 @@ import { eyebrow } from "@/lib/ui";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 import { DashboardView } from "./DashboardView";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { connection } from "next/server";
+
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 function greeting() {
   const h = new Date().getHours();
@@ -19,7 +24,9 @@ function todayISO() {
 // async indépendant (voir DashboardView.tsx), streamée via son propre
 // <Suspense> : elle s'affiche dès que SA requête est prête, sans attendre
 // les autres. Voir reports/2026-09-04-dashboard-streaming-par-section.md.
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  // TODO: Cache Components adoption. Added to unblock the build: remove this boundary to re-trigger the error and review the documented options.
+  await connection();
   const today = todayISO();
   const dateLabel = new Date(`${today}T00:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",

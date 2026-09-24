@@ -6,6 +6,10 @@ import { AppResumeRefresh } from "@/components/AppResumeRefresh";
 import { THEME_COOKIE_KEY, themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 const sora = Sora({
   variable: "--font-sora",
   weight: ["600", "700", "800"],

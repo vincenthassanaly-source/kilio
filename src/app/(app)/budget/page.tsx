@@ -6,6 +6,11 @@ import { genererOccurrencesDues } from "@/app/actions/transactions-recurrentes";
 import { formatMontant, formatPeriode, premierJourDuMois } from "@/lib/budget/compute";
 import { card, eyebrow, screenTitle, sectionTitle } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { connection } from "next/server";
+
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 const ICON_PROPS = {
   width: 15,
@@ -49,12 +54,9 @@ function StatistiquesIcon() {
   );
 }
 
-// Les transactions sont ajoutées quasi exclusivement en écriture directe en
-// base par Claude Code en session : cette route ne doit jamais rester en
-// cache (cf. /nutrition/journal, même pattern).
-export const dynamic = "force-dynamic";
-
 export default async function BudgetPage() {
+  // TODO: Cache Components adoption. Added to unblock the build: remove this boundary to re-trigger the error and review the documented options.
+  await connection();
   const periode = premierJourDuMois();
 
   // Pas de cron dans ce repo : les occurrences récurrentes dues sont
