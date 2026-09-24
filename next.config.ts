@@ -10,6 +10,10 @@ const exposeTestingApi = process.env.EXPOSE_TESTING_API === "1";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Chaque <Link> précharge la coquille partagée de sa route (App Shell) ;
+  // <Link prefetch={true}> résout en plus le contenu propre à son URL.
+  // Voir reports/2026-09-24-partial-prefetching-coquilles-journal-budget.md.
+  partialPrefetching: true,
   env: {
     NEXT_PUBLIC_SUPABASE_URL: e2eSupabaseUrl ?? "https://vsmtkopkqasrdnjceegp.supabase.co",
   },
