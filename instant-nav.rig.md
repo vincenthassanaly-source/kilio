@@ -2,14 +2,18 @@
 
 Rig de vérification des tests `instant()` (skill `next-cache-components-optimizer`,
 voir `.claude/skills/next-cache-components-optimizer/rig-template.md`).
-Rapport associé : `reports/2026-09-24-navigation-instantanee-cache-components.md`.
+Rapports associés : `reports/2026-09-24-navigation-instantanee-cache-components.md`,
+`reports/2026-09-24-partial-prefetching-coquilles-journal-budget.md`
+(skill `next-partial-prefetching-adoption`, même rig).
 
 - BUILD: `e2e/run-instant-rig.sh` = `next build` puis `next start --port 3100`
   (build de production, jamais `next dev`). `--no-build` réutilise le dernier
   `.next` (uniquement si le code n'a pas changé depuis ce build).
-- EXPOSE: `EXPOSE_TESTING_API=1` au moment du `next build` (posé par le script) →
-  `experimental.exposeTestingApiInProductionBuild` dans `next.config.ts`. Jamais
-  posé sur Vercel.
+- EXPOSE: `EXPOSE_TESTING_API=1` au moment du `next build` ET du `next start`
+  (posé par le script pour les deux) → `experimental.exposeTestingApiInProductionBuild`
+  dans `next.config.ts`. `next start` relit la config : sans la variable, le
+  serveur ne retient plus rien sous verrou au chargement initial et les tests
+  (ou captures) lancés contre ce serveur sont faux. Jamais posé sur Vercel.
 - RUN: `e2e/run-instant-rig.sh [--no-build] [arguments playwright…]`, par ex.
   `e2e/run-instant-rig.sh e2e/instant-navigation.spec.ts --project=mobile`.
   `BASE_URL=http://localhost:3100` est transmis à `playwright.config.ts`.
@@ -19,14 +23,23 @@ Rapport associé : `reports/2026-09-24-navigation-instantanee-cache-components.m
   démarré par le script s'il ne tourne pas. Données : `preferences_navigation`
   identique à la base réelle au 2026-09-24 (barre du bas `/`, `/agenda`,
   `/taches`, `/notes`), `reglages_nettoyage`, une liste et une tâche due
-  aujourd'hui ; toutes les autres tables sont vides (états vides).
-  `GET /__reset` remet ces données à zéro.
+  aujourd'hui ; depuis le 2026-09-24 (Partial Prefetching), des données
+  réalistes pour le Journal (repas de J-2 à J+1, deux recettes, objectifs
+  repos/entraînement) et le Budget (deux comptes, catégories, budgets du mois,
+  transactions sur trois mois, une récurrence future). Dates relatives au jour
+  du test (UTC). Le faux Supabase applique les filtres PostgREST usuels et les
+  écritures ; `GET /__writes` liste les écritures reçues, `GET /__reset` remet
+  les données à zéro. Les autres tables sont vides (états vides).
 - DRIFT: base réelle ≠ faux Supabase (listes vides, pas de jointures réelles).
   Les marqueurs de coquille (titre `<h1>` de page, lien « Plus » de la barre du
   bas, `data-testid="dashboard-shell"`) ne dépendent d'aucune donnée : ils sont
   présents dans les états vides. Personnaliser la barre du bas dans le faux
   Supabase change les liens `BottomNav` utilisés comme déclencheurs.
-- CONTRACTS: `e2e/instant-navigation.spec.ts` + `e2e/routes.ts`.
+- CONTRACTS: `e2e/instant-navigation.spec.ts` + `e2e/routes.ts` ;
+  `e2e/coquilles-journal-budget.spec.ts` (vrai en-tête du Journal et des 7
+  pages Budget dans la coquille, contenu retenu sous verrou puis streamé, en
+  chargement initial et en navigation client) ; parité :
+  `e2e/parite.spec.ts`, `e2e/parite-journal-budget.spec.ts`.
   Chargement initial (`page.goto` dans `instant()`, `baseURL`) pour les 21
   routes principales ; navigation client (clic réel sur un `<Link>`) depuis la
   barre du bas, la grille « Plus », `/budget`, `/taches` et le Journal ;
@@ -53,6 +66,12 @@ Rapport associé : `reports/2026-09-24-navigation-instantanee-cache-components.m
     navigateur neuf (`e2e/preferences-navigation.spec.ts`).
   - Un test de mutation laisse un nouvel état dans le cache ISR sur disque
     (`.next`) : le rejouer demande un rebuild (pas `--no-build`).
+  - Adoption incrémentale du Partial Prefetching (`export const prefetch =
+    'partial'` avec `partialPrefetching` désactivé) : sous le verrou de test,
+    un clic vers une destination adoptée (ou vers un lien révélé par le
+    défilement pendant le clic) ne navigue pas (Next 16.3.3) ; sans verrou la
+    navigation fonctionne. L'état final (flag global) passe. Ne pas livrer
+    l'adoption route par route sans revérifier ce point.
 
 ## Rig alternatif : preview deploy Vercel
 

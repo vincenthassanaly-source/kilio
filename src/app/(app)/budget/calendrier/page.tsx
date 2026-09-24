@@ -1,15 +1,12 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getTransactionsParJour } from "@/app/actions/transactions";
-import { genererOccurrencesDues } from "@/app/actions/transactions-recurrentes";
-import {
-  formatMontant,
-  formatPeriode,
-  grilleCalendrierMois,
-  periodeAdjacente,
-  premierJourDuMois,
-} from "@/lib/budget/compute";
-import { card, eyebrow, ghostButton, screenTitle } from "@/lib/ui";
+import { formatMontant, grilleCalendrierMois } from "@/lib/budget/compute";
+import { card, eyebrow, screenTitle } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { Skeleton } from "@/components/skeletons/Skeleton";
+import { PeriodeNavigation } from "../PeriodeNavigation";
+import { genererOccurrencesDuesPourLaRequete, lirePeriodeMensuelle } from "../requete";
 
 // TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
 // See: https://nextjs.org/docs/app/guides/optimizing-prefetching
@@ -33,22 +30,9 @@ function ListeIcon() {
   );
 }
 
-export default async function CalendrierPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ periode?: string }>;
-}) {
-  const { periode: periodeParam } = await searchParams;
-  const periode = periodeParam || premierJourDuMois();
+type CalendrierSearchParams = Promise<{ periode?: string }>;
 
-  await genererOccurrencesDues();
-
-  const totauxParJour = await getTransactionsParJour(periode);
-  const semaines = grilleCalendrierMois(periode);
-
-  const periodePrecedente = periodeAdjacente(periode, "mensuel", -1);
-  const periodeSuivante = periodeAdjacente(periode, "mensuel", 1);
-
+export default function CalendrierPage({ searchParams }: { searchParams: CalendrierSearchParams }) {
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">
@@ -66,15 +50,9 @@ export default async function CalendrierPage({
           </Link>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <Link href={`/budget/calendrier?periode=${periodePrecedente}`} className={ghostButton}>
-            ← Précédent
-          </Link>
-          <p className="text-[13px] font-semibold text-ink">{formatPeriode(periode)}</p>
-          <Link href={`/budget/calendrier?periode=${periodeSuivante}`} className={ghostButton}>
-            Suivant →
-          </Link>
-        </div>
+        <Suspense fallback={<PeriodeNavigation route="/budget/calendrier" />}>
+          <PeriodeNavigationCourante searchParams={searchParams} />
+        </Suspense>
 
         <div className={`${card} flex flex-col gap-2`}>
           <div className="grid grid-cols-7 gap-1 text-center">
@@ -84,36 +62,69 @@ export default async function CalendrierPage({
               </span>
             ))}
           </div>
-          <div className="flex flex-col gap-1">
-            {semaines.map((semaine, i) => (
-              <div key={i} className="grid grid-cols-7 gap-1">
-                {semaine.map((jour) => {
-                  const totaux = totauxParJour[jour.date];
-                  return (
-                    <Link
-                      key={jour.date}
-                      href={`/budget/transactions?date=${jour.date}`}
-                      className={`flex min-h-14 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[10px] leading-tight transition-colors ${
-                        jour.horsMois ? "opacity-30" : ""
-                      } ${totaux ? "bg-surface-alt" : "hover:bg-surface-alt/60"}`}
-                    >
-                      <span className="text-[12px] font-semibold text-ink">
-                        {Number(jour.date.slice(-2))}
-                      </span>
-                      {totaux?.depenses ? (
-                        <span className="text-alert">-{formatMontant(totaux.depenses)}</span>
-                      ) : null}
-                      {totaux?.revenus ? (
-                        <span className="text-kcal">+{formatMontant(totaux.revenus)}</span>
-                      ) : null}
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+          <Suspense fallback={<GrilleSkeleton />}>
+            <Grille searchParams={searchParams} />
+          </Suspense>
         </div>
       </div>
     </PullToRefresh>
+  );
+}
+
+async function PeriodeNavigationCourante({ searchParams }: { searchParams: CalendrierSearchParams }) {
+  return <PeriodeNavigation route="/budget/calendrier" periode={await lirePeriodeMensuelle(searchParams)} />;
+}
+
+async function Grille({ searchParams }: { searchParams: CalendrierSearchParams }) {
+  const periode = await lirePeriodeMensuelle(searchParams);
+  await genererOccurrencesDuesPourLaRequete();
+
+  const totauxParJour = await getTransactionsParJour(periode);
+  const semaines = grilleCalendrierMois(periode);
+
+  return (
+    <div className="flex flex-col gap-1">
+      {semaines.map((semaine, i) => (
+        <div key={i} className="grid grid-cols-7 gap-1">
+          {semaine.map((jour) => {
+            const totaux = totauxParJour[jour.date];
+            return (
+              <Link
+                key={jour.date}
+                href={`/budget/transactions?date=${jour.date}`}
+                className={`flex min-h-14 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[10px] leading-tight transition-colors ${
+                  jour.horsMois ? "opacity-30" : ""
+                } ${totaux ? "bg-surface-alt" : "hover:bg-surface-alt/60"}`}
+              >
+                <span className="text-[12px] font-semibold text-ink">
+                  {Number(jour.date.slice(-2))}
+                </span>
+                {totaux?.depenses ? (
+                  <span className="text-alert">-{formatMontant(totaux.depenses)}</span>
+                ) : null}
+                {totaux?.revenus ? (
+                  <span className="text-kcal">+{formatMontant(totaux.revenus)}</span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Extrait de l'ancien loading.tsx : grille de 5 semaines.
+function GrilleSkeleton() {
+  return (
+    <div className="flex flex-col gap-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }).map((_, j) => (
+            <Skeleton key={j} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }

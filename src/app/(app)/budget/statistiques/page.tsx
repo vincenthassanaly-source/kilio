@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { Suspense, cache } from "react";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { getSuiviCategories } from "@/app/actions/budgets";
 import { getResumeMoisPlage } from "@/app/actions/transactions";
-import { genererOccurrencesDues } from "@/app/actions/transactions-recurrentes";
-import { formatPeriode, periodeAdjacente, premierJourDuMois } from "@/lib/budget/compute";
-import { card, eyebrow, ghostButton, screenTitle, sectionTitle } from "@/lib/ui";
+import { card, eyebrow, screenTitle, sectionTitle } from "@/lib/ui";
 import { RepartitionCategories } from "./RepartitionCategories";
 import { RepartitionComptes } from "./RepartitionComptes";
 import { TendanceChart } from "./TendanceChart";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { Skeleton } from "@/components/skeletons/Skeleton";
+import { PeriodeNavigation } from "../PeriodeNavigation";
+import { genererOccurrencesDuesPourLaRequete, lirePeriodeMensuelle } from "../requete";
 
 // TODO(per-link-prefetch): assess with the user whether URL data should resolve before click.
 // See: https://nextjs.org/docs/app/guides/optimizing-prefetching
@@ -36,25 +38,9 @@ function CalendrierIcon() {
 // barres groupées serait trop serré pour rester lisible.
 const NB_MOIS_TENDANCE = 6;
 
-export default async function StatistiquesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ periode?: string }>;
-}) {
-  const { periode: periodeParam } = await searchParams;
-  const periode = periodeParam || premierJourDuMois();
+type StatistiquesSearchParams = Promise<{ periode?: string }>;
 
-  await genererOccurrencesDues();
-
-  const [suiviCategories, tendance, comptes] = await Promise.all([
-    getSuiviCategories(periode),
-    getResumeMoisPlage(periode, NB_MOIS_TENDANCE),
-    getComptesAvecSolde(),
-  ]);
-
-  const periodePrecedente = periodeAdjacente(periode, "mensuel", -1);
-  const periodeSuivante = periodeAdjacente(periode, "mensuel", 1);
-
+export default function StatistiquesPage({ searchParams }: { searchParams: StatistiquesSearchParams }) {
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">
@@ -72,19 +58,15 @@ export default async function StatistiquesPage({
           </Link>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <Link href={`/budget/statistiques?periode=${periodePrecedente}`} className={ghostButton}>
-            ← Précédent
-          </Link>
-          <p className="text-[13px] font-semibold text-ink">{formatPeriode(periode)}</p>
-          <Link href={`/budget/statistiques?periode=${periodeSuivante}`} className={ghostButton}>
-            Suivant →
-          </Link>
-        </div>
+        <Suspense fallback={<PeriodeNavigation route="/budget/statistiques" />}>
+          <PeriodeNavigationCourante searchParams={searchParams} />
+        </Suspense>
 
         <div className={`${card} flex flex-col gap-3`}>
           <h2 className={sectionTitle}>Répartition par catégorie</h2>
-          <RepartitionCategories suivi={suiviCategories} />
+          <Suspense fallback={<Skeleton className="h-[140px] w-full rounded-xl" />}>
+            <RepartitionCategoriesCourante searchParams={searchParams} />
+          </Suspense>
         </div>
 
         <div className={`${card} flex flex-col gap-3`}>
@@ -99,14 +81,52 @@ export default async function StatistiquesPage({
               </span>
             </div>
           </div>
-          <TendanceChart donnees={tendance} />
+          <Suspense fallback={<Skeleton className="h-[100px] w-full rounded-xl" />}>
+            <TendanceCourante searchParams={searchParams} />
+          </Suspense>
         </div>
 
         <div className={`${card} flex flex-col gap-3`}>
           <h2 className={sectionTitle}>Répartition par compte</h2>
-          <RepartitionComptes comptes={comptes} />
+          <Suspense fallback={<Skeleton className="h-[80px] w-full rounded-xl" />}>
+            <RepartitionComptesCourante />
+          </Suspense>
         </div>
       </div>
     </PullToRefresh>
   );
+}
+
+// Une seule génération des récurrences et une seule série de lectures par
+// requête, partagées par les trois cartes.
+const chargerStatistiques = cache(async (periode: string) => {
+  await genererOccurrencesDuesPourLaRequete();
+  const [suiviCategories, tendance] = await Promise.all([
+    getSuiviCategories(periode),
+    getResumeMoisPlage(periode, NB_MOIS_TENDANCE),
+  ]);
+  return { suiviCategories, tendance };
+});
+
+const chargerComptes = cache(async () => {
+  await genererOccurrencesDuesPourLaRequete();
+  return getComptesAvecSolde();
+});
+
+async function PeriodeNavigationCourante({ searchParams }: { searchParams: StatistiquesSearchParams }) {
+  return <PeriodeNavigation route="/budget/statistiques" periode={await lirePeriodeMensuelle(searchParams)} />;
+}
+
+async function RepartitionCategoriesCourante({ searchParams }: { searchParams: StatistiquesSearchParams }) {
+  const { suiviCategories } = await chargerStatistiques(await lirePeriodeMensuelle(searchParams));
+  return <RepartitionCategories suivi={suiviCategories} />;
+}
+
+async function TendanceCourante({ searchParams }: { searchParams: StatistiquesSearchParams }) {
+  const { tendance } = await chargerStatistiques(await lirePeriodeMensuelle(searchParams));
+  return <TendanceChart donnees={tendance} />;
+}
+
+async function RepartitionComptesCourante() {
+  return <RepartitionComptes comptes={await chargerComptes()} />;
 }
