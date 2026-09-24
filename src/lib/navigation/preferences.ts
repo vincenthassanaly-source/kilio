@@ -46,20 +46,36 @@ export type PreferencesNavigationResolues = {
 // l'ordre personnalisé, sans attendre Supabase. La ligne n'est modifiée que
 // par les deux Server Actions de preferences-navigation.ts, qui expirent ce
 // cache via updateTag ; `days` borne la fraîcheur en cas d'écriture directe
-// en base. Voir reports/2026-09-24-navigation-instantanee-cache-components.md.
+// en base.
+//
+// La lecture a lieu au build (prérendu) : si Supabase est injoignable
+// (build Preview sans SUPABASE_SERVICE_ROLE_KEY, panne), on retombe sur
+// l'ordre par défaut avec une durée courte, relue dès la première requête
+// suivante, plutôt que de faire échouer le build (ou, à l'exécution,
+// d'afficher la page d'erreur sur toute l'app). Voir
+// reports/2026-09-24-navigation-instantanee-cache-components.md.
 export async function getPreferencesNavigationResolues(): Promise<PreferencesNavigationResolues> {
   "use cache";
   cacheTag(PREFERENCES_NAVIGATION_TAG);
-  cacheLife("days");
 
-  const supabase = createAdminClient();
-  const { data: prefs, error } = await supabase
-    .from("preferences_navigation")
-    .select("*")
-    .eq("id", PREFERENCES_ID)
-    .single();
+  let prefs: Pick<PreferencesNavigation, "ordre_grille_plus" | "modules_barre_basse">;
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("preferences_navigation")
+      .select("*")
+      .eq("id", PREFERENCES_ID)
+      .single();
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
+    prefs = data;
+    cacheLife("days");
+  } catch (error) {
+    console.error("Préférences de navigation illisibles, ordre par défaut utilisé :", error);
+    prefs = { ordre_grille_plus: [], modules_barre_basse: [] };
+    cacheLife("minutes");
+  }
+
   return {
     ordreGrillePlus: resolveOrdreGrillePlus(prefs.ordre_grille_plus),
     modulesBarreBasse: resolveModulesBarreBasse(prefs.modules_barre_basse),
