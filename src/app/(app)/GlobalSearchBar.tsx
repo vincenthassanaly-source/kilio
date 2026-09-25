@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { rechercheGlobale, type ModuleRecherche, type ResultatRecherche } from "@/app/actions/recherche";
 import { input } from "@/lib/ui";
+import { runAction } from "@/lib/actions/runAction";
 
 function idOption(item: ResultatRecherche): string {
   return `recherche-option-${item.module}-${item.id}`;
@@ -37,6 +38,7 @@ export function GlobalSearchBar() {
   const [ouvert, setOuvert] = useState(false);
   const [aRecherche, setARecherche] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,9 +50,22 @@ export function GlobalSearchBar() {
         setARecherche(false);
         return;
       }
+      // Contrat T1 : un échec (hors ligne, Supabase lent) s'affiche dans la
+      // liste déroulante au lieu de faire basculer tout le dashboard sur
+      // error.tsx. Pas de toast : la recherche se relance à chaque frappe.
       startTransition(async () => {
-        const data = await rechercheGlobale(q);
-        setResultats(data);
+        const resultat = await runAction(() => rechercheGlobale(q), {
+          silencieux: true,
+          erreur: "La recherche a échoué. Réessaie dans un instant.",
+        });
+        if (!resultat.ok) {
+          setErreur(resultat.error);
+          setResultats([]);
+          setARecherche(true);
+          return;
+        }
+        setErreur(null);
+        setResultats(resultat.data);
         setARecherche(true);
         setActiveIndex(-1);
       });
@@ -138,9 +153,15 @@ export function GlobalSearchBar() {
           className="absolute inset-x-0 top-[calc(100%+6px)] z-50 max-h-[70vh] overflow-y-auto rounded-[20px] border border-line bg-surface p-2 shadow-card"
         >
           {groupes.length === 0 ? (
-            <p className="px-3 py-4 text-center text-[13.5px] text-ink-2">
-              {aRecherche ? "Aucun résultat." : "Recherche…"}
-            </p>
+            erreur ? (
+              <p role="alert" className="px-3 py-4 text-center text-[13.5px] text-alert">
+                {erreur}
+              </p>
+            ) : (
+              <p className="px-3 py-4 text-center text-[13.5px] text-ink-2">
+                {aRecherche ? "Aucun résultat." : "Recherche…"}
+              </p>
+            )
           ) : (
             <div className="flex flex-col gap-2">
               {groupes.map(({ module, items }) => (

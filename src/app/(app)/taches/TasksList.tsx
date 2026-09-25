@@ -28,7 +28,10 @@ import {
 import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import type { Enums, Tables } from "@/lib/supabase/types";
-import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, pillTag } from "@/lib/ui";
+import { card, dangerButton, ghostButton, input, kcalPillTag, listCard, metaText, pillTag } from "@/lib/ui";
+import { runAction } from "@/lib/actions/runAction";
+import { supprimerAvecAnnulation } from "@/lib/actions/suppressionDifferee";
+import type { ActionResult } from "@/lib/actions/result";
 import { confirmDelete } from "@/lib/confirm";
 import { CheckToggle } from "@/components/CheckToggle";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -99,49 +102,82 @@ const GRIP_ICON = (
   </svg>
 );
 
+// Boutons de ligne des sous-tâches : zone de tap de 44 px de haut (au lieu
+// des glyphes nus d'environ 10×24 px relevés par l'audit), anneau de focus.
+const sousTacheBouton =
+  "flex h-11 w-9 shrink-0 items-center justify-center rounded-lg text-base disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal";
+
 function SousTachesList({ tache }: { tache: TacheAvecRelations }) {
   const [isPending, startTransition] = useTransition();
   const [titre, setTitre] = useState("");
+  // Sous-tâches masquées le temps du toast « Annuler » (suppression différée).
+  const [masquees, setMasquees] = useState<ReadonlySet<string>>(() => new Set());
   const queryClient = useQueryClient();
+  const visibles = tache.sous_taches.filter((s) => !masquees.has(s.id));
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+  }
+
+  // Contrat T1 : `runAction` ne laisse jamais une erreur remonter à
+  // error.tsx ; l'échec s'affiche en toast `role="alert"`.
+  function executer(action: () => Promise<ActionResult>) {
+    startTransition(async () => {
+      const resultat = await runAction(action);
+      if (resultat.ok) invalidate();
+    });
   }
 
   function handleAjouter(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = titre.trim();
     if (!trimmed) return;
+    // Le champ n'est vidé qu'après succès : un échec garde la saisie.
     startTransition(async () => {
-      await createSousTache(tache.id, trimmed);
-      invalidate();
+      const resultat = await runAction(() => createSousTache(tache.id, trimmed));
+      if (resultat.ok) {
+        setTitre("");
+        invalidate();
+      }
     });
-    setTitre("");
+  }
+
+  function handleSupprimer(sousTache: Tables<"sous_taches">) {
+    supprimerAvecAnnulation({
+      texte: `« ${sousTache.titre} » supprimée`,
+      ariaLabel: `Annuler la suppression de « ${sousTache.titre} »`,
+      masquer: () => setMasquees((m) => new Set(m).add(sousTache.id)),
+      restaurer: () =>
+        setMasquees((m) => {
+          const suivant = new Set(m);
+          suivant.delete(sousTache.id);
+          return suivant;
+        }),
+      supprimer: () => deleteSousTache(sousTache.id),
+      erreur: `Impossible de supprimer « ${sousTache.titre} ». Réessaie.`,
+      onSupprime: invalidate,
+    });
   }
 
   return (
     <div className="mt-1 flex flex-col gap-1.5 border-t border-line pt-2">
-      {tache.sous_taches.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {tache.sous_taches.map((sousTache, index) => (
-            <li key={sousTache.id} className="flex items-center gap-2">
+      {visibles.length > 0 && (
+        <ul className="flex flex-col">
+          {visibles.map((sousTache, index) => (
+            <li key={sousTache.id} className="flex items-center gap-1">
               <CheckToggle
                 checked={sousTache.fait}
                 disabled={isPending}
-                onToggle={() =>
-                  startTransition(async () => {
-                    await toggleSousTache(sousTache.id, !sousTache.fait);
-                    invalidate();
-                  })
-                }
+                onToggle={() => executer(() => toggleSousTache(sousTache.id, !sousTache.fait))}
                 size={17}
                 label={sousTache.fait ? "Marquer non fait" : "Marquer fait"}
-                // `<ul className="gap-1">` (4px, la plus dense des listes à coches) :
-                // hitSlop minimal, voir reports/2026-09-16-fix-dashboard-audit-constats-1-2.md.
+                // Lignes de 44 px : la zone de tap du CheckToggle n'a plus
+                // besoin d'être étendue au-delà (voir
+                // reports/2026-09-16-fix-dashboard-audit-constats-1-2.md).
                 hitSlop={1}
               />
               <span
-                className={`flex-1 text-[13.5px] ${
+                className={`ml-1 min-w-0 flex-1 break-words text-[13.5px] ${
                   sousTache.fait ? "text-ink-2 line-through" : "text-ink"
                 }`}
               >
@@ -150,42 +186,27 @@ function SousTachesList({ tache }: { tache: TacheAvecRelations }) {
               <button
                 type="button"
                 disabled={isPending || index === 0}
-                onClick={() =>
-                  startTransition(async () => {
-                    await reordonnerSousTaches(tache.id, sousTache.id, "haut");
-                    invalidate();
-                  })
-                }
-                className="text-ink-2 disabled:opacity-30"
-                aria-label="Monter la sous-tâche"
+                onClick={() => executer(() => reordonnerSousTaches(tache.id, sousTache.id, "haut"))}
+                className={`${sousTacheBouton} text-ink-2`}
+                aria-label={`Monter « ${sousTache.titre} »`}
               >
                 ↑
               </button>
               <button
                 type="button"
-                disabled={isPending || index === tache.sous_taches.length - 1}
-                onClick={() =>
-                  startTransition(async () => {
-                    await reordonnerSousTaches(tache.id, sousTache.id, "bas");
-                    invalidate();
-                  })
-                }
-                className="text-ink-2 disabled:opacity-30"
-                aria-label="Descendre la sous-tâche"
+                disabled={isPending || index === visibles.length - 1}
+                onClick={() => executer(() => reordonnerSousTaches(tache.id, sousTache.id, "bas"))}
+                className={`${sousTacheBouton} text-ink-2`}
+                aria-label={`Descendre « ${sousTache.titre} »`}
               >
                 ↓
               </button>
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() =>
-                  startTransition(async () => {
-                    await deleteSousTache(sousTache.id);
-                    invalidate();
-                  })
-                }
-                className="text-alert"
-                aria-label="Supprimer la sous-tâche"
+                onClick={() => handleSupprimer(sousTache)}
+                className={`${sousTacheBouton} text-alert`}
+                aria-label={`Supprimer « ${sousTache.titre} »`}
               >
                 ×
               </button>
@@ -197,15 +218,18 @@ function SousTachesList({ tache }: { tache: TacheAvecRelations }) {
         <input
           value={titre}
           onChange={(e) => setTitre(e.target.value)}
-          placeholder="+ Sous-tâche"
-          className="flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-kcal/60"
+          placeholder="+ Sous-tâche…"
+          aria-label="Nouvelle sous-tâche"
+          name="sous-tache"
+          autoComplete="off"
+          className={`${input} min-h-11 flex-1 py-2 text-base`}
         />
         <button
           type="submit"
           disabled={isPending || !titre.trim()}
-          className="text-sm font-semibold text-kcal disabled:opacity-50"
+          className="min-h-11 rounded-xl px-2 text-sm font-semibold text-kcal disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal"
         >
-          Ajouter
+          {isPending ? "Ajout…" : "Ajouter"}
         </button>
       </form>
     </div>

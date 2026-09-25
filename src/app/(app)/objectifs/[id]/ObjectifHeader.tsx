@@ -9,6 +9,7 @@ import { TransitionLink } from "@/components/TransitionLink";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
+import { runAction } from "@/lib/actions/runAction";
 
 const STATUT_LABELS: Record<Enums<"statut_objectif">, string> = {
   en_cours: "En cours",
@@ -110,8 +111,12 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
         disabled={isPending}
         onChange={(e) =>
           startTransition(async () => {
-            await changerStatutObjectif(objectif.id, e.target.value as Enums<"statut_objectif">);
-            invalidate();
+            // Contrat T1 : un échec s'affiche en toast au lieu d'error.tsx.
+            const statut = e.target.value as Enums<"statut_objectif">;
+            const resultat = await runAction(() => changerStatutObjectif(objectif.id, statut), {
+              erreur: "Le statut n'a pas pu être changé. Réessaie.",
+            });
+            if (resultat.ok) invalidate();
           })
         }
         className={`${input} w-fit`}

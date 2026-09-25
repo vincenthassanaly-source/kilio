@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enregistrerEntreeHabitude, supprimerHabitude, type HabitudeDuJour } from "@/app/actions/habitudes";
 import { queryKeys } from "@/lib/query/keys";
-import { showToast } from "@/components/toast/toast-store";
+import { showErrorToast, showToast } from "@/components/toast/toast-store";
 import { HabitudeForm } from "./HabitudeForm";
 import { ProgressRing } from "@/components/ProgressRing";
 import { card, dangerButton, ghostButton, input, listCard, metaText, nameText, pillTag } from "@/lib/ui";
@@ -95,8 +95,21 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
   function enregistrerValeur() {
     const valeur = Number(valeurInput);
     if (!Number.isFinite(valeur) || valeur < 0) return;
+    // Même patron que le toggle ci-dessus : hors ligne, mise en file ;
+    // autre échec, toast `role="alert"` et saisie conservée — plus jamais
+    // d'exception vers error.tsx (constat T1).
     startTransition(async () => {
-      await enregistrerEntreeHabitude(habitude.id, date, valeur);
+      try {
+        await enregistrerEntreeHabitude(habitude.id, date, valeur);
+      } catch (err) {
+        if (isNetworkError(err)) {
+          await enqueueAction("habitudes", "enregistrerEntreeHabitude", [habitude.id, date, valeur]);
+          showToast("Enregistré, sera synchronisé à la reconnexion");
+        } else {
+          showErrorToast(`La valeur de « ${habitude.nom} » n'a pas pu être enregistrée. Réessaie.`);
+          return;
+        }
+      }
       invalidate();
     });
   }
@@ -107,7 +120,10 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
       try {
         await supprimerHabitude(habitude.id);
       } catch (err) {
-        if (!isNetworkError(err)) throw err;
+        if (!isNetworkError(err)) {
+          showErrorToast(`Impossible de supprimer « ${habitude.nom} ». Réessaie.`);
+          return;
+        }
         await enqueueAction("habitudes", "supprimerHabitude", [habitude.id]);
         showToast("Enregistré, sera synchronisé à la reconnexion");
       }

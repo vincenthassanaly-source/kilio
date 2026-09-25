@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { enregistrerEntreeObjectif } from "@/app/actions/objectifs";
+import { enregistrerEntreeObjectif, supprimerEntreeObjectif } from "@/app/actions/objectifs";
 import { queryKeys } from "@/lib/query/keys";
-import { showToast } from "@/components/toast/toast-store";
+import { runAction } from "@/lib/actions/runAction";
 import type { Tables } from "@/lib/supabase/types";
-import { card, ghostButton, input, label as labelClass, metaText, sectionTitle } from "@/lib/ui";
+import { card, dangerButton, errorText, ghostButton, input, label as labelClass, metaText, sectionTitle } from "@/lib/ui";
 import { toISODate } from "../date-utils";
 
 function EvolutionChart({
@@ -87,6 +87,10 @@ export function ObjectifSuiviValeur({
   const queryClient = useQueryClient();
   const [date, setDate] = useState(() => toISODate(new Date()));
   const valeurInputRef = useRef<HTMLInputElement>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const dateId = useId();
+  const valeurId = useId();
+  const erreurId = useId();
 
   const valeurExistante = entries.find((e) => e.date === date)?.valeur;
 
@@ -96,16 +100,37 @@ export function ObjectifSuiviValeur({
       ? Math.min(1, Math.max(0, (derniere?.valeur ?? 0) / objectif.valeur_cible))
       : null;
 
+  // Champ vide : refusé en ligne (plus d'enregistrement de 0 qui écrasait
+  // la mesure du jour) ; la valeur brute part au serveur, qui refuse aussi.
   function enregistrer() {
-    const nombre = Number(valeurInputRef.current?.value ?? "");
-    if (!Number.isFinite(nombre)) return;
+    const saisie = valeurInputRef.current?.value.trim() ?? "";
+    if (saisie === "") {
+      setErreur(
+        valeurExistante !== undefined
+          ? "Champ vide : saisis une valeur, ou utilise « Supprimer la mesure »."
+          : "Saisis une valeur avant d'enregistrer."
+      );
+      valeurInputRef.current?.focus();
+      return;
+    }
+    setErreur(null);
     startTransition(async () => {
-      try {
-        await enregistrerEntreeObjectif(objectifId, date, nombre);
-        queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectifId) });
-      } catch {
-        showToast("Impossible d'enregistrer cette valeur.");
-      }
+      const resultat = await runAction(() => enregistrerEntreeObjectif(objectifId, date, saisie), {
+        silencieux: true,
+        onError: setErreur,
+      });
+      if (resultat.ok) queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectifId) });
+    });
+  }
+
+  function supprimerMesure() {
+    setErreur(null);
+    startTransition(async () => {
+      const resultat = await runAction(() => supprimerEntreeObjectif(objectifId, date), {
+        silencieux: true,
+        onError: setErreur,
+      });
+      if (resultat.ok) queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectifId) });
     });
   }
 
@@ -133,35 +158,57 @@ export function ObjectifSuiviValeur({
 
       <div className="flex items-end gap-2">
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="date-entree" className={labelClass}>
+          <label htmlFor={dateId} className={labelClass}>
             Date
           </label>
           <input
-            id="date-entree"
+            id={dateId}
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setErreur(null);
+            }}
             className={input}
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="valeur-entree" className={labelClass}>
+          <label htmlFor={valeurId} className={labelClass}>
             Valeur{objectif.unite ? ` (${objectif.unite})` : ""}
           </label>
           <input
             key={date}
-            id="valeur-entree"
+            id={valeurId}
             ref={valeurInputRef}
-            type="number"
-            step="any"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             defaultValue={valeurExistante ?? ""}
+            onChange={() => erreur && setErreur(null)}
+            aria-invalid={erreur ? true : undefined}
+            aria-describedby={erreur ? erreurId : undefined}
             className={input}
           />
         </div>
-        <button type="button" disabled={isPending} onClick={enregistrer} className={ghostButton}>
-          Enregistrer
+        <button type="button" disabled={isPending} onClick={enregistrer} className={`${ghostButton} min-h-11`}>
+          {isPending ? "Enregistrement…" : "Enregistrer"}
         </button>
       </div>
+      {erreur && (
+        <p id={erreurId} role="alert" className={errorText}>
+          {erreur}
+        </p>
+      )}
+      {valeurExistante !== undefined && (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={supprimerMesure}
+          className={`${dangerButton} min-h-11 self-start`}
+        >
+          Supprimer la mesure du {new Date(`${date}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+        </button>
+      )}
     </div>
   );
 }

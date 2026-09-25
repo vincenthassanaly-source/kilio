@@ -74,11 +74,12 @@ export function ObjectifSuiviEtapes({
       try {
         await ajouterEtape(objectifId, valeur);
         invalidate();
+        // Vidé seulement après succès : un échec garde la saisie (T1).
+        setTitre("");
+        formRef.current?.reset();
       } catch {
-        showToast("Impossible d'ajouter cette étape.");
+        showToast("Impossible d'ajouter cette étape. Réessaie.");
       }
-      setTitre("");
-      formRef.current?.reset();
     });
   }
 

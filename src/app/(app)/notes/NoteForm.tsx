@@ -14,6 +14,7 @@ import {
   type NoteFormState,
 } from "@/app/actions/notes";
 import { queryKeys } from "@/lib/query/keys";
+import { runAction } from "@/lib/actions/runAction";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { NOTE_PALETTE, estCouleurValide, type NoteCouleur } from "@/lib/notes/palette";
 import { CheckToggle } from "@/components/CheckToggle";
@@ -34,14 +35,26 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
     queryClient.invalidateQueries({ queryKey: queryKeys.notes });
   }
 
+  // Contrat T1 : chaque écriture passe par `runAction`, qui transforme une
+  // exception (réseau, serveur) en toast `role="alert"` au lieu de faire
+  // basculer tout l'éditeur sur error.tsx.
+  function executer(action: () => Promise<unknown>, erreur: string, onOk?: () => void) {
+    startTransition(async () => {
+      const resultat = await runAction(action, { erreur });
+      if (resultat.ok) {
+        onOk?.();
+        invalidate();
+      }
+    });
+  }
+
   function ajouter() {
     const trimmed = nouvelItem.trim();
     if (!trimmed) return;
-    startTransition(async () => {
-      await addNoteItem(noteId, trimmed);
-      invalidate();
-    });
-    setNouvelItem("");
+    // Champ vidé seulement après succès : un échec garde la saisie.
+    executer(() => addNoteItem(noteId, trimmed), "L'item n'a pas pu être ajouté. Réessaie.", () =>
+      setNouvelItem("")
+    );
   }
 
   return (
@@ -51,10 +64,7 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
           <CheckToggle
             checked={item.coche}
             onToggle={() =>
-              startTransition(async () => {
-                await toggleNoteItem(item.id, !item.coche);
-                invalidate();
-              })
+              executer(() => toggleNoteItem(item.id, !item.coche), "L'item n'a pas pu être coché. Réessaie.")
             }
             label={item.coche ? "Décocher l'item" : "Cocher l'item"}
             size={20}
@@ -67,10 +77,10 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
             onBlur={(e) => {
               const value = e.target.value.trim();
               if (value && value !== item.libelle) {
-                startTransition(async () => {
-                  await updateNoteItemLibelle(item.id, value);
-                  invalidate();
-                });
+                executer(
+                  () => updateNoteItemLibelle(item.id, value),
+                  "Le renommage n'a pas pu être enregistré. Réessaie."
+                );
               }
             }}
             className={`${input} flex-1 py-1.5 ${item.coche ? "text-ink-3 line-through" : ""}`}
@@ -79,10 +89,7 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
             type="button"
             disabled={isPending || index === 0}
             onClick={() =>
-              startTransition(async () => {
-                await reorderNoteItems(noteId, item.id, "haut");
-                invalidate();
-              })
+              executer(() => reorderNoteItems(noteId, item.id, "haut"), "L'ordre n'a pas pu être modifié. Réessaie.")
             }
             className={`${ghostButton} disabled:opacity-30`}
             aria-label="Monter l'item"
@@ -93,10 +100,7 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
             type="button"
             disabled={isPending || index === items.length - 1}
             onClick={() =>
-              startTransition(async () => {
-                await reorderNoteItems(noteId, item.id, "bas");
-                invalidate();
-              })
+              executer(() => reorderNoteItems(noteId, item.id, "bas"), "L'ordre n'a pas pu être modifié. Réessaie.")
             }
             className={`${ghostButton} disabled:opacity-30`}
             aria-label="Descendre l'item"
@@ -107,10 +111,7 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
             type="button"
             disabled={isPending}
             onClick={() =>
-              startTransition(async () => {
-                await deleteNoteItem(item.id);
-                invalidate();
-              })
+              executer(() => deleteNoteItem(item.id), `Impossible de supprimer « ${item.libelle} ». Réessaie.`)
             }
             className={ghostButton}
             aria-label="Supprimer l'item"

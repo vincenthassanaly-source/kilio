@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type ObjectifFormState = { error: string | null };
@@ -275,21 +276,43 @@ export async function deplacerEtape(
 
 // --- Entrées (type de suivi "valeur") ---
 
+// Contrat `ActionResult` (T1). La valeur arrive **brute** (texte du champ) :
+// un champ vide est refusé au lieu d'être enregistré comme 0
+// (`Number("") === 0` écrasait la mesure du jour, constat T2 de l'audit).
+// Pour retirer une mesure, `supprimerEntreeObjectif` ci-dessous.
 export async function enregistrerEntreeObjectif(
   objectifId: string,
   date: string,
-  valeur: number
-) {
-  if (!Number.isFinite(valeur)) {
-    throw new Error("Valeur invalide.");
-  }
+  valeurSaisie: string | number
+): Promise<ActionResult> {
+  const texte = typeof valeurSaisie === "number" ? String(valeurSaisie) : valeurSaisie.trim().replace(",", ".");
+  if (texte === "") return fail("Saisis une valeur, ou supprime la mesure de ce jour.");
+  const valeur = Number(texte);
+  if (!Number.isFinite(valeur)) return fail("Valeur invalide : saisis un nombre.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail("Date invalide.");
 
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("objectif_entries")
     .upsert({ objectif_id: objectifId, date, valeur }, { onConflict: "objectif_id,date" });
 
-  if (error) throw new Error(error.message);
+  if (error) return fail("La valeur n'a pas pu être enregistrée. Réessaie.");
 
   revalidatePath(`/objectifs/${objectifId}`);
+  return ok();
+}
+
+// Suppression explicite d'une mesure (remplace l'ancien « champ vide = 0 »).
+export async function supprimerEntreeObjectif(objectifId: string, date: string): Promise<ActionResult> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("objectif_entries")
+    .delete()
+    .eq("objectif_id", objectifId)
+    .eq("date", date);
+
+  if (error) return fail("La mesure n'a pas pu être supprimée. Réessaie.");
+
+  revalidatePath(`/objectifs/${objectifId}`);
+  return ok();
 }

@@ -5,6 +5,7 @@ import { deleteTag } from "@/app/actions/taches";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, listCard, nameText } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
+import { runAction } from "@/lib/actions/runAction";
 
 function TagRow({ tag }: { tag: Tables<"tags"> }) {
   const [isPending, startTransition] = useTransition();
@@ -22,7 +23,9 @@ function TagRow({ tag }: { tag: Tables<"tags"> }) {
         disabled={isPending}
         onClick={() => {
           if (!confirmDelete(`Supprimer le tag « #${tag.nom} » ?`)) return;
-          startTransition(() => deleteTag(tag.id));
+          startTransition(async () => {
+            await runAction(() => deleteTag(tag.id), { erreur: `Impossible de supprimer l'étiquette « ${tag.nom} ». Réessaie.` });
+          });
         }}
         className={dangerButton}
       >

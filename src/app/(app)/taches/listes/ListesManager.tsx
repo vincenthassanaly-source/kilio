@@ -11,6 +11,7 @@ import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import { isNetworkError } from "@/lib/offline/queue";
 import { AddListeForm } from "./AddListeForm";
+import { runAction } from "@/lib/actions/runAction";
 
 type CompteTaches = { total: number; faites: number };
 
@@ -107,7 +108,7 @@ function ListeRow({
           <button
             type="button"
             disabled={isPending || index === 0}
-            onClick={() => startTransition(() => reordonnerListes(liste.id, "haut"))}
+            onClick={() => startTransition(async () => void (await runAction(() => reordonnerListes(liste.id, "haut"))))}
             className="text-ink-2 disabled:opacity-30"
             aria-label="Monter"
           >
@@ -116,7 +117,7 @@ function ListeRow({
           <button
             type="button"
             disabled={isPending || index === total - 1}
-            onClick={() => startTransition(() => reordonnerListes(liste.id, "bas"))}
+            onClick={() => startTransition(async () => void (await runAction(() => reordonnerListes(liste.id, "bas"))))}
             className="text-ink-2 disabled:opacity-30"
             aria-label="Descendre"
           >

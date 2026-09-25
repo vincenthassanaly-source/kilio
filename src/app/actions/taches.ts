@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { messageAvertissementCreation } from "@/lib/taches/compute";
@@ -856,10 +857,14 @@ export async function getTags(): Promise<Tables<"tags">[]> {
 }
 
 // --- Sous-tâches ---
+//
+// Contrat `ActionResult` (constat T1, vague 1 de l'audit) : ces actions ne
+// lèvent plus, elles retournent l'échec avec un message lisible. Appelées
+// dans des transitions par SousTachesList (TasksList.tsx) via `runAction`.
 
-export async function createSousTache(tacheId: string, titre: string) {
+export async function createSousTache(tacheId: string, titre: string): Promise<ActionResult> {
   const trimmed = titre.trim();
-  if (!trimmed) throw new Error("Le titre de la sous-tâche est requis.");
+  if (!trimmed) return fail("Le titre de la sous-tâche est requis.");
 
   const supabase = createAdminClient();
 
@@ -877,46 +882,50 @@ export async function createSousTache(tacheId: string, titre: string) {
     ordre: (derniere?.ordre ?? -1) + 1,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) return fail("La sous-tâche n'a pas pu être ajoutée. Réessaie.");
 
   revalidateTachesPaths();
+  return ok();
 }
 
-export async function toggleSousTache(id: string, fait: boolean) {
+export async function toggleSousTache(id: string, fait: boolean): Promise<ActionResult> {
   const supabase = createAdminClient();
   const { error } = await supabase.from("sous_taches").update({ fait }).eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) return fail("La sous-tâche n'a pas pu être mise à jour. Réessaie.");
 
   revalidateTachesPaths();
+  return ok();
 }
 
-export async function updateSousTache(id: string, titre: string) {
+export async function updateSousTache(id: string, titre: string): Promise<ActionResult> {
   const trimmed = titre.trim();
-  if (!trimmed) throw new Error("Le titre de la sous-tâche est requis.");
+  if (!trimmed) return fail("Le titre de la sous-tâche est requis.");
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("sous_taches").update({ titre: trimmed }).eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) return fail("La sous-tâche n'a pas pu être renommée. Réessaie.");
 
   revalidateTachesPaths();
+  return ok();
 }
 
-export async function deleteSousTache(id: string) {
+export async function deleteSousTache(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
   const { error } = await supabase.from("sous_taches").delete().eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) return fail("La sous-tâche n'a pas pu être supprimée. Réessaie.");
 
   revalidateTachesPaths();
+  return ok();
 }
 
 export async function reordonnerSousTaches(
   tacheId: string,
   id: string,
   direction: "haut" | "bas"
-) {
+): Promise<ActionResult> {
   const supabase = createAdminClient();
 
   const { data: sousTaches, error } = await supabase
@@ -925,14 +934,14 @@ export async function reordonnerSousTaches(
     .eq("tache_id", tacheId)
     .order("ordre", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  if (!sousTaches) return;
+  if (error) return fail("L'ordre des sous-tâches n'a pas pu être modifié. Réessaie.");
+  if (!sousTaches) return ok();
 
   const index = sousTaches.findIndex((s) => s.id === id);
-  if (index === -1) return;
+  if (index === -1) return ok();
 
   const voisinIndex = direction === "haut" ? index - 1 : index + 1;
-  if (voisinIndex < 0 || voisinIndex >= sousTaches.length) return;
+  if (voisinIndex < 0 || voisinIndex >= sousTaches.length) return ok();
 
   const actuelle = sousTaches[index];
   const voisine = sousTaches[voisinIndex];
@@ -942,8 +951,8 @@ export async function reordonnerSousTaches(
     supabase.from("sous_taches").update({ ordre: actuelle.ordre }).eq("id", voisine.id),
   ]);
 
-  if (err1) throw new Error(err1.message);
-  if (err2) throw new Error(err2.message);
+  if (err1 || err2) return fail("L'ordre des sous-tâches n'a pas pu être modifié. Réessaie.");
 
   revalidateTachesPaths();
+  return ok();
 }
