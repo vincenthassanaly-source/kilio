@@ -610,6 +610,27 @@ export type Database = {
           },
         ]
       }
+      journal_jours: {
+        Row: {
+          created_at: string
+          date: string
+          jour_type: Database["public"]["Enums"]["jour_type_ppl"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          jour_type?: Database["public"]["Enums"]["jour_type_ppl"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          jour_type?: Database["public"]["Enums"]["jour_type_ppl"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listes_taches: {
         Row: {
           couleur: string | null

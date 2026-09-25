@@ -13,6 +13,7 @@ import { ResumeJour } from "./ResumeJour";
 import { JournalEntriesList, type JournalEntryView } from "./JournalEntriesList";
 import { JournalJourAnime } from "./JournalSwipeWrapper";
 import { JourNavigation, JourTypeOnglets } from "./JournalNavigationJour";
+import { AjoutRepasBouton } from "./AjoutRepasBouton";
 import { lireJourJournal, type JournalSearchParams } from "./jour";
 
 // Parties du Journal qui dépendent du jour affiché (URL ou date du jour),
@@ -109,6 +110,7 @@ export async function JournalJour({ searchParams }: { searchParams: JournalSearc
     : null;
 
   return (
+    <>
     <JournalJourAnime key={date} date={date} jourType={jourType}>
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
@@ -131,12 +133,20 @@ export async function JournalJour({ searchParams }: { searchParams: JournalSearc
                 <line x1="19" y1="19" x2="19" y2="14" />
               </svg>
               <p className="text-[15px] font-bold text-ink">Aucun repas enregistré pour ce jour.</p>
+              <AjoutRepasBouton date={date} variante="carte" />
             </div>
           ) : (
             <JournalEntriesList entries={views} />
           )}
         </div>
+        {/* Réserve la place du bouton flottant pour ne jamais masquer la
+            dernière entrée. */}
+        <div aria-hidden="true" className="h-16" />
       </div>
     </JournalJourAnime>
+    {/* Hors de JournalJourAnime : son glissement (transform) décalerait un
+        élément `fixed` le temps de l'animation. */}
+    <AjoutRepasBouton date={date} />
+    </>
   );
 }

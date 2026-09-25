@@ -12,13 +12,18 @@ import { queryKeys } from "@/lib/query/keys";
 import { preloadAddTaskForm } from "./taches/preloadAddTaskForm";
 import { showToast } from "@/components/toast/toast-store";
 import { DUREE_TOAST_AVERTISSEMENT_MS } from "@/lib/taches/compute";
+import { useAjoutRepasTermine } from "./nutrition/journal/AjoutRepasBouton";
 
 const AddTaskForm = dynamic(() => import("./taches/AddTaskForm").then((m) => m.AddTaskForm), {
   ssr: false,
 });
 const NoteForm = dynamic(() => import("./notes/NoteForm").then((m) => m.NoteForm), { ssr: false });
+const AjoutRepasPanneau = dynamic(
+  () => import("./nutrition/journal/AjoutRepasPanneau").then((m) => m.AjoutRepasPanneau),
+  { ssr: false }
+);
 
-type Mode = null | "menu" | "tache" | "note" | "course";
+type Mode = null | "menu" | "tache" | "note" | "course" | "repas";
 
 // Mode « direct » : le FAB ouvre tout de suite le formulaire de tâche, sans
 // passer par le menu Tâche/Note/Course (utilisé par /taches). Sans cette
@@ -42,6 +47,7 @@ export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) 
   const { data: listes = [] } = useQuery({ queryKey: queryKeys.listes, queryFn: getListes });
   const { data: tags = [] } = useQuery({ queryKey: queryKeys.tags, queryFn: getTags });
   const direct = directTask !== undefined;
+  const repasTermine = useAjoutRepasTermine();
 
   // The dial's history entry stays pushed for as long as *anything* is
   // open (menu or form) so a single back press from a form lands on the
@@ -52,10 +58,10 @@ export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) 
   // functional update so it's a no-op if the dial-level handler above
   // already closed everything (e.g. goBackSteps(2) from onDone). In direct
   // mode, closing the form closes everything (no menu to land on).
-  useBackClose(mode === "tache" || mode === "note" || mode === "course", () =>
+  useBackClose(mode === "tache" || mode === "note" || mode === "course" || mode === "repas", () =>
     setMode((m) => {
       if (direct) return null;
-      return m === "tache" || m === "note" || m === "course" ? "menu" : m;
+      return m === "tache" || m === "note" || m === "course" || m === "repas" ? "menu" : m;
     })
   );
 
@@ -103,6 +109,30 @@ export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) 
         {/* Entrées du menu : absentes en mode direct (seul le "+" est affiché). */}
         {!direct && (
         <>
+        <button
+          type="button"
+          onClick={() => setMode("repas")}
+          aria-label="Ajouter un repas"
+          tabIndex={dialInteractive ? 0 : -1}
+          className="flex items-center gap-2 transition-[opacity,transform] duration-200 ease-out"
+          style={{
+            opacity: dialOpen ? 1 : 0,
+            transform: dialOpen ? "translateY(0)" : "translateY(12px)",
+            pointerEvents: dialInteractive ? "auto" : "none",
+          }}
+        >
+          <span className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow-card">
+            Repas
+          </span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 3v8a2 2 0 0 0 2 2v8" />
+              <path d="M11 3v8a2 2 0 0 1-2 2" />
+              <path d="M17 21V3c-2 1.5-3 4-3 7v3h3" />
+            </svg>
+          </span>
+        </button>
+
         <button
           type="button"
           onClick={() => setMode("course")}
@@ -206,6 +236,19 @@ export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) 
               tags={tags}
               onDone={() => {
                 queryClient.invalidateQueries({ queryKey: queryKeys.notes });
+                goBackSteps(2);
+              }}
+            />
+          </Modal>
+        )}
+
+        {mode === "repas" && (
+          <Modal key="repas" title="Ajouter un repas" onClose={() => history.back()}>
+            {/* Sans date : le jour courant côté serveur, comme le Journal
+                ouvert sans ?date. */}
+            <AjoutRepasPanneau
+              onAjoute={(item, moment) => {
+                repasTermine(item, moment);
                 goBackSteps(2);
               }}
             />

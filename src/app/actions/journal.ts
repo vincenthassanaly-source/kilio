@@ -9,11 +9,15 @@ import {
   nutritionFromOverride,
   nutritionRecette,
   zeroNutrition,
+  extraireRecents,
+  type CatalogueItem,
   type Nutrition,
+  type SaisieRecente,
 } from "@/lib/nutrition/compute";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Enums } from "@/lib/supabase/types";
 
-export type JournalFormState = { error: string | null };
+export type JournalFormState = { error: string | null; ok?: boolean };
 
 // Résumé nutritionnel du jour (consommé + objectif), utilisé par la carte
 // Nutrition du dashboard (src/app/(app)/DashboardNutritionCard.tsx) via
@@ -22,15 +26,31 @@ export type JournalFormState = { error: string | null };
 // côté client.
 export type ResumeNutritionJour = {
   consomme: Nutrition;
-  kcalGoal: number;
-  macroGoals: { proteines: number; glucides: number; lipides: number };
+  jourType: Enums<"jour_type_ppl">;
+  // null : aucun objectif défini pour ce type de jour (plus de cible
+  // inventée, constat J-P1-5).
+  kcalGoal: number | null;
+  macroGoals: { proteines: number; glucides: number; lipides: number } | null;
 };
+
+// Type de jour mémorisé pour une date (table journal_jours, vague 1) ;
+// absence de ligne = repos.
+async function lireJourTypeMemorise(date: string): Promise<Enums<"jour_type_ppl">> {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("journal_jours").select("jour_type").eq("date", date).maybeSingle();
+  return data?.jour_type ?? "repos";
+}
+
+export async function getJourTypeJournal(date: string): Promise<Enums<"jour_type_ppl">> {
+  return lireJourTypeMemorise(date);
+}
 
 export async function getResumeNutritionJour(
   date: string,
-  jourType: Enums<"jour_type_ppl"> = "repos"
+  jourTypeForce?: Enums<"jour_type_ppl">
 ): Promise<ResumeNutritionJour> {
   const supabase = createAdminClient();
+  const jourType = jourTypeForce ?? (await lireJourTypeMemorise(date));
 
   const [{ data: objectif }, { data: entries }] = await Promise.all([
     supabase.from("objectifs_nutritionnels").select("*").eq("jour_type", jourType).maybeSingle(),
@@ -42,9 +62,11 @@ export async function getResumeNutritionJour(
       .eq("date", date),
   ]);
 
+  // Même filtre des entrées orphelines que JournalJour.tsx (constat J-P1-5).
   const consomme = (entries ?? []).reduce((acc, entry) => {
     if (entry.aliment) return addNutrition(acc, nutritionAliment(entry.aliment, entry.quantite));
-    const recette = entry.recette!;
+    const recette = entry.recette;
+    if (!recette) return acc;
     return addNutrition(
       acc,
       hasNutritionOverride(recette)
@@ -55,13 +77,95 @@ export async function getResumeNutritionJour(
 
   return {
     consomme,
-    kcalGoal: objectif?.kcal_cible ?? 2100,
-    macroGoals: {
-      proteines: objectif?.proteines_cible_g ?? 120,
-      glucides: objectif?.glucides_cible_g ?? 230,
-      lipides: objectif?.lipides_cible_g ?? 70,
-    },
+    jourType,
+    kcalGoal: objectif?.kcal_cible ?? null,
+    macroGoals: objectif
+      ? {
+          proteines: objectif.proteines_cible_g,
+          glucides: objectif.glucides_cible_g,
+          lipides: objectif.lipides_cible_g,
+        }
+      : null,
   };
+}
+
+/**
+ * Mémorise le type de jour choisi par la bascule Repos / Entraînement. Le
+ * Journal le relit pour une date sans `?jour=` et le dashboard compare à la
+ * bonne cible. Contrat `ActionResult` (T1) : jamais d'exception.
+ */
+export async function setJourTypeJournal(
+  date: string,
+  jourType: Enums<"jour_type_ppl">
+): Promise<ActionResult> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail("Date invalide.");
+  if (jourType !== "repos" && jourType !== "entrainement") return fail("Type de jour invalide.");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("journal_jours").upsert({ date, jour_type: jourType });
+  if (error) return fail("Le type de jour n'a pas pu être mémorisé. Réessaie.");
+
+  revalidatePath("/nutrition/journal");
+  revalidatePath("/");
+  return ok();
+}
+
+export type CatalogueJournal = { items: CatalogueItem[]; recents: SaisieRecente[] };
+
+/**
+ * Catalogue du sélecteur d'ajout de repas : tous les aliments et recettes
+ * (quelques centaines de lignes, recherche faite côté client pour rester
+ * instantanée) et les dernières saisies dédoublonnées (« récents »).
+ */
+export async function getCatalogueJournal(): Promise<CatalogueJournal> {
+  const supabase = createAdminClient();
+  const [aliments, recettes, dernieres] = await Promise.all([
+    supabase
+      .from("aliments")
+      .select("id, nom, categorie, unite, poids_unite_g, kcal_100g, proteines_100g, glucides_100g, lipides_100g")
+      .order("nom"),
+    supabase
+      .from("recettes")
+      .select(
+        "id, nom, portions, kcal_portion, proteines_portion, glucides_portion, lipides_portion, recette_ingredients(quantite, aliment:aliments(kcal_100g, proteines_100g, glucides_100g, lipides_100g))"
+      )
+      .order("nom"),
+    supabase
+      .from("journal_repas")
+      .select("aliment_id, recette_id, quantite, moment")
+      .order("created_at", { ascending: false })
+      .limit(80),
+  ]);
+
+  if (aliments.error || recettes.error) {
+    throw new Error("Catalogue indisponible.");
+  }
+
+  const items: CatalogueItem[] = [
+    ...(aliments.data ?? []).map(
+      (a): CatalogueItem => ({
+        type: "aliment",
+        id: a.id,
+        nom: a.nom,
+        categorie: a.categorie,
+        unite: a.unite,
+        poidsUniteG: a.poids_unite_g,
+        par100: nutritionAliment(a, 100),
+      })
+    ),
+    ...(recettes.data ?? []).map(
+      (r): CatalogueItem => ({
+        type: "recette",
+        id: r.id,
+        nom: r.nom,
+        parPortion: hasNutritionOverride(r)
+          ? nutritionFromOverride(r, 1)
+          : nutritionRecette(r.recette_ingredients, r.portions || 1, 1),
+      })
+    ),
+  ];
+
+  return { items, recents: extraireRecents(dernieres.data ?? []) };
 }
 
 const MOMENTS: readonly Enums<"moment_repas">[] = [
@@ -80,13 +184,15 @@ export async function addJournalEntry(
   const recette_id = String(formData.get("recette_id") ?? "").trim();
   const quantiteSaisie = Number(formData.get("quantite"));
   const saisieMode = String(formData.get("saisie_mode") ?? "grammes");
-  const date = String(formData.get("date") ?? "").trim();
+  // Sans date (fiche recette, bouton + du dashboard) : le jour courant côté
+  // serveur, le même que celui qu'ouvre le Journal sans `?date`.
+  const date = String(formData.get("date") ?? "").trim() || new Date().toISOString().slice(0, 10);
   const moment = String(formData.get("moment") ?? "");
 
   if (type !== "aliment" && type !== "recette") {
     return { error: "Type d'entrée invalide." };
   }
-  if (!date) return { error: "Date requise." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Date invalide." };
   if (!MOMENTS.includes(moment as Enums<"moment_repas">)) {
     return { error: "Moment du repas invalide." };
   }
@@ -126,10 +232,11 @@ export async function addJournalEntry(
     moment: moment as Enums<"moment_repas">,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: "Le repas n'a pas pu être ajouté. Réessaie." };
 
   revalidatePath("/nutrition/journal");
-  return { error: null };
+  revalidatePath("/");
+  return { error: null, ok: true };
 }
 
 export async function removeJournalEntry(id: string) {

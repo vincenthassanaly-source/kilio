@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import type { Enums } from "@/lib/supabase/types";
+import { getJourTypeJournal } from "@/app/actions/journal";
 
 export type JourJournal = { date: string; jourType: Enums<"jour_type_ppl"> };
 export type JournalSearchParams = Promise<{ date?: string; jour?: string }>;
@@ -13,12 +14,17 @@ export type JournalSearchParams = Promise<{ date?: string; jour?: string }>;
  * d'où `connection()` avant `new Date()` (rien ne fige « aujourd'hui » au
  * build ni dans un cache). Avec `?date` (liens ‹ ›, swipe, bascule
  * Repos/Entraînement), rien ne dépend de la requête.
+ *
+ * Type de jour : `?jour=` ne sert plus que de surcharge immédiate (juste
+ * après un tap sur la bascule, avant que la mémorisation soit relue) ; sans
+ * lui, c'est le type mémorisé pour la date (table journal_jours) qui
+ * s'applique — plus de retour à « repos » à chaque visite (J-P1-1).
  */
 export async function lireJourJournal(searchParams: JournalSearchParams): Promise<JourJournal> {
   const { date: dateParam, jour } = await searchParams;
   if (!dateParam) await connection();
-  return {
-    date: dateParam || new Date().toISOString().slice(0, 10),
-    jourType: jour === "entrainement" ? "entrainement" : "repos",
-  };
+  const date = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
+  const jourType =
+    jour === "entrainement" || jour === "repos" ? jour : await getJourTypeJournal(date);
+  return { date, jourType };
 }

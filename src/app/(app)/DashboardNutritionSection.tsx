@@ -14,15 +14,17 @@ const MACRO_LABELS = { proteines: "P", glucides: "G", lipides: "L" };
 
 export function DashboardNutritionSection({ today }: { today: string }) {
   const { data: resume, isLoading } = useQuery({
-    queryKey: queryKeys.objectifNutritionnel("repos"),
-    queryFn: () => getResumeNutritionJour(today, "repos"),
+    queryKey: queryKeys.resumeNutrition(today),
+    queryFn: () => getResumeNutritionJour(today),
   });
 
   if (isLoading) return <CardSkeleton />;
 
-  const kcalGoal = resume?.kcalGoal ?? 2100;
-  const kcalPct = resume ? (kcalGoal > 0 ? resume.consomme.kcal / kcalGoal : 0) : 0;
-  const macros = resume
+  // Plus de cible inventée (2100 kcal) quand aucun objectif n'existe pour
+  // ce type de jour : la carte invite à en définir un (constat J-P1-5).
+  const kcalGoal = resume?.kcalGoal ?? null;
+  const kcalPct = resume && kcalGoal ? resume.consomme.kcal / kcalGoal : 0;
+  const macros = resume?.macroGoals
     ? [
         { key: "proteines" as const, value: resume.consomme.proteines, goal: resume.macroGoals.proteines },
         { key: "glucides" as const, value: resume.consomme.glucides, goal: resume.macroGoals.glucides },
@@ -44,7 +46,10 @@ export function DashboardNutritionSection({ today }: { today: string }) {
             Nutrition
           </span>
           <span className="text-[12.5px] font-medium text-ink-2">
-            {Math.round(resume?.consomme.kcal ?? 0)} / {kcalGoal} kcal
+            {kcalGoal !== null
+              ? `${Math.round(resume?.consomme.kcal ?? 0)} / ${kcalGoal} kcal`
+              : `${Math.round(resume?.consomme.kcal ?? 0)} kcal · objectif à définir`}
+            {resume?.jourType === "entrainement" && " · Entraînement"}
           </span>
           <div className="flex gap-2">
             {macros.map((m) => (

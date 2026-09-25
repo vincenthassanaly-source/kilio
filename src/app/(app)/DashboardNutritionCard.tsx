@@ -13,8 +13,10 @@ export async function DashboardNutritionCard() {
   const today = await getToday();
   const queryClient = makeServerQueryClient();
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.objectifNutritionnel("repos"),
-    queryFn: () => getResumeNutritionJour(today, "repos"),
+    queryKey: queryKeys.resumeNutrition(today),
+    // Sans type forcé : le type de jour mémorisé par le Journal
+    // (journal_jours) décide de la cible comparée.
+    queryFn: () => getResumeNutritionJour(today),
   });
 
   return (

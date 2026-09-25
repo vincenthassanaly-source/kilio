@@ -10,7 +10,10 @@ export const queryKeys = {
   courses: ["courses"] as const,
   habitudes: (date: string) => ["habitudes", date] as const,
   journal: (date: string, jourType: string) => ["journal", date, jourType] as const,
-  objectifNutritionnel: (jourType: string) => ["objectif-nutritionnel", jourType] as const,
+  // Résumé nutritionnel d'une date (consommé + cible du type de jour
+  // mémorisé) : invalidé après un ajout de repas ou un changement de type.
+  resumeNutrition: (date: string) => ["resume-nutrition", date] as const,
+  catalogueJournal: ["catalogue-journal"] as const,
   objectifs: ["objectifs"] as const,
   objectif: (id: string) => ["objectif", id] as const,
   collections: ["collections"] as const,

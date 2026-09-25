@@ -47,7 +47,7 @@ export default async function RecetteDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <RecetteHeader recette={recette} />
-      {showMacros && <RecetteMacros perPortion={perPortion} detail={overridden ? recette : undefined} />}
+      {showMacros && <RecetteMacros recetteId={recette.id} nom={recette.nom} perPortion={perPortion} detail={overridden ? recette : undefined} />}
 
       {isHelloFresh && recette.ustensiles && recette.ustensiles.length > 0 && (
         <div className="flex flex-col gap-2">

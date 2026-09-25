@@ -1,8 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import type { Nutrition } from "@/lib/nutrition/compute";
-import { ghostButton } from "@/lib/ui";
+import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { addJournalEntry, type JournalFormState } from "@/app/actions/journal";
+import { showActionToast } from "@/components/toast/toast-store";
+import { MESSAGE_HORS_LIGNE } from "@/lib/actions/runAction";
+import {
+  AJOUT_LABELS,
+  MOMENTS_REPAS,
+  MOMENT_LABELS,
+  momentParDefaut,
+  type MomentRepas,
+  type Nutrition,
+} from "@/lib/nutrition/compute";
+import { queryKeys } from "@/lib/query/keys";
+import { errorText, ghostButton, primaryButton } from "@/lib/ui";
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2";
+const boutonPortion = `flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-base text-ink transition active:scale-[0.97] ${focusRing}`;
 
 function fmt(n: number) {
   const rounded = Math.round(n * 10) / 10;
@@ -35,14 +52,48 @@ const DETAIL_FIELDS: { portionKey: keyof DetailValues; g100Key: keyof DetailValu
 ];
 
 export function RecetteMacros({
+  recetteId,
+  nom,
   perPortion,
   detail,
 }: {
+  recetteId: string;
+  nom: string;
   perPortion: Nutrition;
   detail?: DetailValues;
 }) {
   const [count, setCount] = useState(1);
   const [detailOpen, setDetailOpen] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  // Pré-rempli selon l'heure, à l'ouverture de la fiche (constat R-P0-1).
+  const [moment, setMoment] = useState<MomentRepas>(() => {
+    const d = new Date();
+    return momentParDefaut(d.getHours() + d.getMinutes() / 60);
+  });
+
+  // « Portions consommées » enregistre enfin quelque chose : le compteur
+  // part dans le Journal du jour via addJournalEntry (type recette).
+  const [etat, formAction, enCours] = useActionState<JournalFormState, FormData>(
+    async (precedent, formData) => {
+      try {
+        const resultat = await addJournalEntry(precedent, formData);
+        if (resultat.ok) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.catalogueJournal });
+          queryClient.invalidateQueries({ queryKey: ["resume-nutrition"] });
+          showActionToast(`${count} portion${count > 1 ? "s" : ""} de « ${nom} » ajoutée${count > 1 ? "s" : ""} ${AJOUT_LABELS[moment]}`, {
+            label: "Voir",
+            ariaLabel: "Voir le journal du jour",
+            onAction: () => router.push("/nutrition/journal"),
+          });
+        }
+        return resultat;
+      } catch {
+        return { error: MESSAGE_HORS_LIGNE };
+      }
+    },
+    { error: null }
+  );
 
   const hasDetail =
     detail != null &&
@@ -56,16 +107,18 @@ export function RecetteMacros({
           <button
             type="button"
             onClick={() => setCount((n) => Math.max(1, n - 1))}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[10px] border border-line bg-surface text-base text-ink"
+            className={boutonPortion}
             aria-label="Retirer une portion"
           >
             −
           </button>
-          <span className="w-4 text-center font-display text-base font-semibold text-ink">{count}</span>
+          <span className="w-5 text-center font-display text-base font-semibold text-ink tabular-nums" aria-live="polite">
+            {count}
+          </span>
           <button
             type="button"
             onClick={() => setCount((n) => n + 1)}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[10px] border border-line bg-surface text-base text-ink"
+            className={boutonPortion}
             aria-label="Ajouter une portion"
           >
             +
@@ -84,6 +137,36 @@ export function RecetteMacros({
           </div>
         ))}
       </div>
+
+      <form action={formAction} className="flex flex-col gap-2">
+        <input type="hidden" name="type" value="recette" />
+        <input type="hidden" name="recette_id" value={recetteId} />
+        <input type="hidden" name="quantite" value={count} />
+        <input type="hidden" name="moment" value={moment} />
+        <div className="flex gap-1 rounded-2xl bg-surface-alt p-1" role="group" aria-label="Moment du repas">
+          {MOMENTS_REPAS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={m === moment}
+              onClick={() => setMoment(m)}
+              className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-semibold transition-colors ${focusRing} ${
+                m === moment ? "bg-kcal text-white" : "text-ink-2"
+              }`}
+            >
+              {MOMENT_LABELS[m]}
+            </button>
+          ))}
+        </div>
+        <button type="submit" disabled={enCours} className={`${primaryButton} min-h-12 w-full`}>
+          {enCours ? "Ajout…" : "Ajouter au journal"}
+        </button>
+        {etat.error && (
+          <p role="alert" className={errorText}>
+            {etat.error}
+          </p>
+        )}
+      </form>
 
       {hasDetail && (
         <div className="flex flex-col gap-2">

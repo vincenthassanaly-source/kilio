@@ -37,7 +37,8 @@ export function JournalSwipeWrapper({ children }: { children: ReactNode }) {
     if (!jour) return;
     setSens(sensSwipe);
     const nouvelleDate = shiftDate(jour.date, sensSwipe === "suivant" ? 1 : -1);
-    router.push(`/nutrition/journal?date=${nouvelleDate}&jour=${jour.jourType}`);
+    // Sans `&jour=` : le jour d'arrivée applique son propre type mémorisé.
+    router.push(`/nutrition/journal?date=${nouvelleDate}`);
   });
 
   return (

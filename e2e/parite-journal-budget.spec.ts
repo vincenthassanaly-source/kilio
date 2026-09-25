@@ -26,8 +26,11 @@ test.describe("Journal", () => {
     await expect(repas(page, "Skyr nature")).toBeVisible();
     await expect(repas(page, "Poulet riz meal prep")).toBeVisible();
 
+    // Vague 1 : ‹ › ne propagent plus `?jour=` — chaque jour applique son
+    // type mémorisé (table journal_jours, « repos » par défaut).
     await main(page).getByRole("link", { name: "Jour précédent" }).click();
-    await page.waitForURL((u) => u.searchParams.get("date") === jour(-1) && u.searchParams.get("jour") === "repos");
+    await page.waitForURL((u) => u.searchParams.get("date") === jour(-1) && !u.searchParams.has("jour"));
+    await expect(main(page).getByRole("heading", { name: "Objectif (repos)" })).toBeVisible();
     await expect(repas(page, "Blanc de poulet")).toBeVisible();
     await expect(repas(page, "Curry de légumes HelloFresh")).toBeVisible();
     await expect(repas(page, "Skyr nature")).toHaveCount(0);
@@ -40,6 +43,16 @@ test.describe("Journal", () => {
     await expect(main(page).getByRole("heading", { name: "Objectif (entraînement)" })).toBeVisible();
     await expect(main(page).getByRole("link", { name: "Entraînement", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(repas(page, "Blanc de poulet")).toBeVisible();
+
+    // Vague 1 : le choix est mémorisé pour la date (journal_jours).
+    await expect
+      .poll(async () =>
+        (await (await fetch(`${MOCK}/__writes`)).json()).some(
+          (w: { method: string; table: string; body: unknown }) =>
+            w.table === "journal_jours" && JSON.stringify(w.body).includes("entrainement")
+        )
+      )
+      .toBe(true);
   });
 
   test("état vide inchangé", async ({ page }) => {
@@ -91,7 +104,8 @@ test.describe("Journal : swipe", () => {
     await expect(repas(page, "Blanc de poulet")).toBeVisible();
 
     await swipe(page, 150);
-    await page.waitForURL((u) => u.searchParams.get("date") === jour(-2) && u.searchParams.get("jour") === "entrainement");
+    // Le type d'entraînement forcé par l'URL ne suit pas au jour voisin.
+    await page.waitForURL((u) => u.searchParams.get("date") === jour(-2) && !u.searchParams.has("jour"));
     await expect(repas(page, "Riz basmati cuit")).toBeVisible();
 
     await swipe(page, -150);
