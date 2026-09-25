@@ -167,7 +167,7 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
               {habitude.nom}
             </p>
             {habitude.type === "streak" && habitude.streak > 0 && (
-              <span className={pillTag}>🔥 {habitude.streak}j</span>
+              <span className={`${pillTag} tabular-nums`}>🔥 {habitude.streak}j</span>
             )}
           </div>
 

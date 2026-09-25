@@ -36,7 +36,7 @@ export function DashboardNutritionSection({ today }: { today: string }) {
     <motion.div whileTap={{ scale: 0.98 }}>
       <Link href="/nutrition/journal" className={`${card} flex items-center gap-3.5`}>
         <ProgressRing size={60} strokeWidth={6.5} pct={kcalPct} color="var(--accent-kcal)">
-          <span className="font-display text-[12.5px] font-bold text-ink">{Math.round(kcalPct * 100)}%</span>
+          <span className="font-display text-[12.5px] font-bold tabular-nums text-ink">{Math.round(kcalPct * 100)}%</span>
         </ProgressRing>
         <div className="flex flex-1 flex-col gap-1.5 min-w-0">
           <span
@@ -45,7 +45,7 @@ export function DashboardNutritionSection({ today }: { today: string }) {
           >
             Nutrition
           </span>
-          <span className="text-[12.5px] font-medium text-ink-2">
+          <span className="text-[12.5px] font-medium tabular-nums text-ink-2">
             {kcalGoal !== null
               ? `${Math.round(resume?.consomme.kcal ?? 0)} / ${kcalGoal} kcal`
               : `${Math.round(resume?.consomme.kcal ?? 0)} kcal · objectif à définir`}

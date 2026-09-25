@@ -105,7 +105,7 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
         </div>
       </div>
 
-      {objectif.description && <p className="text-sm text-ink">{objectif.description}</p>}
+      {objectif.description && <p className="text-sm text-ink text-pretty">{objectif.description}</p>}
 
       {/* Contrôle segmenté (T7) au lieu d'une liste déroulante à 3 choix. */}
       <SegmentedControl

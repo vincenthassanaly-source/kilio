@@ -220,7 +220,7 @@ function StationCard({ station }: { station: StationCarburant }) {
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
-        <p className="font-display text-[17px] font-bold text-ink">{station.meilleurPrix.toFixed(3)} €</p>
+        <p className="font-display text-[17px] font-bold tabular-nums text-ink">{station.meilleurPrix.toFixed(3)} €</p>
         <p className="text-[11px] font-semibold text-ink-2">{station.typeCarburant}</p>
       </div>
     </a>

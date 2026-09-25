@@ -47,7 +47,7 @@ export default function NutritionHubPage() {
             </span>
             <div>
               <p className="font-display text-[15px] font-semibold text-ink">{section.label}</p>
-              <p className="text-[12.5px] text-ink-2">{section.description}</p>
+              <p className="text-[12.5px] text-ink-2 text-pretty">{section.description}</p>
             </div>
           </Link>
         ))}

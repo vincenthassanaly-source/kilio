@@ -31,7 +31,7 @@ export function CollectionMosaic({
 
   if (photos.length === 1) {
     return (
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-surface-alt">
+      <div className="relative aspect-square overflow-hidden rounded-2xl border border-line bg-surface-alt">
         <FadeInImage
           src={photos[0].url}
           alt=""
@@ -47,7 +47,7 @@ export function CollectionMosaic({
 
   if (photos.length === 2) {
     return (
-      <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
+      <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl border border-line bg-surface-alt">
         {photos.map((photo, i) => (
           <div key={i} className="relative h-full w-full">
             <FadeInImage
@@ -67,7 +67,7 @@ export function CollectionMosaic({
 
   if (photos.length === 3) {
     return (
-      <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
+      <div className="grid aspect-square grid-cols-2 gap-0.5 overflow-hidden rounded-2xl border border-line bg-surface-alt">
         <div className="relative row-span-2 h-full w-full">
           <FadeInImage
             src={photos[0].url}
@@ -106,7 +106,7 @@ export function CollectionMosaic({
   }
 
   return (
-    <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-2xl bg-surface-alt">
+    <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-2xl border border-line bg-surface-alt">
       {photos.slice(0, 4).map((photo, i) => (
         <div key={i} className="relative h-full w-full">
           <FadeInImage

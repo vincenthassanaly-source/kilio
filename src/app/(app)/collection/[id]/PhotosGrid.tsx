@@ -103,7 +103,7 @@ export function PhotosGrid({
               <motion.li
                 key={photo.id}
                 layout
-                className="relative aspect-square overflow-hidden rounded-2xl bg-surface-alt"
+                className="relative aspect-square overflow-hidden rounded-2xl border border-line bg-surface-alt"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}

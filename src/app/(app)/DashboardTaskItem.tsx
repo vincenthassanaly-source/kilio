@@ -72,7 +72,7 @@ export function DashboardTaskItem({
         >
           {titre}
         </span>
-        {heure && <span className="shrink-0 text-[11.5px] font-medium text-ink-3">{heure.slice(0, 5)}</span>}
+        {heure && <span className="shrink-0 text-[11.5px] font-medium tabular-nums text-ink-3">{heure.slice(0, 5)}</span>}
       </div>
     </div>
   );

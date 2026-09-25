@@ -120,14 +120,14 @@ export function ResumeJour({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-            <div className="font-display text-2xl font-semibold text-ink">
+            <div className="font-display text-2xl font-semibold tabular-nums text-ink">
               {Math.round(consomme.kcal)}
             </div>
-            <div className="text-[11px] text-ink-3">/ {Math.round(cible.kcal)} kcal</div>
+            <div className="text-[11px] tabular-nums text-ink-3">/ {Math.round(cible.kcal)} kcal</div>
           </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <p className={`mb-0.5 text-[12.5px] font-semibold ${resteTexteClass}`}>{resteLabel}</p>
+          <p className={`mb-0.5 text-[12.5px] font-semibold tabular-nums ${resteTexteClass}`}>{resteLabel}</p>
           <MacroBar label="Protéines" consomme={consomme.proteines} cible={cible.proteines} color="var(--accent-protein)" />
           <MacroBar label="Glucides" consomme={consomme.glucides} cible={cible.glucides} color="var(--accent-carbs)" />
           <MacroBar label="Lipides" consomme={consomme.lipides} cible={cible.lipides} color="var(--accent-fat)" />

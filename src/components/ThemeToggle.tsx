@@ -34,7 +34,10 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       type="button"
       onClick={toggleTheme}
       aria-label="Basculer le thème clair/sombre"
-      className={`flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card ${className}`}
+      // Zone de tap étendue à 44 px (pattern `zoneTap44Icone` de ui.ts) sans
+      // grossir le bouton visible (36 px) : ce bouton flottant isolé n'a
+      // aucun voisin avec qui la zone étendue pourrait chevaucher.
+      className={`relative after:absolute after:-inset-1 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card ${className}`}
     >
       <span className="dark:hidden">
         <SunIcon />

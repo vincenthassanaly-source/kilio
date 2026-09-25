@@ -56,7 +56,7 @@ export function DashboardTachesSection({ today }: { today: string }) {
               <Skeleton className="h-3 w-14" />
             ) : (
               <span className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-3">
+                <span className="text-xs font-semibold tabular-nums text-ink-3">
                   {tachesDoneCount}/{tachesDuJour.length} tâches
                 </span>
                 {tachesMasquees > 0 && <span className={kcalPillTag}>+{tachesMasquees}</span>}
@@ -94,10 +94,10 @@ export function DashboardTachesSection({ today }: { today: string }) {
             <div className="flex h-[46px] w-[46px] shrink-0 flex-col items-center justify-center rounded-2xl bg-kcal-soft">
               {prochainEvenement ? (
                 <>
-                  <span className="font-display text-[14px] font-bold leading-none text-kcal">
+                  <span className="font-display text-[14px] font-bold leading-none tabular-nums text-kcal">
                     {prochainEvenement.heure!.slice(0, 2)}
                   </span>
-                  <span className="text-[11px] font-semibold leading-none text-kcal">{prochainEvenement.heure!.slice(3, 5)}</span>
+                  <span className="text-[11px] font-semibold leading-none tabular-nums text-kcal">{prochainEvenement.heure!.slice(3, 5)}</span>
                 </>
               ) : (
                 <span className="font-display text-[14px] font-bold text-kcal">--</span>

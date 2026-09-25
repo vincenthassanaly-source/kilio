@@ -100,7 +100,7 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
           <span className={pillTag}>{TYPE_SUIVI_LABELS[objectif.type_suivi]}</span>
         </div>
         {objectif.description && (
-          <p className="line-clamp-2 text-[13px] text-ink-2">{objectif.description}</p>
+          <p className="line-clamp-2 text-[13px] text-ink-2 text-pretty">{objectif.description}</p>
         )}
         {objectif.date_echeance && (
           <span className={metaText}>Échéance : {formatEcheance(objectif.date_echeance)}</span>

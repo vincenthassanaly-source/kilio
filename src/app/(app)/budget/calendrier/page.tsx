@@ -98,10 +98,10 @@ async function Grille({ searchParams }: { searchParams: CalendrierSearchParams }
                   {Number(jour.date.slice(-2))}
                 </span>
                 {totaux?.depenses ? (
-                  <span className="text-alert">-{formatMontant(totaux.depenses)}</span>
+                  <span className="text-alert tabular-nums">-{formatMontant(totaux.depenses)}</span>
                 ) : null}
                 {totaux?.revenus ? (
-                  <span className="text-kcal">+{formatMontant(totaux.revenus)}</span>
+                  <span className="text-kcal tabular-nums">+{formatMontant(totaux.revenus)}</span>
                 ) : null}
               </Link>
             );

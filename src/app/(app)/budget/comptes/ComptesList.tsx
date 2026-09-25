@@ -70,7 +70,7 @@ function CompteCard({ compte }: { compte: CompteAvecSolde }) {
           <p className={nameText}>{compte.nom}</p>
           <span className={pillTag}>{TYPE_LABELS[compte.type]}</span>
         </div>
-        <p className={`font-display text-lg font-semibold ${negatif ? "text-alert" : "text-ink"}`}>
+        <p className={`font-display text-lg font-semibold tabular-nums ${negatif ? "text-alert" : "text-ink"}`}>
           {formatMontant(compte.solde)}
         </p>
       </div>

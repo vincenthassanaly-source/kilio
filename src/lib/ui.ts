@@ -14,8 +14,11 @@ export const card = "rounded-[22px] border border-line bg-surface p-4 shadow-car
 export const cardTight = "rounded-[20px] border border-line bg-surface p-3.5 shadow-card transition active:scale-[0.97]";
 export const heroCard = "rounded-3xl border border-line bg-surface p-[18px] shadow-card";
 
-export const screenTitle = "font-display text-2xl font-bold text-ink tracking-tight";
-export const sectionTitle = "text-[15px] font-bold text-ink";
+// `text-balance` (T-polish) : titres courts (1-3 lignes) répartis plus
+// régulièrement entre les lignes, pour éviter une dernière ligne orpheline
+// d'un seul mot sur les libellés longs (ex. noms de catégories/objectifs).
+export const screenTitle = "font-display text-2xl font-bold text-ink tracking-tight text-balance";
+export const sectionTitle = "text-[15px] font-bold text-ink text-balance";
 export const eyebrow = "text-[12.5px] font-semibold text-ink-3";
 
 // `focus-visible:ring-*` (jamais `focus:`, pour ne pas afficher l'anneau au

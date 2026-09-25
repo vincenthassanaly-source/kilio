@@ -125,7 +125,7 @@ export function DocumentDetail({
                     setLightboxSrc(fichier.url);
                     setLightboxAlt(caption ? `${caption} — ${document.nom}` : document.nom);
                   }}
-                  className="relative aspect-square w-full overflow-hidden rounded-2xl bg-surface-alt"
+                  className="relative aspect-square w-full overflow-hidden rounded-2xl border border-line bg-surface-alt"
                   aria-label="Agrandir l'image"
                 >
                   <Image

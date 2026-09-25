@@ -116,7 +116,7 @@ async function BudgetResume() {
       <div className={`${card} flex flex-col gap-1`}>
         <p className={eyebrow}>Solde total</p>
         <p
-          className={`font-display text-3xl font-semibold ${totalSoldes < 0 ? "text-alert" : "text-ink"}`}
+          className={`font-display text-3xl font-semibold tabular-nums ${totalSoldes < 0 ? "text-alert" : "text-ink"}`}
         >
           {formatMontant(totalSoldes)}
         </p>
@@ -135,20 +135,20 @@ async function BudgetResume() {
         <div className="flex gap-5">
           <div className="flex flex-col gap-0.5">
             <span className={eyebrow}>Revenus</span>
-            <span className="font-display text-lg font-semibold text-kcal">
+            <span className="font-display text-lg font-semibold tabular-nums text-kcal">
               {formatMontant(resumeMois.totalRevenus)}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span className={eyebrow}>Dépenses</span>
-            <span className="font-display text-lg font-semibold text-ink">
+            <span className="font-display text-lg font-semibold tabular-nums text-ink">
               {formatMontant(resumeMois.totalDepenses)}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span className={eyebrow}>Solde</span>
             <span
-              className={`font-display text-lg font-semibold ${soldeMois < 0 ? "text-alert" : "text-ink"}`}
+              className={`font-display text-lg font-semibold tabular-nums ${soldeMois < 0 ? "text-alert" : "text-ink"}`}
             >
               {formatMontant(soldeMois)}
             </span>

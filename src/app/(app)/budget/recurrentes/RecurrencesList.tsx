@@ -80,7 +80,7 @@ function RecurrenceRow({
           </span>
         </div>
         <p
-          className={`font-display text-[15px] font-semibold ${
+          className={`font-display text-[15px] font-semibold tabular-nums ${
             virement ? "text-ink-2" : revenu ? "text-kcal" : "text-ink"
           }`}
         >
