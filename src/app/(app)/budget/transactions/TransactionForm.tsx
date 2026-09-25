@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useId, useActionState, useEffect, useRef, useState } from "react";
 import {
   creerTransaction,
   modifierTransaction,
@@ -28,6 +28,8 @@ export function TransactionForm({
   categories: Tables<"categories_budget">[];
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = transaction ? modifierTransaction : creerTransaction;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -51,11 +53,11 @@ export function TransactionForm({
       {transaction && <input type="hidden" name="id" value={transaction.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="compte_id" className={labelClass}>
+        <label htmlFor={`${uid}-compte_id`} className={labelClass}>
           Compte
         </label>
         <select
-          id="compte_id"
+          id={`${uid}-compte_id`}
           name="compte_id"
           defaultValue={transaction?.compte_id ?? comptes[0]?.id ?? ""}
           className={input}
@@ -69,11 +71,11 @@ export function TransactionForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="categorie_id" className={labelClass}>
+        <label htmlFor={`${uid}-categorie_id`} className={labelClass}>
           Catégorie
         </label>
         <select
-          id="categorie_id"
+          id={`${uid}-categorie_id`}
           name="categorie_id"
           value={categorieId}
           onChange={(e) => setCategorieId(e.target.value)}
@@ -107,11 +109,11 @@ export function TransactionForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="montant" className={labelClass}>
+        <label htmlFor={`${uid}-montant`} className={labelClass}>
           Montant
         </label>
         <input
-          id="montant"
+          id={`${uid}-montant`}
           name="montant"
           type="number"
           step="0.01"
@@ -123,11 +125,11 @@ export function TransactionForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="date_operation" className={labelClass}>
+        <label htmlFor={`${uid}-date_operation`} className={labelClass}>
           Date
         </label>
         <input
-          id="date_operation"
+          id={`${uid}-date_operation`}
           name="date_operation"
           type="date"
           required
@@ -137,10 +139,10 @@ export function TransactionForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="libelle" className={labelClass}>
+        <label htmlFor={`${uid}-libelle`} className={labelClass}>
           Libellé (optionnel)
         </label>
-        <input id="libelle" name="libelle" defaultValue={transaction?.libelle ?? ""} className={input} />
+        <input id={`${uid}-libelle`} name="libelle" defaultValue={transaction?.libelle ?? ""} className={input} />
       </div>
 
       {state.error && (

@@ -1,5 +1,6 @@
 import { addDays, addMonths, addWeeks, addYears, subMonths, subWeeks, subYears } from "date-fns";
 import type { Enums } from "@/lib/supabase/types";
+import { aujourdhuiParis, dateDuJourParis } from "@/lib/date/paris";
 
 export type StatutBudget = "ok" | "proche" | "depasse";
 
@@ -37,7 +38,7 @@ export function formatMontant(montant: number): string {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(montant);
 }
 
-export function premierJourDuMois(date: Date = new Date()): string {
+export function premierJourDuMois(date: Date = dateDuJourParis()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
@@ -50,7 +51,7 @@ export function finDuMois(periode: string): string {
 
 /** Premier jour de la semaine ISO (lundi — `date_trunc('week', ...)` de
  * Postgres confirme cette convention, cf. migration-budget-periodes-hebdo-annuel). */
-export function premierJourDeLaSemaine(date: Date = new Date()): string {
+export function premierJourDeLaSemaine(date: Date = dateDuJourParis()): string {
   const jour = date.getDay(); // 0 (dimanche) .. 6 (samedi)
   const decalage = jour === 0 ? 6 : jour - 1;
   const lundi = new Date(date.getFullYear(), date.getMonth(), date.getDate() - decalage);
@@ -65,7 +66,7 @@ export function finDeLaSemaine(periode: string): string {
   return `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, "0")}-${String(fin.getDate()).padStart(2, "0")}`;
 }
 
-export function premierJourDeLAnnee(date: Date = new Date()): string {
+export function premierJourDeLAnnee(date: Date = dateDuJourParis()): string {
   return `${date.getFullYear()}-01-01`;
 }
 
@@ -201,8 +202,10 @@ export const FREQUENCE_LABELS: Record<Enums<"frequence_recurrence">, string> = {
   annuel: "Annuel",
 };
 
+// Date du jour à Paris (T3) : gardée sous ce nom pour ses nombreux appelants
+// (Budget, Tâches), côté serveur comme côté client.
 export function aujourdhuiISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return aujourdhuiParis();
 }
 
 /**

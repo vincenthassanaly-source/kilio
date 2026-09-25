@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useId, useActionState, useEffect, useRef, useState } from "react";
 import { creerHabitude, modifierHabitude, type HabitudeFormState } from "@/app/actions/habitudes";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
@@ -20,6 +20,8 @@ export function HabitudeForm({
   habitude?: Tables<"habitudes">;
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = habitude ? modifierHabitude : creerHabitude;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -37,18 +39,18 @@ export function HabitudeForm({
       {habitude && <input type="hidden" name="id" value={habitude.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="nom" className={labelClass}>
+        <label htmlFor={`${uid}-nom`} className={labelClass}>
           Nom
         </label>
-        <input id="nom" name="nom" required defaultValue={habitude?.nom} className={input} />
+        <input id={`${uid}-nom`} name="nom" required defaultValue={habitude?.nom} className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="type" className={labelClass}>
+        <label htmlFor={`${uid}-type`} className={labelClass}>
           Type
         </label>
         <select
-          id="type"
+          id={`${uid}-type`}
           name="type"
           value={type}
           onChange={(e) => setType(e.target.value as Enums<"habitude_type">)}
@@ -65,11 +67,11 @@ export function HabitudeForm({
       {type === "quantifiee" && (
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="unite" className={labelClass}>
+            <label htmlFor={`${uid}-unite`} className={labelClass}>
               Unité
             </label>
             <input
-              id="unite"
+              id={`${uid}-unite`}
               name="unite"
               placeholder="verres, min…"
               defaultValue={habitude?.unite ?? ""}
@@ -77,11 +79,11 @@ export function HabitudeForm({
             />
           </div>
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="valeur_cible" className={labelClass}>
+            <label htmlFor={`${uid}-valeur_cible`} className={labelClass}>
               Objectif (optionnel)
             </label>
             <input
-              id="valeur_cible"
+              id={`${uid}-valeur_cible`}
               name="valeur_cible"
               type="number"
               min="0"
@@ -94,11 +96,11 @@ export function HabitudeForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="icone" className={labelClass}>
+        <label htmlFor={`${uid}-icone`} className={labelClass}>
           Icône (optionnel)
         </label>
         <input
-          id="icone"
+          id={`${uid}-icone`}
           name="icone"
           placeholder="🏃"
           defaultValue={habitude?.icone ?? ""}

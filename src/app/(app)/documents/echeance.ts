@@ -1,3 +1,4 @@
+import { aujourdhuiParis } from "@/lib/date/paris";
 // Calcul du badge d'alerte d'échéance, partagé entre la liste et le détail
 // d'un document. Les seuils (30/7/1 jours) sont les mêmes que ceux utilisés
 // par le cron d'alertes push (src/app/api/cron/echeances-documents/route.ts).
@@ -9,12 +10,8 @@ export function formatEcheance(iso: string) {
   });
 }
 
-function aujourdhuiISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function joursAvantEcheance(dateEcheance: string): number {
-  const aujourdhui = new Date(`${aujourdhuiISO()}T00:00:00`);
+  const aujourdhui = new Date(`${aujourdhuiParis()}T00:00:00`);
   const echeance = new Date(`${dateEcheance}T00:00:00`);
   return Math.round((echeance.getTime() - aujourdhui.getTime()) / (1000 * 60 * 60 * 24));
 }

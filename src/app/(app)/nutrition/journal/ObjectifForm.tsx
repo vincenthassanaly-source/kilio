@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useId, useActionState, useState } from "react";
 import { upsertObjectif, type ObjectifFormState } from "@/app/actions/objectifs-nutritionnels";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, errorText, input, label as labelClass, linkButton, primaryButton, secondaryButton } from "@/lib/ui";
@@ -14,6 +14,8 @@ export function ObjectifForm({
   jourType: Enums<"jour_type_ppl">;
   objectif: Tables<"objectifs_nutritionnels"> | null;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const [open, setOpen] = useState(!objectif);
   const [state, formAction, pending] = useActionState(upsertObjectif, initialState);
 
@@ -39,11 +41,11 @@ export function ObjectifForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor="kcal_cible" className={labelClass}>
+          <label htmlFor={`${uid}-kcal_cible`} className={labelClass}>
             Kcal cible
           </label>
           <input
-            id="kcal_cible"
+            id={`${uid}-kcal_cible`}
             name="kcal_cible"
             type="number"
             inputMode="numeric"
@@ -56,11 +58,11 @@ export function ObjectifForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="proteines_cible_g" className={labelClass}>
+          <label htmlFor={`${uid}-proteines_cible_g`} className={labelClass}>
             Protéines (g)
           </label>
           <input
-            id="proteines_cible_g"
+            id={`${uid}-proteines_cible_g`}
             name="proteines_cible_g"
             type="number"
             inputMode="numeric"
@@ -72,11 +74,11 @@ export function ObjectifForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="glucides_cible_g" className={labelClass}>
+          <label htmlFor={`${uid}-glucides_cible_g`} className={labelClass}>
             Glucides (g)
           </label>
           <input
-            id="glucides_cible_g"
+            id={`${uid}-glucides_cible_g`}
             name="glucides_cible_g"
             type="number"
             inputMode="numeric"
@@ -88,11 +90,11 @@ export function ObjectifForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="lipides_cible_g" className={labelClass}>
+          <label htmlFor={`${uid}-lipides_cible_g`} className={labelClass}>
             Lipides (g)
           </label>
           <input
-            id="lipides_cible_g"
+            id={`${uid}-lipides_cible_g`}
             name="lipides_cible_g"
             type="number"
             inputMode="numeric"

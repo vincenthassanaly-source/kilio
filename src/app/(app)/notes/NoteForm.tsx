@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useId, useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   addNoteItem,
@@ -206,6 +206,8 @@ export function NoteForm({
   tags: Tables<"tags">[];
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = note ? updateNote : createNote;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -261,19 +263,19 @@ export function NoteForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="titre" className={labelClass}>
+        <label htmlFor={`${uid}-titre`} className={labelClass}>
           Titre
         </label>
-        <input id="titre" name="titre" required defaultValue={note?.titre} className={input} />
+        <input id={`${uid}-titre`} name="titre" required defaultValue={note?.titre} className={input} />
       </div>
 
       {type === "texte" ? (
         <div className="flex flex-col gap-1">
-          <label htmlFor="contenu" className={labelClass}>
+          <label htmlFor={`${uid}-contenu`} className={labelClass}>
             Contenu
           </label>
           <textarea
-            id="contenu"
+            id={`${uid}-contenu`}
             name="contenu"
             rows={5}
             defaultValue={note?.contenu}
@@ -338,10 +340,10 @@ export function NoteForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="nouveaux_tags" className={labelClass}>
+        <label htmlFor={`${uid}-nouveaux_tags`} className={labelClass}>
           Nouveaux tags (optionnel, séparés par une virgule)
         </label>
-        <input id="nouveaux_tags" name="nouveaux_tags" placeholder="perso, idées" className={input} />
+        <input id={`${uid}-nouveaux_tags`} name="nouveaux_tags" placeholder="perso, idées" className={input} />
       </div>
 
       {state.error && (

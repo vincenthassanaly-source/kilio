@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useId, useActionState, useEffect, useRef } from "react";
 import { creerCompte, modifierCompte, type CompteFormState } from "@/app/actions/comptes";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
@@ -20,6 +20,8 @@ export function AddCompteForm({
   compte?: Tables<"comptes">;
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = compte ? modifierCompte : creerCompte;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -36,18 +38,18 @@ export function AddCompteForm({
       {compte && <input type="hidden" name="id" value={compte.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="nom" className={labelClass}>
+        <label htmlFor={`${uid}-nom`} className={labelClass}>
           Nom
         </label>
-        <input id="nom" name="nom" required defaultValue={compte?.nom} className={input} />
+        <input id={`${uid}-nom`} name="nom" required defaultValue={compte?.nom} className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="type" className={labelClass}>
+        <label htmlFor={`${uid}-type`} className={labelClass}>
           Type
         </label>
         <select
-          id="type"
+          id={`${uid}-type`}
           name="type"
           defaultValue={compte?.type ?? "courant"}
           className={input}
@@ -61,11 +63,11 @@ export function AddCompteForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="solde_initial" className={labelClass}>
+        <label htmlFor={`${uid}-solde_initial`} className={labelClass}>
           Solde initial
         </label>
         <input
-          id="solde_initial"
+          id={`${uid}-solde_initial`}
           name="solde_initial"
           type="number"
           step="0.01"

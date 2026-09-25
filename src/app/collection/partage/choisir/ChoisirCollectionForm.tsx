@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useId, useActionState, useState } from "react";
 import { rattacherPhotoACollection, type RattacherPhotoFormState } from "@/app/actions/collections";
 import type { TypeVideo } from "@/lib/collection/video";
 import type { Tables } from "@/lib/supabase/types";
@@ -17,6 +17,8 @@ export function ChoisirCollectionForm({
   photos: string[];
   video?: { url: string; thumbnailUrl: string; titre: string; type: TypeVideo } | null;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const [state, formAction, pending] = useActionState(rattacherPhotoACollection, initialState);
   const [collectionId, setCollectionId] = useState<string | null>(null);
   const [nouvelleCollection, setNouvelleCollection] = useState("");
@@ -80,11 +82,11 @@ export function ChoisirCollectionForm({
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="nouvelle_collection" className={labelClass}>
+        <label htmlFor={`${uid}-nouvelle_collection`} className={labelClass}>
           Nouvelle collection
         </label>
         <input
-          id="nouvelle_collection"
+          id={`${uid}-nouvelle_collection`}
           name="nouvelle_collection"
           value={nouvelleCollection}
           onChange={(e) => {

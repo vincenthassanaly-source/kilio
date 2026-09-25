@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useId, useActionState, useEffect, useRef } from "react";
 import {
   creerVirement,
   modifierVirement,
@@ -22,6 +22,8 @@ export function VirementForm({
   comptes: CompteAvecSolde[];
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = transaction ? modifierVirement : creerVirement;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -46,10 +48,10 @@ export function VirementForm({
       {transaction && <input type="hidden" name="id" value={transaction.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="compte_id" className={labelClass}>
+        <label htmlFor={`${uid}-compte_id`} className={labelClass}>
           Compte source
         </label>
-        <select id="compte_id" name="compte_id" defaultValue={defaultSource} className={input}>
+        <select id={`${uid}-compte_id`} name="compte_id" defaultValue={defaultSource} className={input}>
           {comptes.map((compte) => (
             <option key={compte.id} value={compte.id}>
               {compte.nom}
@@ -59,11 +61,11 @@ export function VirementForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="compte_destination_id" className={labelClass}>
+        <label htmlFor={`${uid}-compte_destination_id`} className={labelClass}>
           Compte destination
         </label>
         <select
-          id="compte_destination_id"
+          id={`${uid}-compte_destination_id`}
           name="compte_destination_id"
           defaultValue={defaultDestination}
           className={input}
@@ -77,11 +79,11 @@ export function VirementForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="montant" className={labelClass}>
+        <label htmlFor={`${uid}-montant`} className={labelClass}>
           Montant
         </label>
         <input
-          id="montant"
+          id={`${uid}-montant`}
           name="montant"
           type="number"
           step="0.01"
@@ -93,11 +95,11 @@ export function VirementForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="date_operation" className={labelClass}>
+        <label htmlFor={`${uid}-date_operation`} className={labelClass}>
           Date
         </label>
         <input
-          id="date_operation"
+          id={`${uid}-date_operation`}
           name="date_operation"
           type="date"
           required
@@ -107,10 +109,10 @@ export function VirementForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="libelle" className={labelClass}>
+        <label htmlFor={`${uid}-libelle`} className={labelClass}>
           Libellé (optionnel)
         </label>
-        <input id="libelle" name="libelle" defaultValue={transaction?.libelle ?? ""} className={input} />
+        <input id={`${uid}-libelle`} name="libelle" defaultValue={transaction?.libelle ?? ""} className={input} />
       </div>
 
       {state.error && (

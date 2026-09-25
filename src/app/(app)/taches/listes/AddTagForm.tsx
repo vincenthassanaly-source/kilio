@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useId, useActionState, useEffect, useRef } from "react";
 import { createTag, type TagFormState } from "@/app/actions/taches";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
 
 const initialState: TagFormState = { error: null };
 
 export function AddTagForm({ onDone }: { onDone?: () => void }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const [state, formAction, pending] = useActionState(createTag, initialState);
   const prevPending = useRef(pending);
 
@@ -20,18 +22,18 @@ export function AddTagForm({ onDone }: { onDone?: () => void }) {
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label htmlFor="nom" className={labelClass}>
+        <label htmlFor={`${uid}-nom`} className={labelClass}>
           Nom
         </label>
-        <input id="nom" name="nom" required className={input} />
+        <input id={`${uid}-nom`} name="nom" required className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="couleur" className={labelClass}>
+        <label htmlFor={`${uid}-couleur`} className={labelClass}>
           Couleur (optionnel)
         </label>
         <input
-          id="couleur"
+          id={`${uid}-couleur`}
           name="couleur"
           type="color"
           defaultValue="#4f7cff"

@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useId, startTransition, useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   createTache,
@@ -104,6 +104,8 @@ export function AddTaskForm({
   // besoin ignorent ces arguments.
   onDone?: (id?: string, avertissement?: string) => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const actionServeur = tache ? updateTache : createTache;
   // Envoi impossible (hors ligne, erreur réseau) : on renvoie une erreur de
   // formulaire en français au lieu de laisser l'exception remonter jusqu'à
@@ -322,11 +324,11 @@ export function AddTaskForm({
       <input type="hidden" name="priorite" value={priorite} />
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="titre" className={labelClass}>
+        <label htmlFor={`${uid}-titre`} className={labelClass}>
           Titre
         </label>
         <textarea
-          id="titre"
+          id={`${uid}-titre`}
           name="titre"
           required
           rows={1}
@@ -341,11 +343,11 @@ export function AddTaskForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="liste_id" className={labelClass}>
+        <label htmlFor={`${uid}-liste_id`} className={labelClass}>
           Liste
         </label>
         <select
-          id="liste_id"
+          id={`${uid}-liste_id`}
           name="liste_id"
           defaultValue={tache?.liste_id ?? defaultListeId ?? listes[0]?.id ?? ""}
           className={input}
@@ -359,12 +361,12 @@ export function AddTaskForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="echeance" className={labelClass}>
+        <label htmlFor={`${uid}-echeance`} className={labelClass}>
           Échéance (optionnel)
         </label>
         <div className="flex items-center gap-2">
           <input
-            id="echeance"
+            id={`${uid}-echeance`}
             name="echeance"
             type="date"
             ref={echeanceRef}
@@ -405,11 +407,11 @@ export function AddTaskForm({
         <div className="flex flex-col gap-3 pt-3">
           {!touteLaJournee && (
             <div className="flex flex-col gap-1">
-              <label htmlFor="heure" className={labelClass}>
+              <label htmlFor={`${uid}-heure`} className={labelClass}>
                 Heure (optionnel)
               </label>
               <input
-                id="heure"
+                id={`${uid}-heure`}
                 name="heure"
                 type="time"
                 value={heure}
@@ -425,11 +427,11 @@ export function AddTaskForm({
 
           {!touteLaJournee && heure && (
             <div className="flex flex-col gap-1">
-              <label htmlFor="heure_fin" className={labelClass}>
+              <label htmlFor={`${uid}-heure_fin`} className={labelClass}>
                 Heure de fin (optionnel)
               </label>
               <input
-                id="heure_fin"
+                id={`${uid}-heure_fin`}
                 name="heure_fin"
                 type="time"
                 value={heureFin}
@@ -441,11 +443,11 @@ export function AddTaskForm({
 
           {!touteLaJournee && heure && (
             <div className="flex flex-col gap-1">
-              <label htmlFor="rappel_minutes" className={labelClass}>
+              <label htmlFor={`${uid}-rappel_minutes`} className={labelClass}>
                 Rappel
               </label>
               <select
-                id="rappel_minutes"
+                id={`${uid}-rappel_minutes`}
                 name="rappel_minutes"
                 value={rappelMinutes}
                 onChange={(e) => setRappelMinutes(e.target.value)}
@@ -463,11 +465,11 @@ export function AddTaskForm({
 
           {touteLaJournee && (
             <div className="flex flex-col gap-1">
-              <label htmlFor="rappel_minutes" className={labelClass}>
+              <label htmlFor={`${uid}-rappel_minutes`} className={labelClass}>
                 Rappel
               </label>
               <select
-                id="rappel_minutes"
+                id={`${uid}-rappel_minutes`}
                 name="rappel_minutes"
                 value={rappelMinutes}
                 onChange={(e) => setRappelMinutes(e.target.value)}
@@ -480,11 +482,11 @@ export function AddTaskForm({
           )}
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="notes" className={labelClass}>
+            <label htmlFor={`${uid}-notes`} className={labelClass}>
               Notes (optionnel)
             </label>
             <textarea
-              id="notes"
+              id={`${uid}-notes`}
               name="notes"
               rows={3}
               defaultValue={tache?.notes ?? ""}
@@ -512,7 +514,7 @@ export function AddTaskForm({
             <span className={labelClass}>Images (optionnel)</span>
             <div className="flex flex-wrap items-center gap-2">
               <label
-                htmlFor="tache-images"
+                htmlFor={`${uid}-tache-images`}
                 className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl border-[1.5px] border-dashed border-line text-ink-2 transition-colors hover:bg-surface-alt"
                 aria-label="Ajouter des images"
               >
@@ -521,7 +523,7 @@ export function AddTaskForm({
               <input
                 ref={fileInputRef}
                 type="file"
-                id="tache-images"
+                id={`${uid}-tache-images`}
                 name="images"
                 accept="image/*"
                 multiple
@@ -615,18 +617,18 @@ export function AddTaskForm({
           )}
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="nouveaux_tags" className={labelClass}>
+            <label htmlFor={`${uid}-nouveaux_tags`} className={labelClass}>
               Nouveaux tags (optionnel, séparés par une virgule)
             </label>
-            <input id="nouveaux_tags" name="nouveaux_tags" placeholder="urgent, maison" className={input} />
+            <input id={`${uid}-nouveaux_tags`} name="nouveaux_tags" placeholder="urgent, maison" className={input} />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="recurrence_frequence" className={labelClass}>
+            <label htmlFor={`${uid}-recurrence_frequence`} className={labelClass}>
               Récurrence (optionnel)
             </label>
             <select
-              id="recurrence_frequence"
+              id={`${uid}-recurrence_frequence`}
               name="recurrence_frequence"
               value={frequence}
               onChange={(e) => setFrequence(e.target.value)}
@@ -643,11 +645,11 @@ export function AddTaskForm({
 
           {frequence && (
             <div className="flex flex-col gap-1">
-              <label htmlFor="recurrence_fin" className={labelClass}>
+              <label htmlFor={`${uid}-recurrence_fin`} className={labelClass}>
                 Fin de la récurrence (optionnel)
               </label>
               <input
-                id="recurrence_fin"
+                id={`${uid}-recurrence_fin`}
                 name="recurrence_fin"
                 type="date"
                 defaultValue={tache?.recurrence_fin ?? ""}

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useBackClose } from "@/hooks/useBackClose";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
+import { Portal } from "@/components/Portal";
 import { FadeInImage } from "@/components/FadeInImage";
 
 /** Overlay plein écran pour agrandir une image au tap. Fermeture au tap
@@ -22,6 +24,9 @@ export function ImageLightbox({
   // Ce composant n'est monté que pendant que le lightbox est ouvert : `active`
   // vaut donc toujours true tant qu'il existe dans l'arbre.
   useBackClose(true, onClose);
+  // T14 : focus piégé dans l'overlay, Échap ferme, focus rendu à la fermeture.
+  const overlayRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(overlayRef, onClose);
 
   async function handleDownload(event: React.MouseEvent) {
     event.stopPropagation();
@@ -45,14 +50,25 @@ export function ImageLightbox({
     }
   }
 
+  // Rendu dans un portal (T14) : plus déformé par l'`active:scale` d'une
+  // carte parente (DocumentCard, grilles de Collection).
   return (
-    <div className="fixed inset-0 z-50 bg-black/80" onClick={onClose}>
+    <Portal>
+    <div
+      ref={overlayRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo agrandie"
+      className="fixed inset-0 z-50 bg-black/80 outline-none"
+      onClick={onClose}
+    >
       <button
         type="button"
         onClick={handleDownload}
         disabled={downloading}
         aria-label="Télécharger"
-        className="absolute right-16 top-[calc(env(safe-area-inset-top)+16px)] flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white disabled:opacity-50"
+        className="absolute right-[68px] top-[calc(env(safe-area-inset-top)+16px)] flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16" />
@@ -62,7 +78,7 @@ export function ImageLightbox({
         type="button"
         onClick={onClose}
         aria-label="Fermer"
-        className="absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white"
+        className="absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M6 6l12 12M18 6L6 18" />
@@ -72,5 +88,6 @@ export function ImageLightbox({
         <FadeInImage src={src} alt={alt} fill sizes="100vw" className="object-contain" />
       </div>
     </div>
+    </Portal>
   );
 }

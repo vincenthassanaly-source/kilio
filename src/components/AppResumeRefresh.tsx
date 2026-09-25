@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { msAvantMinuitParis } from "@/lib/date/paris";
 
 // Quand l'app repasse au premier plan (retour depuis l'arrière-plan sur mobile,
 // restauration bfcache du navigateur), aucune navigation ni fetch RSC n'a lieu :
@@ -22,9 +23,22 @@ export function AppResumeRefresh() {
       if (event.persisted) refresh();
     };
 
+    // App restée ouverte au premier plan à minuit (heure de Paris) : sans
+    // ce minuteur, « aujourd'hui » (dashboard, Journal, Habitudes) resterait
+    // la veille jusqu'au prochain retour de l'arrière-plan (constat T3).
+    let minuteur: number | undefined;
+    const programmerMinuit = () => {
+      minuteur = window.setTimeout(() => {
+        refresh();
+        programmerMinuit();
+      }, msAvantMinuitParis() + 2000);
+    };
+    programmerMinuit();
+
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pageshow", onPageShow);
     return () => {
+      window.clearTimeout(minuteur);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pageshow", onPageShow);
     };

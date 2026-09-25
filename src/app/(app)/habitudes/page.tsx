@@ -3,13 +3,13 @@ import { connection } from "next/server";
 import { HabitudesView } from "./HabitudesView";
 import { HabitudesSkeleton } from "./HabitudesSkeleton";
 import { screenTitle } from "@/lib/ui";
-import { toISODate } from "./date-utils";
+import { aujourdhuiParis } from "@/lib/date/paris";
 
 // La date du jour est une donnée de requête : lue après connection(), sous
 // <Suspense>, pour que le titre reste dans la coquille statique.
 async function HabitudesDuJour() {
   await connection();
-  return <HabitudesView today={toISODate(new Date())} />;
+  return <HabitudesView today={aujourdhuiParis()} />;
 }
 
 export default function HabitudesPage() {

@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { aujourdhuiParis } from "@/lib/date/paris";
 
 // Date du jour (YYYY-MM-DD) côté serveur : donnée de requête, lue après
 // connection() pour ne jamais être figée dans la coquille statique au build.
@@ -7,5 +8,6 @@ import { connection } from "next/server";
 // reports/2026-09-24-navigation-instantanee-cache-components.md).
 export async function getToday(): Promise<string> {
   await connection();
-  return new Date().toISOString().slice(0, 10);
+  // Heure de Paris, pas UTC (T3).
+  return aujourdhuiParis();
 }

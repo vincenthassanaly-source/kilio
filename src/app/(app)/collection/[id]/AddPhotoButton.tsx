@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ajouterLienVideo, uploadCollectionPhotos } from "@/app/actions/collections";
 import { queryKeys } from "@/lib/query/keys";
@@ -52,6 +52,8 @@ function VideoIcon() {
 // l'appareil photo sans proposer la galerie. Un input dédié par usage
 // (caméra vs galerie) garantit que les deux restent accessibles.
 export function AddPhotoButton({ collectionId }: { collectionId: string }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const queryClient = useQueryClient();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galerieInputRef = useRef<HTMLInputElement>(null);
@@ -134,14 +136,14 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex gap-2">
-        <label htmlFor="collection-add-photo-camera" className={`${ADD_PHOTO_BUTTON} ${isPending ? "opacity-60" : ""}`}>
+        <label htmlFor={`${uid}-collection-add-photo-camera`} className={`${ADD_PHOTO_BUTTON} ${isPending ? "opacity-60" : ""}`}>
           <CameraIcon />
           {isPending ? (etape ?? "Envoi…") : "Appareil photo"}
         </label>
         <input
           ref={cameraInputRef}
           type="file"
-          id="collection-add-photo-camera"
+          id={`${uid}-collection-add-photo-camera`}
           accept="image/*"
           capture="environment"
           multiple
@@ -150,14 +152,14 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
           onChange={(e) => handleFiles(e.target.files, cameraInputRef)}
         />
 
-        <label htmlFor="collection-add-photo-galerie" className={`${ADD_PHOTO_BUTTON} ${isPending ? "opacity-60" : ""}`}>
+        <label htmlFor={`${uid}-collection-add-photo-galerie`} className={`${ADD_PHOTO_BUTTON} ${isPending ? "opacity-60" : ""}`}>
           <GalerieIcon />
           {isPending ? (etape ?? "Envoi…") : "Galerie"}
         </label>
         <input
           ref={galerieInputRef}
           type="file"
-          id="collection-add-photo-galerie"
+          id={`${uid}-collection-add-photo-galerie`}
           accept="image/*"
           multiple
           disabled={isPending}

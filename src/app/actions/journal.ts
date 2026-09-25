@@ -16,6 +16,7 @@ import {
 } from "@/lib/nutrition/compute";
 import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Enums } from "@/lib/supabase/types";
+import { aujourdhuiParis } from "@/lib/date/paris";
 
 export type JournalFormState = { error: string | null; ok?: boolean };
 
@@ -186,7 +187,7 @@ export async function addJournalEntry(
   const saisieMode = String(formData.get("saisie_mode") ?? "grammes");
   // Sans date (fiche recette, bouton + du dashboard) : le jour courant côté
   // serveur, le même que celui qu'ouvre le Journal sans `?date`.
-  const date = String(formData.get("date") ?? "").trim() || new Date().toISOString().slice(0, 10);
+  const date = String(formData.get("date") ?? "").trim() || aujourdhuiParis();
   const moment = String(formData.get("moment") ?? "");
 
   if (type !== "aliment" && type !== "recette") {

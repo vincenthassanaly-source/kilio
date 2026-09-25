@@ -1,7 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Modal } from "@/components/Modal";
 import { primaryButton, secondaryButton } from "@/lib/ui";
@@ -37,14 +36,9 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  // Rendu dans un portal : le dialogue est souvent déclaré dans une ligne de
-  // liste (`listCard`, `active:scale`) dont le transform déformerait un
-  // overlay `fixed` (constat T14). Portal seulement côté client, après
-  // hydratation (le serveur ne rend rien).
-  const monte = useSyncExternalStore(abonnementVide, () => true, () => false);
-  if (!monte) return null;
-
-  return createPortal(
+  // `Modal` se rend dans un portal (T14) : le dialogue peut être déclaré dans
+  // une ligne de liste transformée (`listCard`, `active:scale`).
+  return (
     <AnimatePresence>
       {open && (
         <Modal key="confirm" title={titre} onClose={onClose}>
@@ -66,11 +60,6 @@ export function ConfirmDialog({
           </div>
         </Modal>
       )}
-    </AnimatePresence>,
-    document.body
+    </AnimatePresence>
   );
-}
-
-function abonnementVide() {
-  return () => {};
 }

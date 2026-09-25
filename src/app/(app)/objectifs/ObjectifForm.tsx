@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useId, useActionState, useEffect, useRef, useState } from "react";
 import { creerObjectif, modifierObjectif, type ObjectifFormState } from "@/app/actions/objectifs";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
@@ -25,6 +25,8 @@ export function ObjectifForm({
   objectif?: Tables<"objectifs">;
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = objectif ? modifierObjectif : creerObjectif;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -44,18 +46,18 @@ export function ObjectifForm({
       {objectif && <input type="hidden" name="id" value={objectif.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="titre" className={labelClass}>
+        <label htmlFor={`${uid}-titre`} className={labelClass}>
           Titre
         </label>
-        <input id="titre" name="titre" required defaultValue={objectif?.titre} className={input} />
+        <input id={`${uid}-titre`} name="titre" required defaultValue={objectif?.titre} className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="description" className={labelClass}>
+        <label htmlFor={`${uid}-description`} className={labelClass}>
           Description (optionnel)
         </label>
         <textarea
-          id="description"
+          id={`${uid}-description`}
           name="description"
           rows={2}
           defaultValue={objectif?.description ?? ""}
@@ -65,11 +67,11 @@ export function ObjectifForm({
 
       <div className="flex gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="categorie" className={labelClass}>
+          <label htmlFor={`${uid}-categorie`} className={labelClass}>
             Catégorie
           </label>
           <select
-            id="categorie"
+            id={`${uid}-categorie`}
             name="categorie"
             defaultValue={objectif?.categorie ?? "perso"}
             className={input}
@@ -82,11 +84,11 @@ export function ObjectifForm({
           </select>
         </div>
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="date_echeance" className={labelClass}>
+          <label htmlFor={`${uid}-date_echeance`} className={labelClass}>
             Échéance (optionnel)
           </label>
           <input
-            id="date_echeance"
+            id={`${uid}-date_echeance`}
             name="date_echeance"
             type="date"
             defaultValue={objectif?.date_echeance ?? ""}
@@ -96,11 +98,11 @@ export function ObjectifForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="type_suivi" className={labelClass}>
+        <label htmlFor={`${uid}-type_suivi`} className={labelClass}>
           Mode de suivi
         </label>
         <select
-          id="type_suivi"
+          id={`${uid}-type_suivi`}
           name="type_suivi"
           value={typeSuivi}
           onChange={(e) => setTypeSuivi(e.target.value as Enums<"type_suivi_objectif">)}
@@ -117,11 +119,11 @@ export function ObjectifForm({
       {typeSuivi === "valeur" && (
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="valeur_cible" className={labelClass}>
+            <label htmlFor={`${uid}-valeur_cible`} className={labelClass}>
               Valeur cible
             </label>
             <input
-              id="valeur_cible"
+              id={`${uid}-valeur_cible`}
               name="valeur_cible"
               type="number"
               min="0"
@@ -131,11 +133,11 @@ export function ObjectifForm({
             />
           </div>
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="unite" className={labelClass}>
+            <label htmlFor={`${uid}-unite`} className={labelClass}>
               Unité
             </label>
             <input
-              id="unite"
+              id={`${uid}-unite`}
               name="unite"
               placeholder="kg, km, €…"
               defaultValue={objectif?.unite ?? ""}

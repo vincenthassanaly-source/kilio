@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useId, useActionState, useEffect, useRef } from "react";
 import { creerCategorie, type CategorieFormState } from "@/app/actions/categories-budget";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
 
 const initialState: CategorieFormState = { error: null };
 
 export function AddCategorieForm({ onDone }: { onDone?: () => void }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const [state, formAction, pending] = useActionState(creerCategorie, initialState);
   const prevPending = useRef(pending);
 
@@ -20,27 +22,27 @@ export function AddCategorieForm({ onDone }: { onDone?: () => void }) {
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label htmlFor="nom" className={labelClass}>
+        <label htmlFor={`${uid}-nom`} className={labelClass}>
           Nom
         </label>
-        <input id="nom" name="nom" required className={input} />
+        <input id={`${uid}-nom`} name="nom" required className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="type" className={labelClass}>
+        <label htmlFor={`${uid}-type`} className={labelClass}>
           Type
         </label>
-        <select id="type" name="type" defaultValue="depense" className={input}>
+        <select id={`${uid}-type`} name="type" defaultValue="depense" className={input}>
           <option value="depense">Dépense</option>
           <option value="revenu">Revenu</option>
         </select>
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="icone" className={labelClass}>
+        <label htmlFor={`${uid}-icone`} className={labelClass}>
           Icône (optionnel, un emoji)
         </label>
-        <input id="icone" name="icone" placeholder="🎯" className={input} />
+        <input id={`${uid}-icone`} name="icone" placeholder="🎯" className={input} />
       </div>
 
       {state.error && (

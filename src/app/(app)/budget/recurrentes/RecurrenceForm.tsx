@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useId, useActionState, useEffect, useRef, useState } from "react";
 import {
   creerRecurrence,
   modifierRecurrence,
@@ -29,6 +29,8 @@ export function RecurrenceForm({
   categories: Tables<"categories_budget">[];
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = recurrence ? modifierRecurrence : creerRecurrence;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -52,11 +54,11 @@ export function RecurrenceForm({
       {recurrence && <input type="hidden" name="id" value={recurrence.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="compte_id" className={labelClass}>
+        <label htmlFor={`${uid}-compte_id`} className={labelClass}>
           Compte
         </label>
         <select
-          id="compte_id"
+          id={`${uid}-compte_id`}
           name="compte_id"
           defaultValue={recurrence?.compte_id ?? comptes[0]?.id ?? ""}
           className={input}
@@ -70,11 +72,11 @@ export function RecurrenceForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="categorie_id" className={labelClass}>
+        <label htmlFor={`${uid}-categorie_id`} className={labelClass}>
           Catégorie
         </label>
         <select
-          id="categorie_id"
+          id={`${uid}-categorie_id`}
           name="categorie_id"
           value={categorieId}
           onChange={(e) => setCategorieId(e.target.value)}
@@ -108,11 +110,11 @@ export function RecurrenceForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="montant" className={labelClass}>
+        <label htmlFor={`${uid}-montant`} className={labelClass}>
           Montant
         </label>
         <input
-          id="montant"
+          id={`${uid}-montant`}
           name="montant"
           type="number"
           step="0.01"
@@ -124,10 +126,10 @@ export function RecurrenceForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="frequence" className={labelClass}>
+        <label htmlFor={`${uid}-frequence`} className={labelClass}>
           Fréquence
         </label>
-        <select id="frequence" name="frequence" defaultValue={recurrence?.frequence ?? "mensuel"} className={input}>
+        <select id={`${uid}-frequence`} name="frequence" defaultValue={recurrence?.frequence ?? "mensuel"} className={input}>
           {FREQUENCES.map((f) => (
             <option key={f} value={f}>
               {FREQUENCE_LABELS[f]}
@@ -146,11 +148,11 @@ export function RecurrenceForm({
         </>
       ) : (
         <div className="flex flex-col gap-1">
-          <label htmlFor="date_debut" className={labelClass}>
+          <label htmlFor={`${uid}-date_debut`} className={labelClass}>
             Date de la première occurrence
           </label>
           <input
-            id="date_debut"
+            id={`${uid}-date_debut`}
             name="date_debut"
             type="date"
             required
@@ -161,11 +163,11 @@ export function RecurrenceForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="date_fin" className={labelClass}>
+        <label htmlFor={`${uid}-date_fin`} className={labelClass}>
           Date de fin (optionnel)
         </label>
         <input
-          id="date_fin"
+          id={`${uid}-date_fin`}
           name="date_fin"
           type="date"
           defaultValue={recurrence?.date_fin ?? ""}
@@ -174,10 +176,10 @@ export function RecurrenceForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="libelle" className={labelClass}>
+        <label htmlFor={`${uid}-libelle`} className={labelClass}>
           Libellé (optionnel)
         </label>
-        <input id="libelle" name="libelle" defaultValue={recurrence?.libelle ?? ""} className={input} />
+        <input id={`${uid}-libelle`} name="libelle" defaultValue={recurrence?.libelle ?? ""} className={input} />
       </div>
 
       {state.error && (

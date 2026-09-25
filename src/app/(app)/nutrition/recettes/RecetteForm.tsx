@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useId, useActionState, useEffect, useRef, useState } from "react";
 import {
   createRecette,
   updateRecette,
@@ -55,6 +55,8 @@ export function RecetteForm({
   recette?: Tables<"recettes">;
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = recette ? updateRecette : createRecette;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
@@ -75,18 +77,18 @@ export function RecetteForm({
       {recette && <input type="hidden" name="id" value={recette.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="nom" className={labelClass}>
+        <label htmlFor={`${uid}-nom`} className={labelClass}>
           Nom
         </label>
-        <input id="nom" name="nom" required defaultValue={recette?.nom} className={input} />
+        <input id={`${uid}-nom`} name="nom" required defaultValue={recette?.nom} className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="description" className={labelClass}>
+        <label htmlFor={`${uid}-description`} className={labelClass}>
           Description
         </label>
         <textarea
-          id="description"
+          id={`${uid}-description`}
           name="description"
           rows={2}
           defaultValue={recette?.description ?? ""}
@@ -96,11 +98,11 @@ export function RecetteForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor="temps_prepa_min" className={labelClass}>
+          <label htmlFor={`${uid}-temps_prepa_min`} className={labelClass}>
             Préparation (min)
           </label>
           <input
-            id="temps_prepa_min"
+            id={`${uid}-temps_prepa_min`}
             name="temps_prepa_min"
             type="number"
             min="0"
@@ -110,11 +112,11 @@ export function RecetteForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="portions" className={labelClass}>
+          <label htmlFor={`${uid}-portions`} className={labelClass}>
             Portions
           </label>
           <input
-            id="portions"
+            id={`${uid}-portions`}
             name="portions"
             type="number"
             min="1"
@@ -127,11 +129,11 @@ export function RecetteForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="source" className={labelClass}>
+        <label htmlFor={`${uid}-source`} className={labelClass}>
           Source
         </label>
         <select
-          id="source"
+          id={`${uid}-source`}
           name="source"
           value={source}
           onChange={(e) => setSource(e.target.value as Enums<"recette_source">)}
@@ -144,11 +146,11 @@ export function RecetteForm({
 
       {source === "hellofresh" && (
         <div className="flex flex-col gap-1">
-          <label htmlFor="ustensiles" className={labelClass}>
+          <label htmlFor={`${uid}-ustensiles`} className={labelClass}>
             Ustensiles (un par ligne)
           </label>
           <textarea
-            id="ustensiles"
+            id={`${uid}-ustensiles`}
             name="ustensiles"
             rows={3}
             defaultValue={recette?.ustensiles?.join("\n") ?? ""}

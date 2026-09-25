@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useId, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   createDocument,
@@ -161,6 +161,8 @@ export function DocumentForm({
   etiquettes: Tables<"etiquettes">[];
   onDone?: () => void;
 }) {
+  // Ids uniques par instance (T11) : formulaire rendu en ajout et en édition.
+  const uid = useId();
   const action = document ? updateDocument : createDocument;
   // Photos compressées côté client avant l'envoi (vague 1, point
   // « uploads ») : recto + verso bruts dépassaient le plafond de 4 Mo des
@@ -259,18 +261,18 @@ export function DocumentForm({
       {document && <input type="hidden" name="id" value={document.id} />}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="nom" className={labelClass}>
+        <label htmlFor={`${uid}-nom`} className={labelClass}>
           Nom
         </label>
-        <input id="nom" name="nom" required defaultValue={document?.nom} className={input} />
+        <input id={`${uid}-nom`} name="nom" required defaultValue={document?.nom} className={input} />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="etiquette_id" className={labelClass}>
+        <label htmlFor={`${uid}-etiquette_id`} className={labelClass}>
           Étiquette (optionnel)
         </label>
         <select
-          id="etiquette_id"
+          id={`${uid}-etiquette_id`}
           name="etiquette_id"
           value={etiquetteId}
           onChange={(e) => setEtiquetteId(e.target.value)}
@@ -287,10 +289,10 @@ export function DocumentForm({
 
       <div className="flex gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="categorie" className={labelClass}>
+          <label htmlFor={`${uid}-categorie`} className={labelClass}>
             Catégorie (optionnel)
           </label>
-          <select id="categorie" name="categorie" defaultValue={document?.categorie ?? ""} className={input}>
+          <select id={`${uid}-categorie`} name="categorie" defaultValue={document?.categorie ?? ""} className={input}>
             <option value="">—</option>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -300,11 +302,11 @@ export function DocumentForm({
           </select>
         </div>
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="date_echeance" className={labelClass}>
+          <label htmlFor={`${uid}-date_echeance`} className={labelClass}>
             Échéance (optionnel)
           </label>
           <input
-            id="date_echeance"
+            id={`${uid}-date_echeance`}
             name="date_echeance"
             type="date"
             defaultValue={document?.date_echeance ?? ""}
@@ -315,11 +317,11 @@ export function DocumentForm({
 
       {typeChamps === "periode_mensuelle" && (
         <div className="flex flex-col gap-1">
-          <label htmlFor="periode_mois" className={labelClass}>
+          <label htmlFor={`${uid}-periode_mois`} className={labelClass}>
             Mois concerné
           </label>
           <input
-            id="periode_mois"
+            id={`${uid}-periode_mois`}
             name="periode_mois"
             type="month"
             defaultValue={document?.periode_mois ? document.periode_mois.slice(0, 7) : ""}
@@ -366,7 +368,7 @@ export function DocumentForm({
           </span>
           <div className="flex flex-wrap items-center gap-2">
             <label
-              htmlFor="document-fichiers"
+              htmlFor={`${uid}-document-fichiers`}
               className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl border-[1.5px] border-dashed border-line text-ink-2 transition-colors hover:bg-surface-alt"
               aria-label="Ajouter des fichiers"
             >
@@ -375,7 +377,7 @@ export function DocumentForm({
             <input
               ref={fileInputRef}
               type="file"
-              id="document-fichiers"
+              id={`${uid}-document-fichiers`}
               name="fichiers"
               accept="image/*,application/pdf"
               multiple
@@ -411,10 +413,10 @@ export function DocumentForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="notes" className={labelClass}>
+        <label htmlFor={`${uid}-notes`} className={labelClass}>
           Notes (optionnel)
         </label>
-        <textarea id="notes" name="notes" rows={3} defaultValue={document?.notes ?? ""} className={input} />
+        <textarea id={`${uid}-notes`} name="notes" rows={3} defaultValue={document?.notes ?? ""} className={input} />
       </div>
 
       {state.error && (
