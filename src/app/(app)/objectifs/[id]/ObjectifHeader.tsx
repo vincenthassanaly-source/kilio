@@ -38,7 +38,12 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
   const queryClient = useQueryClient();
 
   function invalidate() {
+    // Les pages liste et détail lisent deux clés TanStack Query disjointes
+    // (`objectifs` / `objectif(id)`) : n'invalider que l'une des deux laisse
+    // l'autre afficher un statut/titre périmé jusqu'à 30s après une
+    // modification faite ici (CLICK-PATH-501).
     queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectif.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.objectifs });
   }
 
   if (editing) {

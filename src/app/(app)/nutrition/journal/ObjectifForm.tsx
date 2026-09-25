@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useActionState, useState } from "react";
+import { useId, useActionState, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { upsertObjectif, type ObjectifFormState } from "@/app/actions/objectifs-nutritionnels";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { card, errorText, input, label as labelClass, linkButton, primaryButton, secondaryButton } from "@/lib/ui";
@@ -18,6 +19,19 @@ export function ObjectifForm({
   const uid = useId();
   const [open, setOpen] = useState(!objectif);
   const [state, formAction, pending] = useActionState(upsertObjectif, initialState);
+  const queryClient = useQueryClient();
+
+  // `upsertObjectif` (Server Action) appelle `revalidatePath`, qui n'a aucun
+  // effet sur DashboardNutritionSection (lit `queryKeys.resumeNutrition` via
+  // TanStack Query) : sans cette invalidation explicite, le dashboard garde
+  // l'ancienne cible jusqu'à 30s après l'enregistrement (CLICK-PATH-203).
+  const prevPending = useRef(pending);
+  useEffect(() => {
+    if (prevPending.current && !pending && !state.error) {
+      queryClient.invalidateQueries({ queryKey: ["resume-nutrition"] });
+    }
+    prevPending.current = pending;
+  }, [pending, state.error, queryClient]);
 
   if (!open) {
     return (

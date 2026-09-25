@@ -47,9 +47,14 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
   useBackClose(confirmationOuverte, () => setConfirmationOuverte(false));
   const delaiAffiche = Number(delaiJours) || reglages.delai_jours;
 
-  // Contrat T1 : l'échec revient en message lisible et l'interrupteur
-  // reprend sa position précédente.
-  function persister(nextActif: boolean, nextDelaiJours: number, precedentActif: boolean) {
+  // Contrat T1 : l'échec revient en message lisible et l'interrupteur (et le
+  // délai, CLICK-PATH-704) reprennent leur position précédente.
+  function persister(
+    nextActif: boolean,
+    nextDelaiJours: number,
+    precedentActif: boolean,
+    precedentDelaiJours: number
+  ) {
     setError(null);
     startTransition(async () => {
       await runAction(() => updateReglagesNettoyage(nextActif, nextDelaiJours), {
@@ -58,6 +63,7 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
         onError: (message) => {
           setError(message);
           setActif(precedentActif);
+          setDelaiJours(String(precedentDelaiJours));
         },
       });
     });
@@ -69,12 +75,12 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
       return;
     }
     setActif(false);
-    persister(false, delaiAffiche, true);
+    persister(false, delaiAffiche, true, delaiAffiche);
   }
 
   function confirmerActivation() {
     setActif(true);
-    persister(true, delaiAffiche, false);
+    persister(true, delaiAffiche, false, delaiAffiche);
     history.back();
   }
 
@@ -84,7 +90,7 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
       setDelaiJours(String(reglages.delai_jours));
       return;
     }
-    persister(actif, parsed, actif);
+    persister(actif, parsed, actif, reglages.delai_jours);
   }
 
   return (

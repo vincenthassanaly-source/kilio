@@ -1,5 +1,6 @@
 "use client";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { showErrorToast } from "@/components/toast/toast-store";
 import { isActionFailure, type ActionResult } from "./result";
 
@@ -43,6 +44,12 @@ export async function runAction<T = undefined>(
         ? (valeur as ActionResult<T>)
         : { ok: true, data: valeur as T };
   } catch (err) {
+    // `redirect()` appelé côté Server Action lève une erreur signal
+    // (NEXT_REDIRECT) qui doit remonter jusqu'au framework pour que la
+    // navigation ait lieu — la laisser tomber dans le catch générique la
+    // transformerait en un faux échec alors que l'action a réussi
+    // (CLICK-PATH-201/701).
+    if (isRedirectError(err)) throw err;
     resultat = {
       ok: false,
       error: estErreurReseau(err) ? MESSAGE_HORS_LIGNE : (options.erreur ?? MESSAGE_GENERIQUE),

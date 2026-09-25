@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   DndContext,
@@ -59,6 +59,13 @@ export function NavigationEditProvider({
   const [modulesBarreBasse, setModulesBarreBasse] = useState(initialModulesBarreBasse);
   const [isEditingRaw, setIsEditingRaw] = useState(false);
   const [activeHref, setActiveHref] = useState<string | null>(null);
+
+  // Sérialise les appels serveur par champ : un drag lancé pendant qu'un
+  // précédent est encore en vol attend que celui-ci se résolve avant de
+  // partir, pour que l'ordre des écritures corresponde à l'ordre des drags
+  // (CLICK-PATH-102) au lieu de dépendre de l'ordre de résolution réseau.
+  const ordreGrillePlusChainRef = useRef<Promise<void>>(Promise.resolve());
+  const modulesBarreBasseChainRef = useRef<Promise<void>>(Promise.resolve());
 
   // Prefetch anticipé de tous les modules non épinglés en barre du bas (ex.
   // Courses) dès le montage de ce Provider (donc dès la première page de
@@ -152,10 +159,16 @@ export function NavigationEditProvider({
       const previous = modulesBarreBasse;
       const next = modulesBarreBasse.map((href, i) => (i === index ? draggedHref : href));
       setModulesBarreBasse(next);
-      updateModulesBarreBasse(next).catch(() => {
-        setModulesBarreBasse(previous);
-        showToast("Échec de l'épinglage, réessaie.");
-      });
+      modulesBarreBasseChainRef.current = modulesBarreBasseChainRef.current.then(() =>
+        updateModulesBarreBasse(next).catch(() => {
+          // Update fonctionnel : ne revient à `previous` que si l'état
+          // courant est toujours celui de CE drag — un drag plus récent
+          // qui a déjà appliqué son propre changement n'est pas écrasé par
+          // l'échec de celui-ci (CLICK-PATH-101).
+          setModulesBarreBasse((current) => (current === next ? previous : current));
+          showToast("Échec de l'épinglage, réessaie.");
+        })
+      );
       return;
     }
 
@@ -167,10 +180,12 @@ export function NavigationEditProvider({
     const previous = ordreGrillePlus;
     const next = arrayMove(ordreGrillePlus, oldIndex, newIndex);
     setOrdreGrillePlus(next);
-    updateOrdreGrillePlus(next).catch(() => {
-      setOrdreGrillePlus(previous);
-      showToast("Échec de la réorganisation, réessaie.");
-    });
+    ordreGrillePlusChainRef.current = ordreGrillePlusChainRef.current.then(() =>
+      updateOrdreGrillePlus(next).catch(() => {
+        setOrdreGrillePlus((current) => (current === next ? previous : current));
+        showToast("Échec de la réorganisation, réessaie.");
+      })
+    );
   }
 
   const value = useMemo<NavigationEditContextValue>(

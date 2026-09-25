@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { useState, useTransition } from "react";
 import { deleteRecette } from "@/app/actions/recettes";
 import type { Tables } from "@/lib/supabase/types";
@@ -69,6 +70,10 @@ export function RecetteHeader({
                 try {
                   await deleteRecette(recette.id);
                 } catch (e) {
+                  // `deleteRecette` réussit puis appelle `redirect()`, qui lève
+                  // une erreur signal devant remonter jusqu'au framework — ne
+                  // pas l'avaler ici comme un échec de suppression (CLICK-PATH-201).
+                  if (isRedirectError(e)) throw e;
                   setError(e instanceof Error ? e.message : "Erreur inconnue.");
                 }
               });

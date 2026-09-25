@@ -31,7 +31,12 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
   const queryClient = useQueryClient();
 
   function invalidate() {
+    // Symétrique à ObjectifHeader : la page détail lit `objectif(id)`, une
+    // clé disjointe de `objectifs` (liste) — l'invalider aussi ici évite
+    // qu'un titre/statut édité depuis la carte reste périmé sur la page
+    // détail jusqu'à 30s (CLICK-PATH-501).
     queryClient.invalidateQueries({ queryKey: queryKeys.objectifs });
+    queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectif.id) });
   }
 
   // Suppression retirée du cache dans `onMutate`, avant l'appel serveur : la

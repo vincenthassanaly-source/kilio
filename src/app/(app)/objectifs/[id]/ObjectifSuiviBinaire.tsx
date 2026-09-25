@@ -33,7 +33,14 @@ export function ObjectifSuiviBinaire({ objectif }: { objectif: Tables<"objectifs
       if (context?.previous) queryClient.setQueryData(queryKeys.objectif(objectif.id), context.previous);
       showToast("Impossible de mettre à jour l'objectif.");
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectif.id) }),
+    onSettled: () => {
+      // Voir CLICK-PATH-501 : `objectifs` (liste, groupée par statut) est une
+      // clé de cache disjointe de `objectif(id)` — sans l'invalider aussi,
+      // basculer "Atteint" ici laisse la carte de la liste sous son ancien
+      // groupe jusqu'à 30s.
+      queryClient.invalidateQueries({ queryKey: queryKeys.objectif(objectif.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.objectifs });
+    },
   });
 
   return (

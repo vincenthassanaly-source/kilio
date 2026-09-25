@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
 import { DocumentForm } from "../DocumentForm";
 import { formatEcheance, niveauAlerte } from "../echeance";
@@ -84,6 +85,10 @@ export function DocumentDetail({
                 try {
                   await deleteDocument(document.id);
                 } catch (e) {
+                  // `deleteDocument` réussit puis appelle `redirect()`, qui lève
+                  // une erreur signal devant remonter jusqu'au framework — ne
+                  // pas l'avaler ici comme un échec de suppression (CLICK-PATH-701).
+                  if (isRedirectError(e)) throw e;
                   setError(e instanceof Error ? e.message : "Erreur inconnue.");
                 }
               });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { televerserPhotosPartagees } from "@/app/actions/collections";
 import { runAction } from "@/lib/actions/runAction";
 import { compresserImages, fichiersTropLourds, repartirEnLots } from "@/lib/images/compression";
@@ -55,10 +55,21 @@ export function PhotosPartageesEnAttente({
 }) {
   const [etat, setEtat] = useState<Etat>({ phase: "lecture" });
   const [essai, setEssai] = useState(0);
+  // Survit aux "Réessayer" (essai incrémenté), remis à zéro au tout premier
+  // essai : mémorise combien de lots ont déjà été envoyés avec succès et
+  // leurs URLs, pour qu'un "Réessayer" après échec partiel ne renvoie que
+  // les lots restants au lieu de dupliquer ceux déjà en Storage
+  // (CLICK-PATH-601).
+  const lotsReussisRef = useRef(0);
+  const urlsAcquisesRef = useRef<string[]>([]);
 
   useEffect(() => {
     let annule = false;
     let apercus: string[] = [];
+    if (essai === 0) {
+      lotsReussisRef.current = 0;
+      urlsAcquisesRef.current = [];
+    }
 
     (async () => {
       let fichiers: File[];
@@ -80,9 +91,10 @@ export function PhotosPartageesEnAttente({
       const tropLourdes = fichiersTropLourds(compressees);
       const lots = repartirEnLots(compressees.filter((f) => !tropLourdes.includes(f)));
 
-      const urls: string[] = [];
+      const urls: string[] = [...urlsAcquisesRef.current];
       for (const [i, lot] of lots.entries()) {
         if (annule) return;
+        if (i < lotsReussisRef.current) continue; // déjà envoyé lors d'un essai précédent
         setEtat({
           phase: "envoi",
           apercus,
@@ -96,6 +108,8 @@ export function PhotosPartageesEnAttente({
           return;
         }
         urls.push(...resultat.data);
+        urlsAcquisesRef.current = urls;
+        lotsReussisRef.current = i + 1;
       }
 
       await oublierFichiersEnAttente(id, nb).catch(() => {});

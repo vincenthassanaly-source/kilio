@@ -96,8 +96,12 @@ function EtiquetteRow({ etiquette }: { etiquette: Tables<"etiquettes"> }) {
     <li className={`${listCard} gap-2`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col">
-          <p className={nameText}>{etiquette.nom}</p>
-          <span className={metaText}>{TYPE_CHAMPS_LABELS[etiquette.type_champs as TypeChampsEtiquette]}</span>
+          {/* Affiche l'état local (déjà enregistré côté serveur), pas la prop
+              `etiquette` : `revalidatePath` n'entraîne aucun nouveau rendu de
+              cet arbre déjà monté, donc lire la prop ferait réapparaître
+              l'ancien nom juste après un "Enregistrer" réussi (CLICK-PATH-702). */}
+          <p className={nameText}>{nom}</p>
+          <span className={metaText}>{TYPE_CHAMPS_LABELS[typeChamps]}</span>
         </div>
         <div className="flex shrink-0 gap-2">
           <button type="button" onClick={() => setEditing(true)} className={ghostButton}>

@@ -2,8 +2,10 @@
 
 import { useOptimistic, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { removeJournalEntry } from "@/app/actions/journal";
 import { showToast } from "@/components/toast/toast-store";
+import { queryKeys } from "@/lib/query/keys";
 import type { Nutrition } from "@/lib/nutrition/compute";
 import type { Enums } from "@/lib/supabase/types";
 import { cardTight, dangerButton } from "@/lib/ui";
@@ -80,6 +82,7 @@ export function JournalEntriesList({ entries }: { entries: JournalEntryView[] })
     state.filter((e) => e.id !== id)
   );
   const [, startTransition] = useTransition();
+  const queryClient = useQueryClient();
 
   function handleDelete(id: string) {
     startTransition(async () => {
@@ -87,6 +90,12 @@ export function JournalEntriesList({ entries }: { entries: JournalEntryView[] })
       const entry = entries.find((e) => e.id === id);
       try {
         await removeJournalEntry(id);
+        // Même invalidation que le chemin "ajout" (useAjoutRepasTermine) :
+        // sans ça, la carte nutrition du dashboard et le catalogue
+        // "Récents" continuent de compter ce repas jusqu'à 30s après sa
+        // suppression (CLICK-PATH-202).
+        queryClient.invalidateQueries({ queryKey: queryKeys.catalogueJournal });
+        queryClient.invalidateQueries({ queryKey: ["resume-nutrition"] });
       } catch {
         // Nomme l'élément et la marche à suivre (clarify.md : un échec doit
         // dire quoi a échoué et comment récupérer) : la ligne réapparaît

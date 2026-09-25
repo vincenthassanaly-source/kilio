@@ -782,7 +782,13 @@ export async function reordonnerListes(id: string, direction: "haut" | "bas") {
   if (err1) throw new Error(err1.message);
   if (err2) throw new Error(err2.message);
 
+  // `/taches` ne montre pas les listes avec leurs contrôles de réordonnancement
+  // — la page réellement affichée quand ce bouton est cliqué est
+  // `/taches/listes`, page serveur sans refetch client : sans la revalider
+  // elle aussi (comme le fait déjà `deleteListe`), le nouvel ordre reste
+  // écrit en base mais invisible jusqu'à un rechargement (CLICK-PATH-301).
   revalidatePath("/taches");
+  revalidatePath("/taches/listes");
 }
 
 export async function getListes(): Promise<Tables<"listes_taches">[]> {
