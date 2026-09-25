@@ -12,6 +12,7 @@ import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
+import { runAction } from "@/lib/actions/runAction";
 
 function PdfIcon() {
   return (
@@ -135,7 +136,12 @@ export function DocumentCard({
           disabled={isPending}
           onClick={() => {
             if (!confirmDelete(`Supprimer le document « ${document.nom} » ?`)) return;
-            startTransition(() => deleteDocument(document.id));
+            // Contrat T1 : un échec Storage s'affiche en toast, pas error.tsx.
+            startTransition(async () => {
+              await runAction(() => deleteDocument(document.id), {
+                erreur: `Le document « ${document.nom} » n'a pas pu être supprimé. Réessaie.`,
+              });
+            });
           }}
           className={dangerButton}
         >

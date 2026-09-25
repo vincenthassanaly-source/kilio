@@ -1,5 +1,6 @@
 import { getCollections } from "@/app/actions/collections";
 import { ChoisirCollectionForm } from "./ChoisirCollectionForm";
+import { PhotosPartageesEnAttente } from "./PhotosPartageesEnAttente";
 import { FadeInImage } from "@/components/FadeInImage";
 import { estTypeVideo } from "@/lib/collection/video";
 import { screenTitle } from "@/lib/ui";
@@ -19,9 +20,17 @@ export default async function ChoisirCollectionPage({
     video_thumbnail?: string;
     video_titre?: string;
     video_type?: string;
+    attente?: string;
+    nb?: string;
   }>;
 }) {
-  const { photo, video_url, video_thumbnail, video_titre, video_type } = await searchParams;
+  const { photo, video_url, video_thumbnail, video_titre, video_type, attente, nb } = await searchParams;
+  // Photos gardées par le service worker, à compresser et envoyer côté client.
+  const nbEnAttente = Number(nb);
+  const enAttente =
+    attente && /^[a-z0-9]{1,32}$/.test(attente) && Number.isInteger(nbEnAttente) && nbEnAttente > 0
+      ? { id: attente, nb: Math.min(nbEnAttente, 50) }
+      : null;
   const photos = photo === undefined ? [] : Array.isArray(photo) ? photo : [photo];
   const video =
     video_url && video_thumbnail && video_type && estTypeVideo(video_type)
@@ -40,7 +49,9 @@ export default async function ChoisirCollectionPage({
       <div className="flex flex-col gap-4">
         <h1 className={screenTitle}>Ajouter à une collection</h1>
 
-        {photos.length === 0 && !video ? (
+        {enAttente ? (
+          <PhotosPartageesEnAttente id={enAttente.id} nb={enAttente.nb} collections={collections} video={video} />
+        ) : photos.length === 0 && !video ? (
           <p className="text-ink-2">Rien reçu.</p>
         ) : (
           <>

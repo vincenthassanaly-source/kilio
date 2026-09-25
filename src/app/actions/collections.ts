@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import sharp from "sharp";
 import { estTypeVideo, recupererMetadonneesVideo } from "@/lib/collection/video";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Tables, TablesInsert } from "@/lib/supabase/types";
 
 const COLLECTION_IMAGES_BUCKET = "collection-images";
@@ -288,6 +289,20 @@ export async function uploaderPhotosPartagees(fichiers: File[]): Promise<string[
     urls.push(await compresserEtUploaderPhoto(supabase, fichier));
   }
   return urls;
+}
+
+// Variante appelée depuis le navigateur (flux de partage via le service
+// worker, app/collection/partage/choisir/PhotosPartageesEnAttente.tsx) :
+// les photos arrivent déjà compressées côté client, par lots. Contrat
+// `ActionResult` (T1).
+export async function televerserPhotosPartagees(formData: FormData): Promise<ActionResult<string[]>> {
+  const fichiers = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+  if (fichiers.length === 0) return ok([]);
+  try {
+    return ok(await uploaderPhotosPartagees(fichiers));
+  } catch {
+    return fail("Les photos partagées n'ont pas pu être envoyées. Réessaie.");
+  }
 }
 
 // Équivalent de uploaderPhotosPartagees pour un lien vidéo (TikTok ou

@@ -4,6 +4,14 @@ import { useRef, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ajouterLienVideo, uploadCollectionPhotos } from "@/app/actions/collections";
 import { queryKeys } from "@/lib/query/keys";
+import { estErreurReseau } from "@/lib/actions/runAction";
+import {
+  TAILLE_MAX_REQUETE_OCTETS,
+  compresserImages,
+  fichiersTropLourds,
+  formatTaille,
+  repartirEnLots,
+} from "@/lib/images/compression";
 import { errorText, input, primaryButton } from "@/lib/ui";
 
 const ADD_PHOTO_BUTTON =
@@ -49,6 +57,7 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
   const galerieInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [etape, setEtape] = useState<string | null>(null);
 
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
@@ -60,20 +69,45 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
     queryClient.invalidateQueries({ queryKey: queryKeys.collections });
   }
 
+  // Compression côté client avant envoi (vague 1, point « uploads ») : les
+  // photos de téléphone (2-5 Mo) dépassaient à deux ou trois le plafond de
+  // 4 Mo des Server Actions. Les photos compressées partent ensuite par lots
+  // qui tiennent chacun sous ce plafond.
   function handleFiles(files: FileList | null, inputRef: React.RefObject<HTMLInputElement | null>) {
     if (!files || files.length === 0) return;
-
-    const formData = new FormData();
-    for (const file of Array.from(files)) formData.append("photos", file);
+    const selection = Array.from(files);
 
     setError(null);
+    setEtape("Compression…");
     startTransition(async () => {
       try {
-        await uploadCollectionPhotos(collectionId, formData);
+        const compressees = await compresserImages(selection);
+        const tropLourdes = fichiersTropLourds(compressees);
+        const aEnvoyer = compressees.filter((f) => !tropLourdes.includes(f));
+        const lots = repartirEnLots(aEnvoyer);
+        for (const [i, lot] of lots.entries()) {
+          setEtape(lots.length > 1 ? `Envoi ${i + 1}/${lots.length}…` : "Envoi…");
+          const formData = new FormData();
+          for (const file of lot) formData.append("photos", file);
+          await uploadCollectionPhotos(collectionId, formData);
+        }
+        if (tropLourdes.length > 0) {
+          setError(
+            `${tropLourdes.length} photo${tropLourdes.length > 1 ? "s" : ""} trop lourde${tropLourdes.length > 1 ? "s" : ""} même compressée${tropLourdes.length > 1 ? "s" : ""} (plus de ${formatTaille(TAILLE_MAX_REQUETE_OCTETS)}) : non envoyée${tropLourdes.length > 1 ? "s" : ""}.`
+          );
+        }
         invalidate();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erreur lors de l'envoi.");
+        // Contrat T1 : message lisible (celui d'une exception de Server
+        // Action est masqué en production) ; les lots déjà envoyés restent.
+        setError(
+          estErreurReseau(err)
+            ? "Pas de connexion : les photos n'ont pas été envoyées. Réessaie une fois en ligne."
+            : "L'envoi des photos a échoué. Réessaie."
+        );
+        invalidate();
       } finally {
+        setEtape(null);
         if (inputRef.current) inputRef.current.value = "";
       }
     });
@@ -102,7 +136,7 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
       <div className="flex gap-2">
         <label htmlFor="collection-add-photo-camera" className={`${ADD_PHOTO_BUTTON} ${isPending ? "opacity-60" : ""}`}>
           <CameraIcon />
-          {isPending ? "Envoi..." : "Appareil photo"}
+          {isPending ? (etape ?? "Envoi…") : "Appareil photo"}
         </label>
         <input
           ref={cameraInputRef}
@@ -118,7 +152,7 @@ export function AddPhotoButton({ collectionId }: { collectionId: string }) {
 
         <label htmlFor="collection-add-photo-galerie" className={`${ADD_PHOTO_BUTTON} ${isPending ? "opacity-60" : ""}`}>
           <GalerieIcon />
-          {isPending ? "Envoi..." : "Galerie"}
+          {isPending ? (etape ?? "Envoi…") : "Galerie"}
         </label>
         <input
           ref={galerieInputRef}

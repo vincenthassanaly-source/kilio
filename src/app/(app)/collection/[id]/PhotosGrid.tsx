@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteCollectionItem, type CollectionAvecPhotos } from "@/app/actions/collections";
+import { useQueryClient } from "@tanstack/react-query";
+import { deleteCollectionItem } from "@/app/actions/collections";
 import { queryKeys } from "@/lib/query/keys";
-import { showToast } from "@/components/toast/toast-store";
+import { supprimerAvecAnnulation } from "@/lib/actions/suppressionDifferee";
 import { FadeInImage } from "@/components/FadeInImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { TiktokLightbox } from "@/components/TiktokLightbox";
@@ -58,35 +58,36 @@ export function PhotosGrid({
   const [lightboxItem, setLightboxItem] = useState<Tables<"collection_items"> | null>(null);
   const queryClient = useQueryClient();
 
-  // Supprimer une photo est l'action la plus fréquente de cette vue : même
-  // mécanisme optimiste (setQueryData + rollback) que TaskCard/HabitudeCard,
-  // sur le cache de la collection (queryKeys.collection). `nb_photos`/
-  // l'aperçu affichés sur /collection dépendant aussi de cette suppression,
-  // la liste des collections est invalidée en plus au règlement.
-  const deleteMutation = useMutation({
-    mutationFn: (photoId: string) => {
-      vibrate();
-      return deleteCollectionItem(photoId);
-    },
-    onMutate: async (photoId) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.collection(collectionId) });
-      const previous = queryClient.getQueryData<CollectionAvecPhotos>(queryKeys.collection(collectionId));
-      queryClient.setQueryData<CollectionAvecPhotos>(queryKeys.collection(collectionId), (old) =>
-        old ? { ...old, photos: old.photos.filter((p) => p.id !== photoId) } : old
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.collection(collectionId), context.previous);
-      showToast("Impossible de supprimer la photo.");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.collection(collectionId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.collections });
-    },
-  });
+  // Photos masquées le temps du toast « Annuler » (constat T2 : la
+  // suppression retirait le fichier du Storage en un tap, sans retour
+  // possible). L'appel serveur n'a lieu qu'à l'expiration du toast ;
+  // « Annuler » réaffiche simplement la photo, rien n'a encore été effacé.
+  const [masquees, setMasquees] = useState<ReadonlySet<string>>(() => new Set());
+  const visibles = photos.filter((p) => !masquees.has(p.id));
 
-  if (photos.length === 0) {
+  function supprimer(photo: Tables<"collection_items">) {
+    vibrate();
+    const libelle = estTypeVideo(photo.type) ? "Vidéo" : "Photo";
+    supprimerAvecAnnulation({
+      texte: `${libelle} supprimée`,
+      ariaLabel: `Annuler la suppression de la ${libelle.toLowerCase()}`,
+      masquer: () => setMasquees((m) => new Set(m).add(photo.id)),
+      restaurer: () =>
+        setMasquees((m) => {
+          const suivant = new Set(m);
+          suivant.delete(photo.id);
+          return suivant;
+        }),
+      supprimer: () => deleteCollectionItem(photo.id),
+      erreur: `Impossible de supprimer la ${libelle.toLowerCase()}. Réessaie.`,
+      onSupprime: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.collection(collectionId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.collections });
+      },
+    });
+  }
+
+  if (visibles.length === 0) {
     return <p className="text-ink-2">Aucune photo pour l&apos;instant.</p>;
   }
 
@@ -94,7 +95,7 @@ export function PhotosGrid({
     <>
       <ul className="grid grid-cols-2 gap-2">
         <AnimatePresence initial={false}>
-          {photos.map((photo, index) => {
+          {visibles.map((photo, index) => {
             const estVideo = estTypeVideo(photo.type);
             const src = estVideo ? (photo.thumbnail_url ?? photo.url) : photo.url;
 
@@ -125,16 +126,18 @@ export function PhotosGrid({
                   />
                   {estVideo && <VideoBadge type={photo.type} />}
                 </button>
+                {/* Zone de tap de 44 px, pastille visible de 28 px. */}
                 <button
                   type="button"
-                  disabled={deleteMutation.isPending}
-                  onClick={() => deleteMutation.mutate(photo.id)}
-                  aria-label="Supprimer"
-                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white disabled:opacity-50"
+                  onClick={() => supprimer(photo)}
+                  aria-label={estVideo ? "Supprimer la vidéo" : "Supprimer la photo"}
+                  className="group absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white group-focus-visible:ring-2 group-focus-visible:ring-white">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </span>
                 </button>
               </motion.li>
             );

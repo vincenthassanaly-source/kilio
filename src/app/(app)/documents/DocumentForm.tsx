@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   createDocument,
@@ -11,6 +11,9 @@ import {
 } from "@/app/actions/documents";
 import type { Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { supprimerAvecAnnulation } from "@/lib/actions/suppressionDifferee";
+import { MESSAGE_HORS_LIGNE, estErreurReseau } from "@/lib/actions/runAction";
+import { TAILLE_MAX_REQUETE_OCTETS, compresserFormData, formatTaille } from "@/lib/images/compression";
 
 const initialState: DocumentFormState = { error: null };
 
@@ -68,9 +71,12 @@ function FichierThumb({
         disabled={disabled}
         onClick={onRemove}
         aria-label={removeLabel}
-        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-alert text-[11px] font-bold text-white disabled:opacity-60"
+        // Zone de tap de 44 px centrée sur la pastille visible de 20 px.
+        className="group absolute -right-3.5 -top-3.5 flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-60 focus-visible:outline-none"
       >
-        ×
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-alert text-[11px] font-bold text-white group-focus-visible:ring-2 group-focus-visible:ring-kcal group-focus-visible:ring-offset-2">
+          ×
+        </span>
       </button>
     </div>
   );
@@ -86,13 +92,11 @@ function RectoVersoSlot({
   name,
   existing,
   onRemoveExisting,
-  removingExisting,
 }: {
   label: string;
   name: "fichier_recto" | "fichier_verso";
   existing: Tables<"document_fichiers"> | null;
   onRemoveExisting: () => void;
-  removingExisting: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -126,7 +130,6 @@ function RectoVersoSlot({
           estImage={existing.fichier_type === "image"}
           onRemove={onRemoveExisting}
           removeLabel={`Supprimer le ${label.toLowerCase()}`}
-          disabled={removingExisting}
         />
       ) : file && preview ? (
         <FichierThumb
@@ -159,7 +162,27 @@ export function DocumentForm({
   onDone?: () => void;
 }) {
   const action = document ? updateDocument : createDocument;
-  const [state, formAction, pending] = useActionState(action, initialState);
+  // Photos compressées côté client avant l'envoi (vague 1, point
+  // « uploads ») : recto + verso bruts dépassaient le plafond de 4 Mo des
+  // Server Actions (requête rejetée, error boundary). Contrat T1 : toute
+  // exception devient un message dans le formulaire, la saisie reste.
+  const [state, formAction, pending] = useActionState<DocumentFormState, FormData>(async (precedent, formData) => {
+    try {
+      const taille = await compresserFormData(formData, ["fichiers", "fichier_recto", "fichier_verso"]);
+      if (taille > TAILLE_MAX_REQUETE_OCTETS) {
+        return {
+          error: `Fichiers trop lourds (${formatTaille(taille)}, maximum ${formatTaille(TAILLE_MAX_REQUETE_OCTETS)} par envoi) : ajoute-les en plusieurs fois, ou réduis la taille des PDF.`,
+        };
+      }
+      return await action(precedent, formData);
+    } catch (err) {
+      return {
+        error: estErreurReseau(err)
+          ? MESSAGE_HORS_LIGNE
+          : "L'enregistrement du document a échoué. Réessaie.",
+      };
+    }
+  }, initialState);
   const prevPending = useRef(pending);
 
   const [etiquetteId, setEtiquetteId] = useState(document?.etiquette?.id ?? "");
@@ -171,7 +194,7 @@ export function DocumentForm({
   const [existingFichiers, setExistingFichiers] = useState<Tables<"document_fichiers">[]>(
     document?.fichiers ?? []
   );
-  const [isDeletingFichier, startFichierTransition] = useTransition();
+  const [fichiersMasques, setFichiersMasques] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
     if (prevPending.current && !pending && !state.error) {
@@ -199,21 +222,37 @@ export function DocumentForm({
     if (fileInputRef.current) fileInputRef.current.files = dataTransfer.files;
   }
 
-  function removeExistingFichier(fichierId: string) {
-    startFichierTransition(async () => {
-      await deleteDocumentFichier(fichierId);
-      setExistingFichiers((fs) => fs.filter((f) => f.id !== fichierId));
+  // Suppression d'un fichier existant : masqué tout de suite, toast
+  // « Annuler », retrait du Storage seulement à l'expiration du délai
+  // (constat T2 : le × supprimait définitivement en un tap). Contrat T1 :
+  // un échec réaffiche le fichier avec un toast, jamais error.tsx.
+  function removeExistingFichier(fichier: Tables<"document_fichiers">) {
+    const libelle = fichier.role === "recto" ? "Recto" : fichier.role === "verso" ? "Verso" : "Fichier";
+    supprimerAvecAnnulation({
+      texte: `${libelle} supprimé`,
+      ariaLabel: `Annuler la suppression du ${libelle.toLowerCase()}`,
+      masquer: () => setFichiersMasques((m) => new Set(m).add(fichier.id)),
+      restaurer: () =>
+        setFichiersMasques((m) => {
+          const suivant = new Set(m);
+          suivant.delete(fichier.id);
+          return suivant;
+        }),
+      supprimer: () => deleteDocumentFichier(fichier.id),
+      erreur: `Impossible de supprimer le ${libelle.toLowerCase()}. Réessaie.`,
+      onSupprime: () => setExistingFichiers((fs) => fs.filter((f) => f.id !== fichier.id)),
     });
   }
 
-  const existingRecto = existingFichiers.find((f) => f.role === "recto") ?? null;
-  const existingVerso = existingFichiers.find((f) => f.role === "verso") ?? null;
+  const fichiersVisibles = existingFichiers.filter((f) => !fichiersMasques.has(f.id));
+  const existingRecto = fichiersVisibles.find((f) => f.role === "recto") ?? null;
+  const existingVerso = fichiersVisibles.find((f) => f.role === "verso") ?? null;
   // Fichiers "orphelins" d'un rôle recto/verso si l'étiquette a été changée
   // après coup : gardés visibles (pas perdus) via la liste générique.
-  const existingHorsRectoVerso = existingFichiers.filter((f) => f.role !== "recto" && f.role !== "verso");
+  const existingHorsRectoVerso = fichiersVisibles.filter((f) => f.role !== "recto" && f.role !== "verso");
 
   const aucunFichier =
-    !document && existingFichiers.length === 0 && selectedFiles.length === 0 && !existingRecto && !existingVerso;
+    !document && fichiersVisibles.length === 0 && selectedFiles.length === 0 && !existingRecto && !existingVerso;
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -297,15 +336,13 @@ export function DocumentForm({
               label="Recto"
               name="fichier_recto"
               existing={existingRecto}
-              onRemoveExisting={() => removeExistingFichier(existingRecto!.id)}
-              removingExisting={isDeletingFichier}
+              onRemoveExisting={() => removeExistingFichier(existingRecto!)}
             />
             <RectoVersoSlot
               label="Verso"
               name="fichier_verso"
               existing={existingVerso}
-              onRemoveExisting={() => removeExistingFichier(existingVerso!.id)}
-              removingExisting={isDeletingFichier}
+              onRemoveExisting={() => removeExistingFichier(existingVerso!)}
             />
           </div>
           {existingHorsRectoVerso.length > 0 && (
@@ -315,9 +352,8 @@ export function DocumentForm({
                   key={fichier.id}
                   src={fichier.url}
                   estImage={fichier.fichier_type === "image"}
-                  onRemove={() => removeExistingFichier(fichier.id)}
+                  onRemove={() => removeExistingFichier(fichier)}
                   removeLabel="Supprimer ce fichier"
-                  disabled={isDeletingFichier}
                 />
               ))}
             </div>
@@ -348,14 +384,13 @@ export function DocumentForm({
               onChange={handleFilesChange}
             />
 
-            {existingFichiers.map((fichier) => (
+            {fichiersVisibles.map((fichier) => (
               <FichierThumb
                 key={fichier.id}
                 src={fichier.url}
                 estImage={fichier.fichier_type === "image"}
-                onRemove={() => removeExistingFichier(fichier.id)}
+                onRemove={() => removeExistingFichier(fichier)}
                 removeLabel="Supprimer ce fichier"
-                disabled={isDeletingFichier}
               />
             ))}
 

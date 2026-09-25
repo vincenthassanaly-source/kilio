@@ -1,4 +1,10 @@
 const CACHE_NAME = "nutrition-app-shell-v2";
+// Photos reçues par le partage natif (Web Share Target), mises de côté le
+// temps que la page /collection/partage/choisir les compresse côté client
+// (src/lib/images/compression.ts) puis les envoie par lots. Sans ce détour,
+// les photos brutes partaient d'un bloc vers le Route Handler et butaient
+// sur la limite de 4,5 Mo des fonctions Vercel.
+const CACHE_PARTAGE = "kilio-partage-en-attente";
 const APP_SHELL = [
   "/",
   "/manifest.json",
@@ -20,7 +26,9 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+          keys
+            .filter((key) => key !== CACHE_NAME && key !== CACHE_PARTAGE)
+            .map((key) => caches.delete(key))
         )
       )
   );
@@ -34,11 +42,64 @@ self.addEventListener("activate", (event) => {
 // par une Server Action de ce site). Cache-first réservé aux vrais assets statiques
 // versionnés par build (_next/static) et aux icônes. Les appels Supabase (autre
 // origine) ne passent pas ici.
+async function mettreDeCotePartage(request) {
+  let formData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return Response.redirect("/collection/partage/choisir", 303);
+  }
+  const fichiers = formData.getAll("photos").filter((f) => f instanceof File && f.size > 0);
+  const suite = new FormData();
+  for (const champ of ["text", "url", "title"]) {
+    const valeur = formData.get(champ);
+    if (typeof valeur === "string") suite.set(champ, valeur);
+  }
+
+  if (fichiers.length > 0) {
+    try {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const cache = await caches.open(CACHE_PARTAGE);
+      await Promise.all(
+        fichiers.map((fichier, i) =>
+          cache.put(
+            `/__partage/${id}/${i}`,
+            new Response(fichier, {
+              headers: {
+                "Content-Type": fichier.type || "application/octet-stream",
+                "X-Nom-Fichier": encodeURIComponent(fichier.name || `photo-${i + 1}.jpg`),
+              },
+            })
+          )
+        )
+      );
+      suite.set("attente", id);
+      suite.set("nb", String(fichiers.length));
+    } catch {
+      // Stockage indisponible : on retombe sur l'envoi direct des photos.
+      for (const fichier of fichiers) suite.append("photos", fichier);
+    }
+  }
+
+  // Le texte ou le lien (vidéo) continue vers le Route Handler, qui résout
+  // ses métadonnées et redirige vers l'écran de choix de collection.
+  return fetch("/collection/partage", { method: "POST", body: suite, redirect: "manual" });
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET") return;
-
   const url = new URL(request.url);
+
+  if (
+    request.method === "POST" &&
+    url.origin === self.location.origin &&
+    url.pathname === "/collection/partage"
+  ) {
+    event.respondWith(mettreDeCotePartage(request));
+    return;
+  }
+
+  if (request.method !== "GET") return;
   if (url.origin !== self.location.origin) return;
 
   const isStaticAsset =

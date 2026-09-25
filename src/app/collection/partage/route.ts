@@ -9,6 +9,11 @@ import { extraireLienVideoDuTexte } from "@/lib/collection/video";
 // vidéo (sans rien rattacher à une collection), puis redirige vers l'écran de
 // sélection de collection avec un paramètre `photo` par photo uploadée et des
 // paramètres `video_*` si un lien a été trouvé.
+//
+// Quand le service worker est actif, il intercepte ce POST et garde les
+// photos de côté (paramètres `attente`/`nb`) : elles sont alors compressées
+// côté client par la page de choix. L'upload direct ci-dessous reste le
+// chemin de secours (premier lancement, service worker absent).
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const fichiers = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
@@ -21,6 +26,15 @@ export async function POST(request: NextRequest) {
   const lienVideo = extraireLienVideoDuTexte(texteRecu);
 
   const url = new URL("/collection/partage/choisir", request.url);
+
+  // Photos mises de côté par le service worker (public/sw.js) : elles seront
+  // compressées et envoyées depuis la page de choix, pas ici.
+  const attente = formData.get("attente");
+  const nb = Number(formData.get("nb"));
+  if (typeof attente === "string" && /^[a-z0-9]{1,32}$/.test(attente) && Number.isInteger(nb) && nb > 0) {
+    url.searchParams.set("attente", attente);
+    url.searchParams.set("nb", String(Math.min(nb, 50)));
+  }
 
   if (fichiers.length > 0) {
     const urls = await uploaderPhotosPartagees(fichiers);
