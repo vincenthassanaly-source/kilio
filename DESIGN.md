@@ -244,7 +244,7 @@ Bordures : hairline 1px `--line` sur quasi tout élément de surface (cartes, in
 
 ### Navigation
 - **Barre du bas :** pilule flottante flou verre (`backdrop-blur-xl`, fond `--nav-bg` translucide), items icône + label 11px, pastille de fond active (`--accent-kcal-soft`) qui **glisse** (layout animation Framer Motion) d'un onglet à l'autre plutôt que d'apparaître/disparaître.
-- **Contrôle segmenté — composant unique `<SegmentedControl>`** (`src/components/SegmentedControl.tsx`) : pilule `surface-alt`, segments `rounded-xl` de 44px de haut, actif en fond `kcal` + `text-on-kcal`, `aria-pressed`, anneau de focus, option `glissant` (pastille animée). Les variantes « lien » (sous-navigation Journal/Recettes, bascule Repos/Entraînement) réutilisent `SEGMENT_CADRE` et `segmentClasse()`. Tout choix à 2-4 options passe par lui — jamais un `<select>`, jamais une couleur de module pour l'actif.
+- **Contrôle segmenté — composant unique `<SegmentedControl>`** (`src/components/SegmentedControl.tsx`) : pilule `surface-alt`, segments `rounded-xl` de 44px de haut, actif en fond `kcal` + `text-on-kcal`, `aria-pressed`, anneau de focus, option `glissant` (pastille animée). Les variantes « lien » (sous-navigation Journal/Recettes, bascule Repos/Entraînement) réutilisent `SEGMENT_CADRE` et `segmentClasse()` (`src/lib/segmented.ts`). Tout choix à 2-4 options passe par lui — jamais un `<select>`, jamais une couleur de module pour l'actif.
 - **États :** actif = couleur `kcal` + `font-weight: 700` ; inactif = `ink-3` + `font-weight: 500`. Toujours `aria-current="page"` sur l'item actif.
 
 ### Progress (signature)

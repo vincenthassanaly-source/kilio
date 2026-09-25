@@ -2,6 +2,7 @@
 
 import { useId, type ReactNode } from "react";
 import { motion } from "framer-motion";
+import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
 
 // Contrôle segmenté partagé (constat T7 de l'audit du 2026-09-25) : il était
 // réimplémenté dans une dizaine d'écrans avec des couleurs d'actif
@@ -12,18 +13,7 @@ import { motion } from "framer-motion";
 //
 // Les variantes « lien » (sous-navigation, bascule Repos/Entraînement) ne
 // sont pas des boutons : elles réutilisent `SEGMENT_CADRE` et
-// `segmentClasse` ci-dessous pour rester identiques visuellement.
-
-export const SEGMENT_CADRE = "flex gap-1 rounded-2xl bg-surface-alt p-1";
-
-const FOCUS =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2";
-
-export function segmentClasse(actif: boolean, taille: "md" | "sm" = "md") {
-  return `relative flex min-h-11 flex-1 items-center justify-center rounded-xl px-1 text-center ${
-    taille === "sm" ? "text-[13px]" : "text-[13.5px]"
-  } font-semibold transition-colors ${FOCUS} ${actif ? "bg-kcal text-on-kcal" : "text-ink-2 hover:text-ink"}`;
-}
+// `segmentClasse` (lib/segmented.ts, module neutre appelable côté serveur).
 
 export type SegmentOption<T extends string> = { value: T; label: ReactNode; ariaLabel?: string };
 

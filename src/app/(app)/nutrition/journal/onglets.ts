@@ -1,5 +1,5 @@
 import type { JourJournal } from "./jour";
-import { SEGMENT_CADRE, segmentClasse } from "@/components/SegmentedControl";
+import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
 
 // Cadre et onglets de la bascule Repos / Entraînement, partagés par le
 // fallback serveur (JournalNavigationJour) et la bascule cliente.

@@ -5,7 +5,7 @@ import type { Enums } from "@/lib/supabase/types";
 import { formatPeriode, periodeAdjacente, periodeParDefaut } from "@/lib/budget/compute";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { ghostButton } from "@/lib/ui";
-import { SEGMENT_CADRE, segmentClasse } from "@/components/SegmentedControl";
+import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
 
 const ONGLETS: { value: Enums<"type_periode_budget">; label: string }[] = [
   { value: "hebdomadaire", label: "Semaine" },

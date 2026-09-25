@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { TransitionLink } from "@/components/TransitionLink";
-import { SEGMENT_CADRE, segmentClasse } from "@/components/SegmentedControl";
+import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
 
 const TABS = [
   { href: "/nutrition/journal", label: "Journal" },

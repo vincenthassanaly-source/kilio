@@ -1,0 +1,14 @@
+// Classes du contrôle segmenté, dans un module sans directive "use client" :
+// elles servent aussi aux rendus serveur (fallback de la bascule du Journal).
+// Composant interactif : components/SegmentedControl.tsx.
+
+export const SEGMENT_CADRE = "flex gap-1 rounded-2xl bg-surface-alt p-1";
+
+const FOCUS =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2";
+
+export function segmentClasse(actif: boolean, taille: "md" | "sm" = "md") {
+  return `relative flex min-h-11 flex-1 items-center justify-center rounded-xl px-1 text-center ${
+    taille === "sm" ? "text-[13px]" : "text-[13.5px]"
+  } font-semibold transition-colors ${FOCUS} ${actif ? "bg-kcal text-on-kcal" : "text-ink-2 hover:text-ink"}`;
+}

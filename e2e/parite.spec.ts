@@ -68,9 +68,12 @@ test("cocher une tâche du jour depuis le Dashboard met /taches à jour", async 
 
   await page.getByRole("navigation").locator('a[href="/taches"]').click();
   await page.waitForURL((u) => u.pathname === "/taches");
-  const toggles = page.locator("li, div").filter({ hasText: "Tâche e2e du jour" }).locator("button[aria-pressed]");
+  // Coches uniquement (les segments du SegmentedControl portent aussi
+  // `aria-pressed` depuis la vague 2, mais pas d'`aria-label` « … fait »).
+  const coches = 'button[aria-pressed][aria-label*="fait"]';
+  const toggles = page.locator("li, div").filter({ hasText: "Tâche e2e du jour" }).locator(coches);
   await expect(toggles.first()).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator('button[aria-pressed="false"]')).toHaveCount(0);
+  await expect(page.locator(`${coches}[aria-pressed="false"]`)).toHaveCount(0);
 
   expect((await action).ok()).toBe(true);
   await fetch(`${process.env.E2E_SUPABASE_URL}/__reset`);
