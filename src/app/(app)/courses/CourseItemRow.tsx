@@ -102,7 +102,7 @@ export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
     },
     onSuccess: () => {
       showActionToast(`« ${item.libelle} » supprimé`, {
-        label: `Annuler la suppression de « ${item.libelle} »`,
+        ariaLabel: `Annuler la suppression de « ${item.libelle} »`,
         onAction: () =>
           restaurerArticlesCourses(queryClient, [
             {

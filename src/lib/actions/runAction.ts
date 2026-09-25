@@ -1,0 +1,57 @@
+"use client";
+
+import { showErrorToast } from "@/components/toast/toast-store";
+import { isActionFailure, type ActionResult } from "./result";
+
+// Message affiché quand la requête n'a même pas atteint le serveur.
+export const MESSAGE_HORS_LIGNE = "Pas de connexion : rien n'a été enregistré. Réessaie une fois en ligne.";
+const MESSAGE_GENERIQUE = "L'enregistrement a échoué. Réessaie.";
+
+export function estErreurReseau(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  return err instanceof Error && /failed to fetch|fetch failed|networkerror|load failed/i.test(err.message);
+}
+
+export type RunActionOptions = {
+  /** Message de repli quand l'action lève (message masqué en production). */
+  erreur?: string;
+  /** Restaure la saisie ou l'état optimiste après un échec. */
+  onError?: (message: string) => void;
+  /** N'affiche pas de toast (l'appelant affiche l'erreur en ligne). */
+  silencieux?: boolean;
+};
+
+/**
+ * Appelle une Server Action sans jamais laisser une exception remonter à
+ * l'error boundary (constat T1). Accepte aussi bien une action qui respecte
+ * le contrat `ActionResult` qu'une action historique qui lève (celles
+ * rejouées par la file hors ligne, `lib/offline/queue.ts`, qui s'appuie sur
+ * l'exception pour décider d'un rejeu) : dans les deux cas, l'échec est
+ * normalisé en `{ ok: false, error }`, annoncé par un toast `role="alert"`,
+ * et `onError` permet à l'appelant de remettre la saisie en place.
+ */
+export async function runAction<T = undefined>(
+  action: () => Promise<ActionResult<T> | T>,
+  options: RunActionOptions = {}
+): Promise<ActionResult<T>> {
+  let resultat: ActionResult<T>;
+  try {
+    const valeur = await action();
+    resultat = isActionFailure(valeur)
+      ? valeur
+      : valeur && typeof valeur === "object" && (valeur as { ok?: unknown }).ok === true
+        ? (valeur as ActionResult<T>)
+        : { ok: true, data: valeur as T };
+  } catch (err) {
+    resultat = {
+      ok: false,
+      error: estErreurReseau(err) ? MESSAGE_HORS_LIGNE : (options.erreur ?? MESSAGE_GENERIQUE),
+    };
+  }
+
+  if (!resultat.ok) {
+    if (!options.silencieux) showErrorToast(resultat.error);
+    options.onError?.(resultat.error);
+  }
+  return resultat;
+}

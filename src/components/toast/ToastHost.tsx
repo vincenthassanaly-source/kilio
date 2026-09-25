@@ -50,10 +50,10 @@ export function ToastHost() {
                   toast.action?.onAction();
                   dismissToast(toast.id);
                 }}
-                aria-label={toast.action.label}
-                className="flex h-11 min-w-[44px] shrink-0 items-center justify-center px-2.5 text-sm font-semibold text-kcal"
+                aria-label={toast.action.ariaLabel ?? toast.action.label}
+                className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-full px-2.5 text-sm font-semibold text-kcal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal"
               >
-                Annuler
+                {toast.action.label}
               </button>
             </motion.div>
           ) : (
@@ -66,8 +66,17 @@ export function ToastHost() {
               transition={{ duration: 0.18 }}
               onClick={() => dismissToast(toast.id)}
               aria-label={`${toast.text} — appuyer pour masquer`}
-              className="pointer-events-auto max-w-[90vw] rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink shadow-card"
+              role={toast.tone === "error" ? "alert" : undefined}
+              className={`pointer-events-auto flex max-w-[90vw] items-center gap-2 rounded-full border bg-surface px-4 py-2 text-left text-[13px] font-medium text-ink shadow-card ${
+                toast.tone === "error" ? "border-alert/40" : "border-line"
+              }`}
             >
+              {toast.tone === "error" && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-alert)" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true" className="shrink-0">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7.5v5.5M12 16.5v.01" />
+                </svg>
+              )}
               {toast.text}
             </motion.button>
           )

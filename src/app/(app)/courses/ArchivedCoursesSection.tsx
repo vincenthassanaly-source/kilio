@@ -56,7 +56,7 @@ export function ArchivedCoursesSection({ items }: { items: Tables<"courses_items
     onSuccess: (_data, snapshot) => {
       const n = snapshot.length;
       showActionToast(`${n} article${n > 1 ? "s" : ""} supprimé${n > 1 ? "s" : ""}`, {
-        label: `Annuler la suppression de ${n} article${n > 1 ? "s" : ""}`,
+        ariaLabel: `Annuler la suppression de ${n} article${n > 1 ? "s" : ""}`,
         onAction: () => restaurerArticlesCourses(queryClient, snapshot),
       });
     },
