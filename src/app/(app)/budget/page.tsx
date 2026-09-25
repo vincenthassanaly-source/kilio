@@ -171,7 +171,8 @@ async function BudgetResume() {
             {enDepassement.map((suivi) => {
               const pct =
                 suivi.cible > 0 ? Math.min(100, Math.round((suivi.consomme / suivi.cible) * 100)) : 100;
-              const color = suivi.statut === "depasse" ? "var(--accent-alert)" : "var(--accent-carbs)";
+              // Graduated Alert Rule (T8) : ambre à l'approche, rouge au dépassement.
+              const color = suivi.statut === "depasse" ? "var(--accent-alert)" : "var(--accent-warning)";
 
               return (
                 <li key={suivi.categorie.id} className={`${card} flex flex-col gap-2`}>

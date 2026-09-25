@@ -12,7 +12,8 @@ function idOption(item: ResultatRecherche): string {
 }
 
 const MODULE_INFO: Record<ModuleRecherche, { label: string; accentVar: string }> = {
-  notes: { label: "Notes", accentVar: "var(--accent-protein)" },
+  // Pas de bleu Protéines hors macros (Semantic-Only Macro Rule, T8).
+  notes: { label: "Notes", accentVar: "var(--ink-2)" },
   taches: { label: "Tâches", accentVar: "var(--accent-agenda)" },
   recettes: { label: "Recettes", accentVar: "var(--accent-kcal)" },
   objectifs: { label: "Objectifs", accentVar: "var(--accent-objectifs)" },

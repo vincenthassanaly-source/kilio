@@ -13,7 +13,8 @@ import { runAction } from "@/lib/actions/runAction";
 
 const STATUT_COLOR: Record<StatutBudget, string> = {
   ok: "var(--accent-kcal)",
-  proche: "var(--accent-carbs)",
+  // Ambre (Graduated Alert Rule, T8) : le jaune Glucides est réservé aux macros.
+  proche: "var(--accent-warning)",
   depasse: "var(--accent-alert)",
 };
 
