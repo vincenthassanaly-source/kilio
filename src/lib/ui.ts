@@ -37,8 +37,16 @@ export const addCard =
 export const addCardIcon =
   "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] text-on-accent text-lg font-semibold";
 
+// Zone de tap étendue à 44 px de haut (T6) sans grossir le bouton visible :
+// pseudo-élément transparent débordant de 6 px en haut et en bas (le bouton
+// fait ≈ 32 px). Les lignes de liste qui les accueillent ont toutes au moins
+// 12 px d'espace vertical, donc pas de chevauchement.
+const zoneTap44 = "relative after:absolute after:inset-x-0 after:-inset-y-1.5";
+// Pour les éléments de 36 px (iconButton) : 4 px de chaque côté.
+const zoneTap44Icone = "relative after:absolute after:-inset-1";
+
 export const ghostButton =
-  `rounded-xl border border-line px-2.5 py-1.5 text-sm font-medium text-ink transition active:scale-[0.97] hover:bg-surface-alt ${focusRing}`;
+  `${zoneTap44} rounded-xl border border-line px-2.5 py-1.5 text-sm font-medium text-ink transition active:scale-[0.97] hover:bg-surface-alt ${focusRing}`;
 // Variante de `ghostButton` dédiée aux flèches de navigation de période
 // (Agenda : jour/semaine/mois précédent-suivant) — cible tactile 44×44px
 // minimum (h-11 w-11), contrairement à `ghostButton` (compact, utilisé
@@ -47,11 +55,11 @@ export const ghostButton =
 export const navArrowButton =
   `flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink transition active:scale-[0.97] hover:bg-surface-alt ${focusRing}`;
 export const dangerButton =
-  `rounded-xl border border-alert/30 px-2.5 py-1.5 text-sm font-medium text-alert transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
-export const linkButton = `text-sm font-semibold text-kcal ${focusRing}`;
+  `${zoneTap44} rounded-xl border border-alert/30 px-2.5 py-1.5 text-sm font-medium text-alert transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
+export const linkButton = `relative after:absolute after:-inset-x-2 after:-inset-y-3 text-sm font-semibold text-kcal ${focusRing}`;
 
 export const iconButton =
-  `flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface text-ink ${focusRing}`;
+  `${zoneTap44Icone} flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface text-ink ${focusRing}`;
 
 export const pillTag =
   "shrink-0 rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-semibold text-ink-2";

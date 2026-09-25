@@ -177,7 +177,8 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
           disabled={pinMutation.isPending}
           onClick={() => pinMutation.mutate()}
           aria-label={note.epingle ? "Désépingler" : "Épingler"}
-          className={`shrink-0 ${note.epingle ? "text-kcal" : "text-ink-3"}`}
+          // Épingle de 18 px : zone de tap étendue à 44 px (T6) et focus visible.
+          className={`relative -m-1 shrink-0 rounded-lg p-1 after:absolute after:-inset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal ${note.epingle ? "text-kcal" : "text-ink-3"}`}
         >
           <PinIcon filled={note.epingle} />
         </button>

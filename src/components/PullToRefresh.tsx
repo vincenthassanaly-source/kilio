@@ -41,6 +41,9 @@ export function PullToRefresh({
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (refreshing) return;
+    // T13 : ni pendant un glisser-déposer (poignée `data-drag-handle`, ex.
+    // réordonner une tâche), ni pendant un geste à plusieurs doigts.
+    if (e.touches.length > 1 || (e.target as HTMLElement).closest("[data-drag-handle]")) return;
     const scrollParent = findScrollParent(containerRef.current);
     if (!scrollParent || scrollParent.scrollTop > 0) return;
     startY.current = e.touches[0].clientY;

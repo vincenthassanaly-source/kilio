@@ -200,6 +200,12 @@ export function AgendaView() {
   }
 
   function gererToucheDebut(e: React.TouchEvent<HTMLDivElement>) {
+    // Pinch-zoom (T13) : dès qu'un deuxième doigt se pose, le geste n'est
+    // plus un swipe de période.
+    if (e.touches.length > 1) {
+      swipeAnnulePourGesteRef.current = true;
+      return;
+    }
     const cible = e.target as HTMLElement;
     const ignoreEl = cible.closest<HTMLElement>("[data-swipe-ignore]");
     swipeIgnoreElRef.current = ignoreEl;
@@ -212,6 +218,10 @@ export function AgendaView() {
   function gererToucheMove(e: React.TouchEvent<HTMLDivElement>) {
     const debut = toucheDebutRef.current;
     if (!debut || swipeAnnulePourGesteRef.current) return;
+    if (e.touches.length > 1) {
+      swipeAnnulePourGesteRef.current = true;
+      return;
+    }
     const touche = e.touches[0];
     if (Math.abs(touche.clientY - debut.y) > TOLERANCE_SWIPE_VERTICAL_PX) {
       swipeAnnulePourGesteRef.current = true;
@@ -219,6 +229,8 @@ export function AgendaView() {
   }
 
   function gererToucheFin(e: React.TouchEvent<HTMLDivElement>) {
+    // Un doigt levé alors qu'un autre reste posé : fin de pinch, pas swipe.
+    if (e.touches.length > 0) return;
     const debut = toucheDebutRef.current;
     const annule = swipeAnnulePourGesteRef.current;
     const ignoreEl = swipeIgnoreElRef.current;

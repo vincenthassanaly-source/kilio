@@ -43,7 +43,9 @@ export function JournalSwipeWrapper({ children }: { children: ReactNode }) {
 
   return (
     <JournalSwipeContext value={{ sens, enregistrerJour }}>
-      <div {...swipeHandlers}>{children}</div>
+      <div data-swipe-zone {...swipeHandlers}>
+        {children}
+      </div>
     </JournalSwipeContext>
   );
 }

@@ -27,6 +27,15 @@ export type SensSwipe = "suivant" | "precedent";
  * Un élément scrollable horizontalement sous le doigt peut être exclu de la
  * détection en le marquant `data-swipe-ignore` (voir `AgendaView.tsx` pour
  * le détail de cette mécanique).
+ *
+ * Conflits de gestes (T13, vague 2) :
+ * - une zone qui a son propre swipe (Journal, historique Habitudes) porte
+ *   `data-swipe-zone` sur l'élément qui reçoit ces handlers : un geste
+ *   commencé dedans n'est alors pas interprété par une zone englobante
+ *   (swipe entre onglets de `TabSwipeWrapper`) ;
+ * - un geste commencé sur une poignée de glisser-déposer
+ *   (`data-drag-handle`) n'est jamais un swipe ;
+ * - un geste à plusieurs doigts (pinch-zoom) n'est jamais un swipe.
  */
 export function useSwipeHorizontal(onSwipe: (sens: SensSwipe) => void) {
   // Point de départ du geste en cours (null si aucun geste).
@@ -43,6 +52,15 @@ export function useSwipeHorizontal(onSwipe: (sens: SensSwipe) => void) {
 
   function onTouchStart(e: React.TouchEvent) {
     const cible = e.target as HTMLElement;
+    const zone = cible.closest<HTMLElement>("[data-swipe-zone]");
+    if (
+      e.touches.length > 1 ||
+      cible.closest("[data-drag-handle]") ||
+      (zone && zone !== e.currentTarget && (e.currentTarget as HTMLElement).contains(zone))
+    ) {
+      toucheDebutRef.current = null;
+      return;
+    }
     const ignoreEl = cible.closest<HTMLElement>("[data-swipe-ignore]");
     swipeIgnoreElRef.current = ignoreEl;
     swipeIgnoreScrollLeftDebutRef.current = ignoreEl?.scrollLeft ?? 0;
@@ -54,6 +72,10 @@ export function useSwipeHorizontal(onSwipe: (sens: SensSwipe) => void) {
   function onTouchMove(e: React.TouchEvent) {
     const debut = toucheDebutRef.current;
     if (!debut || swipeAnnulePourGesteRef.current) return;
+    if (e.touches.length > 1) {
+      swipeAnnulePourGesteRef.current = true;
+      return;
+    }
     const touche = e.touches[0];
     if (Math.abs(touche.clientY - debut.y) > TOLERANCE_SWIPE_VERTICAL_PX) {
       swipeAnnulePourGesteRef.current = true;

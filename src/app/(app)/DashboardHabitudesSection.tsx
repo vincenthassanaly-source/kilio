@@ -29,7 +29,7 @@ export function DashboardHabitudesSection({ today }: { today: string }) {
       ) : !habitudes || habitudes.length === 0 ? (
         <p className="px-0.5 text-[13.5px] text-ink-2">Aucune habitude pour l&apos;instant.</p>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-0.5">
+        <div className="flex gap-3 overflow-x-auto pb-0.5" data-swipe-ignore>
           {habitudes.map((h) => (
             <DashboardHabitItem key={h.id} habitude={h} date={today} />
           ))}

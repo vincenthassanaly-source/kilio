@@ -82,6 +82,7 @@ export function HistoriqueView({ habitudes }: { habitudes: Tables<"habitudes">[]
 
       {habitude && (
         <div
+          data-swipe-zone
           onTouchStart={swipeHandlers.onTouchStart}
           onTouchMove={swipeHandlers.onTouchMove}
           onTouchEnd={swipeHandlers.onTouchEnd}
