@@ -4,12 +4,20 @@ import { useId, useActionState, useEffect, useRef, useState } from "react";
 import { creerObjectif, modifierObjectif, type ObjectifFormState } from "@/app/actions/objectifs";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const initialState: ObjectifFormState = { error: null };
 
 const CATEGORIE_LABELS: Record<Enums<"categorie_objectif">, string> = {
   perso: "Personnel",
   pro: "Professionnel",
+};
+
+// Libellés courts pour les segments (3 sur la largeur d'un téléphone).
+const TYPE_SUIVI_COURT: Record<Enums<"type_suivi_objectif">, string> = {
+  valeur: "Valeur",
+  etapes: "Étapes",
+  binaire: "Oui / non",
 };
 
 const TYPE_SUIVI_LABELS: Record<Enums<"type_suivi_objectif">, string> = {
@@ -30,6 +38,7 @@ export function ObjectifForm({
   const action = objectif ? modifierObjectif : creerObjectif;
   const [state, formAction, pending] = useActionState(action, initialState);
   const prevPending = useRef(pending);
+  const [categorie, setCategorie] = useState<Enums<"categorie_objectif">>(objectif?.categorie ?? "perso");
   const [typeSuivi, setTypeSuivi] = useState<Enums<"type_suivi_objectif">>(
     objectif?.type_suivi ?? "binaire"
   );
@@ -67,21 +76,18 @@ export function ObjectifForm({
 
       <div className="flex gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor={`${uid}-categorie`} className={labelClass}>
-            Catégorie
-          </label>
-          <select
-            id={`${uid}-categorie`}
+          <span className={labelClass}>Catégorie</span>
+          <SegmentedControl
+            ariaLabel="Catégorie"
             name="categorie"
-            defaultValue={objectif?.categorie ?? "perso"}
-            className={input}
-          >
-            {(Object.keys(CATEGORIE_LABELS) as Enums<"categorie_objectif">[]).map((key) => (
-              <option key={key} value={key}>
-                {CATEGORIE_LABELS[key]}
-              </option>
-            ))}
-          </select>
+            taille="sm"
+            options={(Object.keys(CATEGORIE_LABELS) as Enums<"categorie_objectif">[]).map((key) => ({
+              value: key,
+              label: CATEGORIE_LABELS[key],
+            }))}
+            value={categorie}
+            onChange={setCategorie}
+          />
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <label htmlFor={`${uid}-date_echeance`} className={labelClass}>
@@ -98,22 +104,19 @@ export function ObjectifForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor={`${uid}-type_suivi`} className={labelClass}>
-          Mode de suivi
-        </label>
-        <select
-          id={`${uid}-type_suivi`}
+        <span className={labelClass}>Mode de suivi</span>
+        <SegmentedControl
+          ariaLabel="Mode de suivi"
           name="type_suivi"
+          taille="sm"
+          options={(Object.keys(TYPE_SUIVI_LABELS) as Enums<"type_suivi_objectif">[]).map((key) => ({
+            value: key,
+            label: TYPE_SUIVI_COURT[key],
+            ariaLabel: TYPE_SUIVI_LABELS[key],
+          }))}
           value={typeSuivi}
-          onChange={(e) => setTypeSuivi(e.target.value as Enums<"type_suivi_objectif">)}
-          className={input}
-        >
-          {(Object.keys(TYPE_SUIVI_LABELS) as Enums<"type_suivi_objectif">[]).map((key) => (
-            <option key={key} value={key}>
-              {TYPE_SUIVI_LABELS[key]}
-            </option>
-          ))}
-        </select>
+          onChange={setTypeSuivi}
+        />
       </div>
 
       {typeSuivi === "valeur" && (

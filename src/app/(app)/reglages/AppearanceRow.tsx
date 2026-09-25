@@ -1,12 +1,8 @@
 "use client";
 
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { basculerTheme } from "@/lib/theme";
 
-function toggleTheme() {
-  const next = !document.documentElement.classList.contains("dark");
-  document.documentElement.classList.toggle("dark", next);
-  localStorage.setItem(THEME_STORAGE_KEY, next ? "dark" : "light");
-}
+const toggleTheme = basculerTheme;
 
 function AppearanceIcon() {
   return (

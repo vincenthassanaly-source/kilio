@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Sora, Inter } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { AppResumeRefresh } from "@/components/AppResumeRefresh";
-import { themeInitScript } from "@/lib/theme";
+import { THEME_COLOR_CLAIR, THEME_COLOR_SOMBRE, themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
 const sora = Sora({
@@ -32,8 +32,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f6f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#292f2d" },
+    // Fond réel de l'app (T16) ; themeInitScript et basculerTheme alignent
+    // ensuite ces balises sur le thème choisi dans l'app.
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR_CLAIR },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR_SOMBRE },
   ],
 };
 

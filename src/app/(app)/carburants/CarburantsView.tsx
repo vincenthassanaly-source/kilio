@@ -7,6 +7,7 @@ import { formaterDistance, trierParDistanceCroissante, trierParPrixCroissant } f
 import { card, screenTitle, secondaryButton, errorText, linkButton } from "@/lib/ui";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const RAYON_DEFAUT_KM = 10;
 const RAYONS_DISPONIBLES = [5, 10, 20, 50] as const;
@@ -153,41 +154,25 @@ export function CarburantsView() {
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <div className="flex gap-1.5 rounded-2xl bg-surface-alt p-1">
-          {RAYONS_DISPONIBLES.map((km) => (
-            <button
-              key={km}
-              type="button"
-              onClick={() => choisirRayon(km)}
-              className={`flex-1 rounded-xl py-1.5 text-center text-[13px] font-semibold transition-colors ${
-                rayonKm === km ? "bg-carburants text-white" : "text-ink-2"
-              }`}
-            >
-              {km} km
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-1.5 rounded-2xl bg-surface-alt p-1">
-          <button
-            type="button"
-            onClick={() => choisirTri("distance")}
-            className={`flex-1 rounded-xl py-1.5 text-center text-[13px] font-semibold transition-colors ${
-              triPar === "distance" ? "bg-carburants text-white" : "text-ink-2"
-            }`}
-          >
-            Trier par distance
-          </button>
-          <button
-            type="button"
-            onClick={() => choisirTri("prix")}
-            className={`flex-1 rounded-xl py-1.5 text-center text-[13px] font-semibold transition-colors ${
-              triPar === "prix" ? "bg-carburants text-white" : "text-ink-2"
-            }`}
-          >
-            Trier par prix
-          </button>
-        </div>
+        {/* Contrôles segmentés partagés (T7) : actif en vert Kcal au lieu de
+            la couleur du module (One Accent Rule, 2,5:1 en sombre). */}
+        <SegmentedControl
+          ariaLabel="Rayon de recherche"
+          taille="sm"
+          options={RAYONS_DISPONIBLES.map((km) => ({ value: String(km), label: `${km} km` }))}
+          value={String(rayonKm)}
+          onChange={(v) => choisirRayon(Number(v))}
+        />
+        <SegmentedControl
+          ariaLabel="Tri des stations"
+          taille="sm"
+          options={[
+            { value: "distance", label: "Trier par distance" },
+            { value: "prix", label: "Trier par prix" },
+          ]}
+          value={triPar}
+          onChange={(v) => choisirTri(v as TriPar)}
+        />
       </div>
 
       {statut.phase !== "chargement" && statut.positionParDefaut && (

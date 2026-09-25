@@ -13,6 +13,7 @@ import { FREQUENCE_LABELS, aujourdhuiISO } from "@/lib/budget/compute";
 import { champsAvancesRenseignes, messageHorsLigne } from "@/lib/taches/compute";
 import { isNetworkError } from "@/lib/offline/queue";
 import { errorText, input, label as labelClass, primaryButton, secondaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 function ImageIcon() {
   return (
@@ -76,11 +77,11 @@ const MAX_IMAGES_TOTAL_BYTES = 3.8 * 1024 * 1024;
 const FREQUENCES = Object.keys(FREQUENCE_LABELS) as Enums<"frequence_recurrence">[];
 const TITRE_MAX_HEIGHT_PX = 160; // ~8-9 lignes avant de passer en scroll interne
 
-const PRIORITES: { value: Enums<"priorite_tache">; label: string; activeClassName: string }[] = [
-  { value: "aucune", label: "Aucune", activeClassName: "bg-ink-3 text-white" },
-  { value: "basse", label: "Basse", activeClassName: "bg-agenda text-white" },
-  { value: "moyenne", label: "Moyenne", activeClassName: "bg-carbs text-white" },
-  { value: "haute", label: "Haute", activeClassName: "bg-alert text-on-accent" },
+const PRIORITES: { value: Enums<"priorite_tache">; label: string }[] = [
+  { value: "aucune", label: "Aucune" },
+  { value: "basse", label: "Basse" },
+  { value: "moyenne", label: "Moyenne" },
+  { value: "haute", label: "Haute" },
 ];
 
 export function AddTaskForm({
@@ -561,20 +562,16 @@ export function AddTaskForm({
 
           <div className="flex flex-col gap-1">
             <span className={labelClass}>Priorité</span>
-            <div className="flex rounded-xl border border-line p-1">
-              {PRIORITES.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setPriorite(p.value)}
-                  className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
-                    priorite === p.value ? p.activeClassName : "text-ink-2"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            {/* Contrôle segmenté partagé (T7) : actif en vert Kcal. Les
+                anciennes couleurs (ink-3, agenda, carbs, alert) détournaient
+                des couleurs sémantiques et tombaient à 2,2:1 en sombre (T8). */}
+            <SegmentedControl
+              ariaLabel="Priorité"
+              taille="sm"
+              options={PRIORITES.map((p) => ({ value: p.value, label: p.label }))}
+              value={priorite}
+              onChange={setPriorite}
+            />
           </div>
 
           <label className="flex items-center gap-2 text-sm font-medium text-ink">

@@ -18,6 +18,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { showToast } from "@/components/toast/toast-store";
 import { QuickAddFab } from "../QuickAddFab";
 import { preloadAddTaskFormWhenIdle } from "./preloadAddTaskForm";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const LISTE_ICON = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -154,20 +155,15 @@ export function TachesView() {
     {/* pb-12 : dégage les dernières cartes (boutons « Modifier / Suppr. » à
         droite) du FAB, posé au-dessus de la barre du bas. */}
     <div className="flex flex-col gap-4 pb-12">
-      <div className="flex rounded-2xl border border-line bg-surface p-1">
-        {VUES.map((v) => (
-          <button
-            key={v.key}
-            type="button"
-            onClick={() => setVue(v.key)}
-            className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
-              vue === v.key ? "bg-carbs text-white" : "text-ink-2"
-            }`}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
+      {/* Contrôle segmenté partagé (T7) : actif en vert Kcal au lieu de
+          l'ancien jaune Glucides (One Accent Rule, 2,2:1 en sombre). */}
+      <SegmentedControl
+        ariaLabel="Vue des tâches"
+        taille="sm"
+        options={VUES.map((v) => ({ value: v.key, label: v.label }))}
+        value={vue}
+        onChange={setVue}
+      />
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1" data-swipe-ignore>
         <Link

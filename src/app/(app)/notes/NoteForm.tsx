@@ -19,6 +19,7 @@ import type { Enums, Tables } from "@/lib/supabase/types";
 import { NOTE_PALETTE, estCouleurValide, type NoteCouleur } from "@/lib/notes/palette";
 import { CheckToggle } from "@/components/CheckToggle";
 import { errorText, ghostButton, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const initialState: NoteFormState = { error: null };
 
@@ -240,26 +241,16 @@ export function NoteForm({
       ))}
 
       {!note && (
-        <div className="flex rounded-xl border border-line p-1">
-          <button
-            type="button"
-            onClick={() => setType("texte")}
-            className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
-              type === "texte" ? "bg-kcal text-on-kcal" : "text-ink-2"
-            }`}
-          >
-            Texte
-          </button>
-          <button
-            type="button"
-            onClick={() => setType("checklist")}
-            className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
-              type === "checklist" ? "bg-kcal text-on-kcal" : "text-ink-2"
-            }`}
-          >
-            Checklist
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Type de note"
+          taille="sm"
+          options={[
+            { value: "texte", label: "Texte" },
+            { value: "checklist", label: "Checklist" },
+          ]}
+          value={type}
+          onChange={setType}
+        />
       )}
 
       <div className="flex flex-col gap-1">

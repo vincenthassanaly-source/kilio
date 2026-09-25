@@ -7,9 +7,10 @@ import { queryKeys } from "@/lib/query/keys";
 import { ObjectifForm } from "../ObjectifForm";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Enums, Tables } from "@/lib/supabase/types";
-import { card, dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
+import { card, dangerButton, errorText, ghostButton, linkButton } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
 import { runAction } from "@/lib/actions/runAction";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const STATUT_LABELS: Record<Enums<"statut_objectif">, string> = {
   en_cours: "En cours",
@@ -106,27 +107,26 @@ export function ObjectifHeader({ objectif }: { objectif: Tables<"objectifs"> }) 
 
       {objectif.description && <p className="text-sm text-ink">{objectif.description}</p>}
 
-      <select
+      {/* Contrôle segmenté (T7) au lieu d'une liste déroulante à 3 choix. */}
+      <SegmentedControl
+        ariaLabel="Statut de l'objectif"
+        taille="sm"
+        options={(Object.keys(STATUT_LABELS) as Enums<"statut_objectif">[]).map((key) => ({
+          value: key,
+          label: STATUT_LABELS[key],
+        }))}
         value={objectif.statut}
-        disabled={isPending}
-        onChange={(e) =>
+        onChange={(statut) => {
+          if (isPending || statut === objectif.statut) return;
           startTransition(async () => {
             // Contrat T1 : un échec s'affiche en toast au lieu d'error.tsx.
-            const statut = e.target.value as Enums<"statut_objectif">;
             const resultat = await runAction(() => changerStatutObjectif(objectif.id, statut), {
               erreur: "Le statut n'a pas pu être changé. Réessaie.",
             });
             if (resultat.ok) invalidate();
-          })
-        }
-        className={`${input} w-fit`}
-      >
-        {(Object.keys(STATUT_LABELS) as Enums<"statut_objectif">[]).map((key) => (
-          <option key={key} value={key}>
-            {STATUT_LABELS[key]}
-          </option>
-        ))}
-      </select>
+          });
+        }}
+      />
 
       {error && <p className={errorText}>{error}</p>}
     </div>

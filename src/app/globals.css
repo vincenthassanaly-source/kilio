@@ -396,6 +396,23 @@ html[data-nav-direction="recule"]::view-transition-new(root) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Vague 2 (T10) : neutralisation globale, comme l'annonce DESIGN.md —
+     toutes les transitions et animations CSS (utilitaires Tailwind
+     `transition`, `animate-*`, press states) tombent à ~0 ms. Les
+     animations framer-motion sont couvertes par <MotionConfig
+     reducedMotion="user"> (src/app/providers.tsx). Les règles nommées
+     ci-dessous restent pour les pseudo-éléments de View Transition. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
   .agenda-glisse-suivant,
   .agenda-glisse-precedent {
     animation-duration: 0.01ms !important;

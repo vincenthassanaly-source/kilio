@@ -14,11 +14,6 @@ export function AddEtiquetteToggle() {
     <button type="button" onClick={() => setOpen(true)} className={addCard}>
       <div
         className={addCardIcon}
-        style={{
-          background:
-            "linear-gradient(150deg, color-mix(in oklch, var(--color-documents) 85%, white 15%), var(--color-documents))",
-          boxShadow: "0 3px 8px color-mix(in oklch, var(--color-documents) 45%, transparent)",
-        }}
       >
         +
       </div>

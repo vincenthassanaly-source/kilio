@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/recettes";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const initialState: RecetteFormState = { error: null };
 
@@ -129,19 +130,18 @@ export function RecetteForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor={`${uid}-source`} className={labelClass}>
-          Source
-        </label>
-        <select
-          id={`${uid}-source`}
+        <span className={labelClass}>Source</span>
+        <SegmentedControl
+          ariaLabel="Source"
           name="source"
+          taille="sm"
+          options={[
+            { value: "manuel", label: "Manuel" },
+            { value: "hellofresh", label: "HelloFresh" },
+          ]}
           value={source}
-          onChange={(e) => setSource(e.target.value as Enums<"recette_source">)}
-          className={input}
-        >
-          <option value="manuel">Manuel</option>
-          <option value="hellofresh">HelloFresh</option>
-        </select>
+          onChange={setSource}
+        />
       </div>
 
       {source === "hellofresh" && (

@@ -5,6 +5,7 @@ import type { Enums } from "@/lib/supabase/types";
 import { formatPeriode, periodeAdjacente, periodeParDefaut } from "@/lib/budget/compute";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { ghostButton } from "@/lib/ui";
+import { SEGMENT_CADRE, segmentClasse } from "@/components/SegmentedControl";
 
 const ONGLETS: { value: Enums<"type_periode_budget">; label: string }[] = [
   { value: "hebdomadaire", label: "Semaine" },
@@ -36,16 +37,15 @@ export function PeriodeSelector({ selection }: { selection?: Selection }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-1.5 rounded-xl bg-surface-alt p-1">
+      <div className={SEGMENT_CADRE} role="group" aria-label="Type de période">
         {ONGLETS.map((onglet) => (
           <button
             key={onglet.value}
             type="button"
             disabled={!selection}
             onClick={() => naviguer(onglet.value, periodeParDefaut(onglet.value))}
-            className={`flex-1 rounded-lg py-1.5 text-[13px] font-semibold transition-colors ${
-              selection?.typePeriode === onglet.value ? "bg-surface text-ink shadow-card" : "text-ink-2"
-            }`}
+            aria-pressed={selection?.typePeriode === onglet.value}
+            className={`${segmentClasse(selection?.typePeriode === onglet.value, "sm")} disabled:opacity-60`}
           >
             {onglet.label}
           </button>

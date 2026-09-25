@@ -34,8 +34,11 @@ export const secondaryButton =
   `rounded-2xl border border-line bg-surface px-4 py-2.5 font-semibold text-ink transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
 export const addCard =
   `flex w-full items-center gap-[13px] rounded-[22px] border border-line bg-surface p-4 shadow-card text-left transition-transform active:scale-[0.99] ${focusRing}`;
+// Icône « + » des cartes d'ajout (T9) : aplat vert Kcal, sans le dégradé ni
+// la seconde ombre colorée copiés-collés dans chaque *Toggle (Single Shadow
+// Rule, One Accent Rule) — un seul endroit à modifier désormais.
 export const addCardIcon =
-  "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] text-on-accent text-lg font-semibold";
+  "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] bg-kcal text-on-kcal text-lg font-semibold";
 
 // Zone de tap étendue à 44 px de haut (T6) sans grossir le bouton visible :
 // pseudo-élément transparent débordant de 6 px en haut et en bas (le bouton

@@ -6,6 +6,7 @@ import type { RecurrenceAvecRelations } from "@/app/actions/transactions-recurre
 import type { CompteAvecSolde } from "@/app/actions/comptes";
 import type { Tables } from "@/lib/supabase/types";
 import { RecurrenceVirementForm } from "./RecurrenceVirementForm";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const RecurrenceForm = dynamic(() => import("./RecurrenceForm").then((m) => m.RecurrenceForm), {
   ssr: false,
@@ -34,20 +35,13 @@ export function RecurrenceModeForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-1.5 rounded-xl bg-surface-alt p-1">
-        {TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setMode(tab.value)}
-            className={`flex-1 rounded-lg py-1.5 text-[13px] font-semibold transition-colors ${
-              mode === tab.value ? "bg-surface text-ink shadow-card" : "text-ink-2"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel="Type de récurrence"
+        taille="sm"
+        options={TABS.map((tab) => ({ value: tab.value, label: tab.label }))}
+        value={mode}
+        onChange={setMode}
+      />
 
       {mode === "virement" ? (
         <RecurrenceVirementForm

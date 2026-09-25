@@ -1,6 +1,6 @@
 "use client";
 
-import { THEME_COOKIE_KEY, THEME_COOKIE_MAX_AGE, THEME_STORAGE_KEY } from "@/lib/theme";
+import { basculerTheme } from "@/lib/theme";
 
 function SunIcon() {
   return (
@@ -19,13 +19,7 @@ function MoonIcon() {
   );
 }
 
-function toggleTheme() {
-  const next = !document.documentElement.classList.contains("dark");
-  document.documentElement.classList.toggle("dark", next);
-  const value = next ? "dark" : "light";
-  localStorage.setItem(THEME_STORAGE_KEY, value);
-  document.cookie = `${THEME_COOKIE_KEY}=${value}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
-}
+const toggleTheme = basculerTheme;
 
 /** Bouton rond pour basculer clair/sombre. Persisté en localStorage ET en
  * cookie (lu en priorité par themeInitScript avant le premier paint — plus

@@ -4,8 +4,16 @@ import { useId, useActionState, useEffect, useRef, useState } from "react";
 import { creerHabitude, modifierHabitude, type HabitudeFormState } from "@/app/actions/habitudes";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { errorText, input, label as labelClass, primaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const initialState: HabitudeFormState = { error: null };
+
+// Libellés courts pour les segments (3 sur la largeur d'un téléphone).
+const TYPE_COURT: Record<Enums<"habitude_type">, string> = {
+  boolean: "Oui / non",
+  streak: "Série",
+  quantifiee: "Quantité",
+};
 
 const TYPE_LABELS: Record<Enums<"habitude_type">, string> = {
   boolean: "Fait / pas fait",
@@ -46,22 +54,19 @@ export function HabitudeForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor={`${uid}-type`} className={labelClass}>
-          Type
-        </label>
-        <select
-          id={`${uid}-type`}
+        <span className={labelClass}>Type</span>
+        <SegmentedControl
+          ariaLabel="Type d'habitude"
           name="type"
+          taille="sm"
+          options={(Object.keys(TYPE_LABELS) as Enums<"habitude_type">[]).map((key) => ({
+            value: key,
+            label: TYPE_COURT[key],
+            ariaLabel: TYPE_LABELS[key],
+          }))}
           value={type}
-          onChange={(e) => setType(e.target.value as Enums<"habitude_type">)}
-          className={input}
-        >
-          {(Object.keys(TYPE_LABELS) as Enums<"habitude_type">[]).map((key) => (
-            <option key={key} value={key}>
-              {TYPE_LABELS[key]}
-            </option>
-          ))}
-        </select>
+          onChange={setType}
+        />
       </div>
 
       {type === "quantifiee" && (

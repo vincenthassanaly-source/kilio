@@ -21,6 +21,7 @@ import {
 } from "@/lib/nutrition/compute";
 import { queryKeys } from "@/lib/query/keys";
 import { errorText, input, primaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2";
@@ -62,28 +63,11 @@ function raccourcis(item: CatalogueItem, mode: ModeSaisie): number[] {
   return [50, 100, 150, 200];
 }
 
+const OPTIONS_MOMENT = MOMENTS_REPAS.map((m) => ({ value: m, label: MOMENT_LABELS[m] }));
+
 /** Contrôle segmenté du moment de repas, pré-rempli selon l'heure. */
 function ChoixMoment({ moment, onChange }: { moment: MomentRepas; onChange: (m: MomentRepas) => void }) {
-  return (
-    <div className="flex gap-1 rounded-2xl bg-surface-alt p-1" role="group" aria-label="Moment du repas">
-      {MOMENTS_REPAS.map((m) => {
-        const actif = m === moment;
-        return (
-          <button
-            key={m}
-            type="button"
-            aria-pressed={actif}
-            onClick={() => onChange(m)}
-            className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-semibold transition-colors ${focusRing} ${
-              actif ? "bg-kcal text-on-kcal" : "text-ink-2"
-            }`}
-          >
-            {MOMENT_LABELS[m]}
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <SegmentedControl ariaLabel="Moment du repas" taille="sm" options={OPTIONS_MOMENT} value={moment} onChange={onChange} />;
 }
 
 function LigneCatalogue({
@@ -318,21 +302,17 @@ function EtapeQuantite({
       <ChoixMoment moment={moment} onChange={onMoment} />
 
       {avecPieces && (
-        <div className="flex gap-1 self-start rounded-2xl bg-surface-alt p-1" role="group" aria-label="Unité de saisie">
-          {(["piece", "grammes"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={mode === m}
-              onClick={() => changerMode(m)}
-              className={`min-h-11 rounded-xl px-4 text-[13px] font-semibold transition-colors ${focusRing} ${
-                mode === m ? "bg-kcal text-on-kcal" : "text-ink-2"
-              }`}
-            >
-              {m === "piece" ? "Pièces" : item.unite === "ml" ? "ml" : "Grammes"}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Unité de saisie"
+          taille="sm"
+          className="self-start"
+          options={[
+            { value: "piece", label: "Pièces" },
+            { value: "grammes", label: item.unite === "ml" ? "ml" : "Grammes" },
+          ]}
+          value={mode}
+          onChange={changerMode}
+        />
       )}
 
       <div className="flex flex-col gap-2">

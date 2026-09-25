@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ToastHost } from "@/components/toast/ToastHost";
 import { useOnlineSync } from "@/lib/offline/useOnlineSync";
@@ -44,11 +45,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     queryClient.invalidateQueries();
   });
 
+  // `reducedMotion="user"` (T10) : sous « Réduire les animations » du
+  // système, framer-motion coupe les translations, échelles et `layout` de
+  // toute l'app (seule l'opacité reste animée), sans dépendre de chaque
+  // composant appelant `useReducedMotion`.
   return (
+    <MotionConfig reducedMotion="user">
     <QueryClientProvider client={queryClient}>
       {children}
       <ToastHost />
       {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
+    </MotionConfig>
   );
 }

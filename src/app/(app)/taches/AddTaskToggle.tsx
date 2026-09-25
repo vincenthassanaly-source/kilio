@@ -51,11 +51,6 @@ export function AddTaskToggle({
     >
       <div
         className={addCardIcon}
-        style={{
-          background:
-            "linear-gradient(150deg, color-mix(in oklch, var(--color-kcal) 85%, white 15%), var(--color-kcal))",
-          boxShadow: "0 3px 8px color-mix(in oklch, var(--color-kcal) 45%, transparent)",
-        }}
       >
         +
       </div>

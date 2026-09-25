@@ -16,6 +16,7 @@ import {
 } from "@/lib/nutrition/compute";
 import { queryKeys } from "@/lib/query/keys";
 import { errorText, ghostButton, primaryButton } from "@/lib/ui";
+import { SegmentedControl } from "@/components/SegmentedControl";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2";
@@ -143,21 +144,13 @@ export function RecetteMacros({
         <input type="hidden" name="recette_id" value={recetteId} />
         <input type="hidden" name="quantite" value={count} />
         <input type="hidden" name="moment" value={moment} />
-        <div className="flex gap-1 rounded-2xl bg-surface-alt p-1" role="group" aria-label="Moment du repas">
-          {MOMENTS_REPAS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={m === moment}
-              onClick={() => setMoment(m)}
-              className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-semibold transition-colors ${focusRing} ${
-                m === moment ? "bg-kcal text-on-kcal" : "text-ink-2"
-              }`}
-            >
-              {MOMENT_LABELS[m]}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Moment du repas"
+          taille="sm"
+          options={MOMENTS_REPAS.map((m) => ({ value: m, label: MOMENT_LABELS[m] }))}
+          value={moment}
+          onChange={setMoment}
+        />
         <button type="submit" disabled={enCours} className={`${primaryButton} min-h-12 w-full`}>
           {enCours ? "Ajout…" : "Ajouter au journal"}
         </button>
