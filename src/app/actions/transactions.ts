@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import { finDuMois } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
@@ -106,12 +107,13 @@ export async function modifierTransaction(
   return { error: null };
 }
 
-export async function supprimerTransaction(id: string) {
+export async function supprimerTransaction(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return fail("La transaction n'a pas pu être supprimée. Réessaie.");
 
   revalidateTransactionPaths();
+  return ok();
 }
 
 type VirementInput = {

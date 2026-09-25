@@ -9,6 +9,7 @@ import { card, dangerButton, errorText, input } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
 import type { StatutBudget } from "@/lib/budget/compute";
 import { AddSousCategorieToggle } from "./AddSousCategorieToggle";
+import { runAction } from "@/lib/actions/runAction";
 
 const STATUT_COLOR: Record<StatutBudget, string> = {
   ok: "var(--accent-kcal)",
@@ -32,7 +33,10 @@ function SousCategorieRow({ categorie }: { categorie: Tables<"categories_budget"
         disabled={isPending}
         onClick={() => {
           if (!confirmDelete(`Supprimer la catégorie « ${categorie.nom} » ?`)) return;
-          startTransition(() => supprimerCategorie(categorie.id));
+          startTransition(async () => {
+              // Contrat T1 : échec en toast, jamais error.tsx.
+              await runAction(() => supprimerCategorie(categorie.id));
+            });
         }}
         className={dangerButton}
       >

@@ -9,6 +9,7 @@ import { dangerButton, eyebrow, listCard, nameText, pillTag, sectionTitle } from
 import { confirmDelete } from "@/lib/confirm";
 import { CategorieProgressCard } from "./CategorieProgressCard";
 import { AddSousCategorieToggle } from "./AddSousCategorieToggle";
+import { runAction } from "@/lib/actions/runAction";
 
 function SousCategorieRow({ categorie }: { categorie: Tables<"categories_budget"> }) {
   const [isPending, startTransition] = useTransition();
@@ -24,7 +25,10 @@ function SousCategorieRow({ categorie }: { categorie: Tables<"categories_budget"
         disabled={isPending}
         onClick={() => {
           if (!confirmDelete(`Supprimer la catégorie « ${categorie.nom} » ?`)) return;
-          startTransition(() => supprimerCategorie(categorie.id));
+          startTransition(async () => {
+              // Contrat T1 : échec en toast, jamais error.tsx.
+              await runAction(() => supprimerCategorie(categorie.id));
+            });
         }}
         className={dangerButton}
       >
@@ -58,7 +62,10 @@ function CategorieRevenuRow({
             disabled={isPending}
             onClick={() => {
               if (!confirmDelete(`Supprimer la catégorie « ${categorie.nom} » ?`)) return;
-              startTransition(() => supprimerCategorie(categorie.id));
+              startTransition(async () => {
+              // Contrat T1 : échec en toast, jamais error.tsx.
+              await runAction(() => supprimerCategorie(categorie.id));
+            });
             }}
             className={dangerButton}
           >

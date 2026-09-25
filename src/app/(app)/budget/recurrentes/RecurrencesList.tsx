@@ -12,6 +12,7 @@ import { FREQUENCE_LABELS, formatMontant } from "@/lib/budget/compute";
 import { card, dangerButton, ghostButton, listCard, metaText, pillTag } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
 import { RecurrenceModeForm } from "./RecurrenceModeForm";
+import { runAction } from "@/lib/actions/runAction";
 
 function formatDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("fr-FR", {
@@ -92,7 +93,10 @@ function RecurrenceRow({
           type="button"
           disabled={isPending}
           onClick={() =>
-            startTransition(() => basculerActive(recurrence.id, !recurrence.active))
+            startTransition(async () => {
+              // Contrat T1 : échec en toast, jamais error.tsx.
+              await runAction(() => basculerActive(recurrence.id, !recurrence.active));
+            })
           }
           className={ghostButton}
         >
@@ -106,7 +110,10 @@ function RecurrenceRow({
           disabled={isPending}
           onClick={() => {
             if (!confirmDelete("Supprimer cette transaction récurrente ?")) return;
-            startTransition(() => supprimerRecurrence(recurrence.id));
+            startTransition(async () => {
+              // Contrat T1 : échec en toast, jamais error.tsx.
+              await runAction(() => supprimerRecurrence(recurrence.id));
+            });
           }}
           className={dangerButton}
         >

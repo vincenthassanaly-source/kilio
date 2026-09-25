@@ -2,7 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { updateReglagesNettoyage } from "@/app/actions/nettoyage";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useBackClose } from "@/hooks/useBackClose";
+import { runAction } from "@/lib/actions/runAction";
 import { errorText, input } from "@/lib/ui";
+
+// Ce que la fonction planifiée supprime (supabase/functions/nettoyage-auto,
+// constante TABLES) : à tenir aligné avec elle.
+const ELEMENTS_NETTOYES = [
+  "les tâches et sous-tâches faites",
+  "les étapes d'objectif terminées",
+  "les articles de courses cochés",
+  "les items de notes cochés",
+];
 import type { Tables } from "@/lib/supabase/types";
 
 function NettoyageIcon() {
@@ -29,22 +41,41 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
   const [delaiJours, setDelaiJours] = useState(String(reglages.delai_jours));
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  // Confirmation avant activation (constat T2 : le réglage s'activait en un
+  // tap sans dire qu'il supprime des données chaque jour).
+  const [confirmationOuverte, setConfirmationOuverte] = useState(false);
+  useBackClose(confirmationOuverte, () => setConfirmationOuverte(false));
+  const delaiAffiche = Number(delaiJours) || reglages.delai_jours;
 
-  function persister(nextActif: boolean, nextDelaiJours: number) {
+  // Contrat T1 : l'échec revient en message lisible et l'interrupteur
+  // reprend sa position précédente.
+  function persister(nextActif: boolean, nextDelaiJours: number, precedentActif: boolean) {
     setError(null);
     startTransition(async () => {
-      try {
-        await updateReglagesNettoyage(nextActif, nextDelaiJours);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erreur lors de la mise à jour du réglage.");
-      }
+      await runAction(() => updateReglagesNettoyage(nextActif, nextDelaiJours), {
+        silencieux: true,
+        erreur: "Le réglage n'a pas pu être enregistré. Réessaie.",
+        onError: (message) => {
+          setError(message);
+          setActif(precedentActif);
+        },
+      });
     });
   }
 
   function toggle() {
-    const next = !actif;
-    setActif(next);
-    persister(next, Number(delaiJours) || reglages.delai_jours);
+    if (!actif) {
+      setConfirmationOuverte(true);
+      return;
+    }
+    setActif(false);
+    persister(false, delaiAffiche, true);
+  }
+
+  function confirmerActivation() {
+    setActif(true);
+    persister(true, delaiAffiche, false);
+    history.back();
   }
 
   function validerDelai() {
@@ -53,7 +84,7 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
       setDelaiJours(String(reglages.delai_jours));
       return;
     }
-    persister(actif, parsed);
+    persister(actif, parsed, actif);
   }
 
   return (
@@ -72,7 +103,7 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
           type="button"
           onClick={toggle}
           aria-pressed={actif}
-          aria-label="Activer le nettoyage automatique"
+          aria-label="Nettoyage automatique des éléments terminés"
           className="relative h-[26px] w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2"
           style={{ background: actif ? "var(--accent-kcal)" : "var(--surface-alt)" }}
         >
@@ -82,6 +113,11 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
           />
         </button>
       </div>
+      <p className="text-[12.5px] leading-snug text-ink-2">
+        {actif
+          ? `Chaque jour, supprime définitivement ce qui est terminé depuis plus de ${delaiAffiche} jour${delaiAffiche > 1 ? "s" : ""} : tâches, sous-tâches, étapes d'objectif, courses et items de notes.`
+          : "Désactivé : rien n'est supprimé automatiquement."}
+      </p>
       {actif && (
         <div className="flex items-center justify-between gap-2">
           <span className="text-[13px] text-ink-2">Supprimer les items faits après (jours)</span>
@@ -101,7 +137,30 @@ export function NettoyageAutoRow({ reglages }: { reglages: Tables<"reglages_nett
           Dernier nettoyage : {formatDerniereExecution(reglages.derniere_execution)}
         </p>
       )}
-      {error && <p className={errorText}>{error}</p>}
+      {error && (
+        <p role="alert" className={errorText}>
+          {error}
+        </p>
+      )}
+
+      <ConfirmDialog
+        open={confirmationOuverte}
+        titre="Activer le nettoyage automatique ?"
+        confirmer="Activer le nettoyage"
+        onConfirm={confirmerActivation}
+        onClose={() => history.back()}
+      >
+        <p>
+          Une fois par jour, Kilio supprimera <strong className="text-ink">définitivement</strong> ce qui est terminé
+          depuis plus de {delaiAffiche} jour{delaiAffiche > 1 ? "s" : ""} :
+        </p>
+        <ul className="list-disc pl-5 text-ink">
+          {ELEMENTS_NETTOYES.map((e) => (
+            <li key={e}>{e}</li>
+          ))}
+        </ul>
+        <p>Les éléments en cours ne sont jamais touchés. Le délai reste modifiable ensuite.</p>
+      </ConfirmDialog>
     </div>
   );
 }

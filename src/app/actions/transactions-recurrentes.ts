@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
 import type { Enums, Tables, TablesInsert } from "@/lib/supabase/types";
 
@@ -246,25 +247,27 @@ export async function modifierRecurrenceVirement(
   return { error: null };
 }
 
-export async function supprimerRecurrence(id: string) {
+export async function supprimerRecurrence(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
   // on delete set null sur transactions.transaction_recurrente_id : les
   // transactions déjà générées ne sont pas supprimées, juste détachées.
   const { error } = await supabase.from("transactions_recurrentes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return fail("La récurrence n'a pas pu être supprimée. Réessaie.");
 
   revalidateRecurrencePaths();
+  return ok();
 }
 
-export async function basculerActive(id: string, active: boolean) {
+export async function basculerActive(id: string, active: boolean): Promise<ActionResult> {
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("transactions_recurrentes")
     .update({ active })
     .eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return fail("La récurrence n'a pas pu être mise à jour. Réessaie.");
 
   revalidateRecurrencePaths();
+  return ok();
 }
 
 export type RecurrenceAvecRelations = Tables<"transactions_recurrentes"> & {

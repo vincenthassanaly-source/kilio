@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type CategorieFormState = { error: string | null };
@@ -67,25 +68,37 @@ export async function modifierCategorie(
 
 // Les catégories prédéfinies (is_predefinie = true) ne sont pas supprimables,
 // seulement celles ajoutées par l'utilisateur — cf. prompt Phase 3.
-export async function supprimerCategorie(id: string) {
+// Contrat `ActionResult` (T1) : une catégorie encore utilisée par des
+// transactions (clé étrangère sans `on delete`) renvoie un message clair au
+// lieu de lever vers error.tsx.
+export async function supprimerCategorie(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
 
   const { data: existante, error: fetchError } = await supabase
     .from("categories_budget")
-    .select("is_predefinie")
+    .select("nom, is_predefinie")
     .eq("id", id)
     .maybeSingle();
 
-  if (fetchError) throw new Error(fetchError.message);
-  if (!existante) return;
+  if (fetchError) return fail("La catégorie n'a pas pu être supprimée. Réessaie.");
+  if (!existante) return ok();
   if (existante.is_predefinie) {
-    throw new Error("Les catégories prédéfinies ne sont pas supprimables.");
+    return fail("Les catégories prédéfinies ne sont pas supprimables.");
   }
 
   const { error } = await supabase.from("categories_budget").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === "23503") {
+      return fail(
+        `« ${existante.nom} » est encore utilisée (transactions, budgets ou sous-catégories) : réaffecte-les avant de la supprimer.`
+      );
+    }
+    return fail("La catégorie n'a pas pu être supprimée. Réessaie.");
+  }
 
   revalidatePath("/budget/categories");
+  revalidatePath("/budget");
+  return ok();
 }
 
 /**

@@ -89,7 +89,10 @@ async function TransactionsContenu({ searchParams }: { searchParams: Transaction
   // Pas de cron dans ce repo : les occurrences récurrentes dues sont
   // générées ici, avant les lectures ci-dessous, pour apparaître
   // immédiatement dans l'historique du chargement en cours.
-  await genererOccurrencesDuesPourLaRequete();
+  // Sauf pendant une recherche (`?q=`) : ce rendu-là est déclenché par la
+  // frappe (TransactionsFilters), et l'écran a déjà généré les occurrences
+  // du jour à son ouverture — plus d'écriture en base par lettre tapée.
+  if (!q) await genererOccurrencesDuesPourLaRequete();
 
   const [comptes, categories] = await Promise.all([getComptesAvecSolde(), getCategories()]);
 

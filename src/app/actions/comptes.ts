@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type CompteFormState = { error: string | null };
@@ -69,14 +70,56 @@ export async function modifierCompte(
   return { error: null };
 }
 
-export async function supprimerCompte(id: string) {
+export type ImpactSuppressionCompte = {
+  transactions: number;
+  virementsLies: number;
+  recurrences: number;
+};
+
+/**
+ * Ce que la suppression d'un compte efface en cascade (`on delete cascade`
+ * sur transactions.compte_id / compte_destination_id et sur
+ * transactions_recurrentes) : affiché dans la confirmation explicite de
+ * ComptesList (constat T2). `virementsLies` : virements depuis ou vers un
+ * autre compte, dont le solde changera.
+ */
+export async function getImpactSuppressionCompte(id: string): Promise<ActionResult<ImpactSuppressionCompte>> {
+  const supabase = createAdminClient();
+  const [tx, virements, recurrences] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .or(`compte_id.eq.${id},compte_destination_id.eq.${id}`),
+    supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("type", "virement")
+      .or(`compte_id.eq.${id},compte_destination_id.eq.${id}`),
+    supabase
+      .from("transactions_recurrentes")
+      .select("id", { count: "exact", head: true })
+      .or(`compte_id.eq.${id},compte_destination_id.eq.${id}`),
+  ]);
+  if (tx.error || virements.error || recurrences.error) {
+    return fail("Impossible de vérifier l'historique du compte. Réessaie.");
+  }
+  return ok({
+    transactions: tx.count ?? 0,
+    virementsLies: virements.count ?? 0,
+    recurrences: recurrences.count ?? 0,
+  });
+}
+
+export async function supprimerCompte(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
   const { error } = await supabase.from("comptes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return fail("Le compte n'a pas pu être supprimé. Réessaie.");
 
   revalidatePath("/budget");
   revalidatePath("/budget/comptes");
   revalidatePath("/budget/transactions");
+  revalidatePath("/budget/recurrentes");
+  return ok();
 }
 
 export type CompteAvecSolde = Tables<"comptes"> & { solde: number };

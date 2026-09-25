@@ -8,6 +8,7 @@ import { formatMontant } from "@/lib/budget/compute";
 import { card, dangerButton, ghostButton, listCard, metaText, pillTag } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
 import { TransactionModeForm } from "./TransactionModeForm";
+import { runAction } from "@/lib/actions/runAction";
 
 function formatDateOperation(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("fr-FR", {
@@ -109,7 +110,10 @@ function TransactionRow({
           disabled={isPending}
           onClick={() => {
             if (!confirmDelete("Supprimer cette transaction ?")) return;
-            startTransition(() => supprimerTransaction(transaction.id));
+            startTransition(async () => {
+              // Contrat T1 : échec en toast, jamais error.tsx.
+              await runAction(() => supprimerTransaction(transaction.id));
+            });
           }}
           className={dangerButton}
         >

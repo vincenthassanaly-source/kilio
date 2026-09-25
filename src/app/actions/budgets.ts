@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import {
   bornesPeriode,
   premierJourDeLAnnee,
@@ -83,13 +84,14 @@ export async function upsertBudget(
   return { error: null };
 }
 
-export async function supprimerBudget(id: string) {
+export async function supprimerBudget(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
   const { error } = await supabase.from("budgets").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return fail("Le budget n'a pas pu être supprimé. Réessaie.");
 
   revalidatePath("/budget");
   revalidatePath("/budget/categories");
+  return ok();
 }
 
 export type SuiviCategorie = {

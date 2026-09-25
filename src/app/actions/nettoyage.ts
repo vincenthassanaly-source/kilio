@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import type { Tables } from "@/lib/supabase/types";
 
 // Table singleton : une seule ligne, id fixé à 1 (voir
@@ -22,9 +23,10 @@ export async function getReglagesNettoyage(): Promise<ReglagesNettoyage> {
   return data;
 }
 
-export async function updateReglagesNettoyage(actif: boolean, delaiJours: number): Promise<void> {
+// Contrat `ActionResult` (T1).
+export async function updateReglagesNettoyage(actif: boolean, delaiJours: number): Promise<ActionResult> {
   if (!Number.isInteger(delaiJours) || delaiJours < 1) {
-    throw new Error("Le délai doit être un nombre entier de jours supérieur ou égal à 1.");
+    return fail("Le délai doit être un nombre entier de jours supérieur ou égal à 1.");
   }
 
   const supabase = createAdminClient();
@@ -33,7 +35,8 @@ export async function updateReglagesNettoyage(actif: boolean, delaiJours: number
     .update({ actif, delai_jours: delaiJours })
     .eq("id", REGLAGES_ID);
 
-  if (error) throw new Error(error.message);
+  if (error) return fail("Le réglage n'a pas pu être enregistré. Réessaie.");
 
   revalidatePath("/reglages");
+  return ok();
 }
