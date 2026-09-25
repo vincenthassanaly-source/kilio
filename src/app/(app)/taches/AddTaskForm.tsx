@@ -57,7 +57,7 @@ function ImageThumb({
         disabled={disabled}
         onClick={onRemove}
         aria-label={removeLabel}
-        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-alert text-[11px] font-bold text-white disabled:opacity-60"
+        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-alert text-[11px] font-bold text-on-accent disabled:opacity-60"
       >
         ×
       </button>
@@ -80,7 +80,7 @@ const PRIORITES: { value: Enums<"priorite_tache">; label: string; activeClassNam
   { value: "aucune", label: "Aucune", activeClassName: "bg-ink-3 text-white" },
   { value: "basse", label: "Basse", activeClassName: "bg-agenda text-white" },
   { value: "moyenne", label: "Moyenne", activeClassName: "bg-carbs text-white" },
-  { value: "haute", label: "Haute", activeClassName: "bg-alert text-white" },
+  { value: "haute", label: "Haute", activeClassName: "bg-alert text-on-accent" },
 ];
 
 export function AddTaskForm({
@@ -606,7 +606,7 @@ export function AddTaskForm({
                     type="button"
                     onClick={() => toggleTag(tag.id)}
                     className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors ${
-                      tagIds.includes(tag.id) ? "bg-kcal text-white" : "bg-surface-alt text-ink-2"
+                      tagIds.includes(tag.id) ? "bg-kcal text-on-kcal" : "bg-surface-alt text-ink-2"
                     }`}
                   >
                     #{tag.nom}

@@ -21,7 +21,7 @@ export function NutritionSubNav() {
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={`flex-1 rounded-xl py-2 text-center text-[13.5px] font-semibold transition-colors ${
-              active ? "bg-kcal text-white" : "text-ink-2"
+              active ? "bg-kcal text-on-kcal" : "text-ink-2"
             }`}
           >
             {tab.label}

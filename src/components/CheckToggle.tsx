@@ -43,7 +43,7 @@ export function CheckToggle({
       onClick={onToggle}
       aria-label={label}
       aria-pressed={checked}
-      className={`relative shrink-0 ${className}`}
+      className={`relative shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2 ${className}`}
     >
       {hitSlop > 0 && <span aria-hidden="true" className="absolute" style={{ inset: -hitSlop }} />}
       <motion.span
@@ -51,7 +51,8 @@ export function CheckToggle({
         style={{
           width: size,
           height: size,
-          borderColor: checked ? color : "var(--line)",
+          // `--control-border` (≥ 3:1) au lieu de `--line` (≈ 1,3:1), T5.
+          borderColor: checked ? color : "var(--control-border)",
           background: checked ? color : "transparent",
         }}
         animate={checked ? { scale: [1, 1.15, 1] } : { scale: 1 }}
@@ -68,7 +69,7 @@ export function CheckToggle({
               exit={{ scale: 0, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <path d="M1 6l3.2 3.2L11 2" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M1 6l3.2 3.2L11 2" stroke="var(--on-accent)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </motion.svg>
           )}
         </AnimatePresence>

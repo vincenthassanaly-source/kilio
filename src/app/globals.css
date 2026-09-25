@@ -9,8 +9,20 @@
   --line: oklch(0.9 0.012 95);
   --ink: oklch(0.22 0.02 150);
   --ink-2: oklch(0.5 0.018 150);
-  --ink-3: oklch(0.64 0.014 150);
+  /* Vague 2 (T5) : 0,64 → 0,55 ; ≈ 4,7:1 sur surface (3,3:1 avant). */
+  --ink-3: oklch(0.55 0.014 150);
+  /* Bordure des contrôles non textuels (cercle non coché, piste
+     d'interrupteur éteint) : ≥ 3:1 sur surface (T5), `--line` restant
+     réservé aux séparations décoratives. */
+  --control-border: oklch(0.64 0.012 150);
   --accent-kcal: oklch(0.55 0.14 165);
+  /* Texte/icône sur un fond --accent-kcal plein (bouton primaire, segment
+     actif, FAB) — T4, calqué sur --on-agenda : blanc en clair, encre très
+     sombre en sombre (blanc sur kcal sombre ≈ 2,3:1, encre ≈ 8,3:1). */
+  --on-kcal: oklch(1 0 0);
+  /* Même règle pour les autres fonds d'accent pleins (couleurs de module,
+     alerte) : ils suivent tous la formule L 0,55 (clair) / 0,72 (sombre). */
+  --on-accent: oklch(1 0 0);
   --accent-kcal-soft: oklch(0.55 0.14 165 / 0.12);
   --accent-protein: oklch(0.55 0.13 265);
   --accent-carbs: oklch(0.58 0.14 85);
@@ -53,8 +65,11 @@
   --line: oklch(0.33 0.022 195);
   --ink: oklch(0.95 0.008 195);
   --ink-2: oklch(0.72 0.014 195);
-  --ink-3: oklch(0.54 0.014 195);
+  --ink-3: oklch(0.64 0.014 195);
+  --control-border: oklch(0.54 0.02 195);
   --accent-kcal: oklch(0.72 0.13 165);
+  --on-kcal: oklch(0.17 0.02 165);
+  --on-accent: oklch(0.17 0.02 195);
   --accent-kcal-soft: oklch(0.72 0.13 165 / 0.18);
   --accent-protein: oklch(0.72 0.12 265);
   --accent-carbs: oklch(0.75 0.13 85);
@@ -96,6 +111,9 @@
   --color-ink-3: var(--ink-3);
   --color-kcal: var(--accent-kcal);
   --color-kcal-soft: var(--accent-kcal-soft);
+  --color-on-kcal: var(--on-kcal);
+  --color-on-accent: var(--on-accent);
+  --color-control-border: var(--control-border);
   --color-protein: var(--accent-protein);
   --color-carbs: var(--accent-carbs);
   --color-fat: var(--accent-fat);
@@ -414,5 +432,16 @@ html[data-nav-direction="recule"]::view-transition-new(root) {
   .plus-tuile-edition:nth-child(odd),
   .plus-tuile-edition:nth-child(even) {
     animation: none !important;
+  }
+}
+
+/* Vague 2 (T15) : iOS zoome la page au focus de tout champ de moins de
+   16 px. Filet de sécurité global sur écran tactile, y compris pour les
+   champs qui réduisent leur taille localement (`text-[13px]`, filtres…). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
   }
 }

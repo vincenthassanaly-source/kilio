@@ -23,18 +23,19 @@ export const eyebrow = "text-[12.5px] font-semibold text-ink-3";
 // quel que soit le fond du bouton, y compris sur `primaryButton` (bg-kcal).
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2";
 
-export const input = `rounded-2xl border border-line bg-surface-alt px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-kcal/60 transition-colors ${focusRing}`;
+// 16 px (et non 15) : en dessous, iOS zoome la page au focus d'un champ (T15).
+export const input = `rounded-2xl border border-line bg-surface-alt px-3.5 py-2.5 text-base text-ink outline-none focus:border-kcal/60 transition-colors ${focusRing}`;
 export const label = "text-sm font-medium text-ink";
 export const errorText = "text-sm text-alert";
 
 export const primaryButton =
-  `rounded-2xl bg-kcal px-4 py-2.5 font-semibold text-white transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
+  `rounded-2xl bg-kcal px-4 py-2.5 font-semibold text-on-kcal transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
 export const secondaryButton =
   `rounded-2xl border border-line bg-surface px-4 py-2.5 font-semibold text-ink transition active:scale-[0.97] disabled:opacity-60 ${focusRing}`;
 export const addCard =
   `flex w-full items-center gap-[13px] rounded-[22px] border border-line bg-surface p-4 shadow-card text-left transition-transform active:scale-[0.99] ${focusRing}`;
 export const addCardIcon =
-  "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] text-white text-lg font-semibold";
+  "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] text-on-accent text-lg font-semibold";
 
 export const ghostButton =
   `rounded-xl border border-line px-2.5 py-1.5 text-sm font-medium text-ink transition active:scale-[0.97] hover:bg-surface-alt ${focusRing}`;

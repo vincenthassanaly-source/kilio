@@ -97,14 +97,14 @@ export function DashboardTachesSection({ today }: { today: string }) {
                   <span className="font-display text-[14px] font-bold leading-none text-kcal">
                     {prochainEvenement.heure!.slice(0, 2)}
                   </span>
-                  <span className="text-[8.5px] font-semibold text-kcal">{prochainEvenement.heure!.slice(3, 5)}</span>
+                  <span className="text-[11px] font-semibold leading-none text-kcal">{prochainEvenement.heure!.slice(3, 5)}</span>
                 </>
               ) : (
                 <span className="font-display text-[14px] font-bold text-kcal">--</span>
               )}
             </div>
             <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-3">Prochain événement</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">Prochain événement</span>
               <span className="truncate text-[14px] font-semibold text-ink">
                 {prochainEvenement ? prochainEvenement.titre : "Aucun événement"}
               </span>

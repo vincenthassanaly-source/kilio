@@ -75,7 +75,7 @@ function ChoixMoment({ moment, onChange }: { moment: MomentRepas; onChange: (m: 
             aria-pressed={actif}
             onClick={() => onChange(m)}
             className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-semibold transition-colors ${focusRing} ${
-              actif ? "bg-kcal text-white" : "text-ink-2"
+              actif ? "bg-kcal text-on-kcal" : "text-ink-2"
             }`}
           >
             {MOMENT_LABELS[m]}
@@ -326,7 +326,7 @@ function EtapeQuantite({
               aria-pressed={mode === m}
               onClick={() => changerMode(m)}
               className={`min-h-11 rounded-xl px-4 text-[13px] font-semibold transition-colors ${focusRing} ${
-                mode === m ? "bg-kcal text-white" : "text-ink-2"
+                mode === m ? "bg-kcal text-on-kcal" : "text-ink-2"
               }`}
             >
               {m === "piece" ? "Pièces" : item.unite === "ml" ? "ml" : "Grammes"}

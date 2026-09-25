@@ -102,7 +102,11 @@ export function NotificationsRow() {
           aria-pressed={on ?? false}
           aria-label="Activer les notifications"
           className="relative h-[26px] w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2"
-          style={{ background: on ? "var(--accent-kcal)" : "var(--surface-alt)" }}
+          // Piste éteinte bordée par --control-border (≥ 3:1, T5).
+          style={{
+            background: on ? "var(--accent-kcal)" : "var(--surface-alt)",
+            boxShadow: on ? undefined : "inset 0 0 0 1.5px var(--control-border)",
+          }}
         >
           <span
             className="absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white transition-[left]"

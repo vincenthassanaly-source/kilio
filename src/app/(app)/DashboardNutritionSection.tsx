@@ -63,7 +63,7 @@ export function DashboardNutritionSection({ today }: { today: string }) {
                     }}
                   />
                 </div>
-                <span className="text-[9.5px] font-semibold text-ink-3">{MACRO_LABELS[m.key]}</span>
+                <span className="text-[11px] font-semibold text-ink-3">{MACRO_LABELS[m.key]}</span>
               </div>
             ))}
           </div>

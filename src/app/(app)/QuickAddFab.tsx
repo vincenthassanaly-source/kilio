@@ -88,7 +88,7 @@ export function QuickAddFab({ directTask }: { directTask?: DirectTaskOptions }) 
           aria-label={direct ? "Ajouter une tâche" : mode === null ? "Ajouter" : "Fermer"}
           aria-expanded={direct ? undefined : mode !== null}
           aria-haspopup={direct ? "dialog" : undefined}
-          className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-card"
+          className="flex h-14 w-14 items-center justify-center rounded-full text-on-kcal shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kcal focus-visible:ring-offset-2"
           style={{ background: "var(--accent-kcal)" }}
         >
           <svg

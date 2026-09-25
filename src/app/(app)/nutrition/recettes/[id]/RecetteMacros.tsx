@@ -133,7 +133,7 @@ export function RecetteMacros({
               {fmt(perPortion[chip.key] * count)}
               {chip.unit}
             </div>
-            <div className="mt-0.5 text-[10px] text-ink-3">{chip.label}</div>
+            <div className="mt-0.5 text-[11px] text-ink-3">{chip.label}</div>
           </div>
         ))}
       </div>
@@ -151,7 +151,7 @@ export function RecetteMacros({
               aria-pressed={m === moment}
               onClick={() => setMoment(m)}
               className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-semibold transition-colors ${focusRing} ${
-                m === moment ? "bg-kcal text-white" : "text-ink-2"
+                m === moment ? "bg-kcal text-on-kcal" : "text-ink-2"
               }`}
             >
               {MOMENT_LABELS[m]}

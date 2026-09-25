@@ -245,7 +245,7 @@ export function NoteForm({
             type="button"
             onClick={() => setType("texte")}
             className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
-              type === "texte" ? "bg-kcal text-white" : "text-ink-2"
+              type === "texte" ? "bg-kcal text-on-kcal" : "text-ink-2"
             }`}
           >
             Texte
@@ -254,7 +254,7 @@ export function NoteForm({
             type="button"
             onClick={() => setType("checklist")}
             className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-semibold transition-colors ${
-              type === "checklist" ? "bg-kcal text-white" : "text-ink-2"
+              type === "checklist" ? "bg-kcal text-on-kcal" : "text-ink-2"
             }`}
           >
             Checklist
@@ -329,7 +329,7 @@ export function NoteForm({
                 type="button"
                 onClick={() => toggleTag(tag.id)}
                 className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors ${
-                  tagIds.includes(tag.id) ? "bg-kcal text-white" : "bg-surface-alt text-ink-2"
+                  tagIds.includes(tag.id) ? "bg-kcal text-on-kcal" : "bg-surface-alt text-ink-2"
                 }`}
               >
                 #{tag.nom}

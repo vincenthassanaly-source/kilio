@@ -99,7 +99,7 @@ function BottomNavSlot({
     >
       {active && <ActivePill reduceMotion={reduceMotion} />}
       {item.icon(color)}
-      <span className="text-[10px]" style={{ color, fontWeight: active ? 700 : 500 }}>
+      <span className="text-[11px]" style={{ color, fontWeight: active ? 700 : 500 }}>
         {item.label}
       </span>
     </MotionLink>
@@ -175,7 +175,7 @@ export function BottomNav() {
           {plusActive && <ActivePill reduceMotion={reduceMotion} />}
           {PLUS_ICON(plusActive ? "var(--accent-kcal)" : "var(--ink-3)")}
           <span
-            className="text-[10px]"
+            className="text-[11px]"
             style={{ color: plusActive ? "var(--accent-kcal)" : "var(--ink-3)", fontWeight: plusActive ? 700 : 500 }}
           >
             Plus

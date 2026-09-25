@@ -35,7 +35,7 @@ function EntryRow({ entry, onDelete }: { entry: JournalEntryView; onDelete: (id:
       transition={{ duration: 0.18 }}
       className={`${cardTight} flex flex-col gap-2`}
     >
-      <span className="text-[10.5px] font-bold uppercase tracking-wide text-ink-3">
+      <span className="text-[11px] font-bold uppercase tracking-wide text-ink-3">
         {MOMENT_LABEL[entry.moment]}
       </span>
       <div className="flex items-center justify-between gap-3">
