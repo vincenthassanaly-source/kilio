@@ -1,11 +1,13 @@
 "use client";
 
+import { useId } from "react";
 import { useRouter } from "next/navigation";
 import type { Enums } from "@/lib/supabase/types";
 import { formatPeriode, periodeAdjacente, periodeParDefaut } from "@/lib/budget/compute";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { ghostButton } from "@/lib/ui";
-import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
+import { SegmentedPill } from "@/components/SegmentedControl";
+import { SEGMENT_CADRE, segmentClasseGlissant } from "@/lib/segmented";
 
 const ONGLETS: { value: Enums<"type_periode_budget">; label: string }[] = [
   { value: "hebdomadaire", label: "Semaine" },
@@ -27,6 +29,7 @@ type Selection = {
  */
 export function PeriodeSelector({ selection }: { selection?: Selection }) {
   const router = useRouter();
+  const pastilleId = useId();
 
   function naviguer(nouveauTypePeriode: Enums<"type_periode_budget">, nouvellePeriode: string) {
     const params = new URLSearchParams(selection?.parametres);
@@ -38,18 +41,24 @@ export function PeriodeSelector({ selection }: { selection?: Selection }) {
   return (
     <div className="flex flex-col gap-2">
       <div className={SEGMENT_CADRE} role="group" aria-label="Type de période">
-        {ONGLETS.map((onglet) => (
-          <button
-            key={onglet.value}
-            type="button"
-            disabled={!selection}
-            onClick={() => naviguer(onglet.value, periodeParDefaut(onglet.value))}
-            aria-pressed={selection?.typePeriode === onglet.value}
-            className={`${segmentClasse(selection?.typePeriode === onglet.value, "sm")} disabled:opacity-60`}
-          >
-            {onglet.label}
-          </button>
-        ))}
+        {ONGLETS.map((onglet) => {
+          const actif = selection?.typePeriode === onglet.value;
+          return (
+            <button
+              key={onglet.value}
+              type="button"
+              disabled={!selection}
+              onClick={() => naviguer(onglet.value, periodeParDefaut(onglet.value))}
+              aria-pressed={actif}
+              className={`${segmentClasseGlissant("sm")} disabled:opacity-60`}
+            >
+              {actif && <SegmentedPill layoutId={pastilleId} />}
+              <span className={`relative transition-colors ${actif ? "text-on-kcal" : "text-ink-2"}`}>
+                {onglet.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
       <div className="flex items-center justify-between gap-2">
         <button

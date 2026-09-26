@@ -1,8 +1,10 @@
 "use client";
 
+import { useId } from "react";
 import { usePathname } from "next/navigation";
 import { TransitionLink } from "@/components/TransitionLink";
-import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
+import { SegmentedPill } from "@/components/SegmentedControl";
+import { SEGMENT_CADRE, segmentClasseGlissant } from "@/lib/segmented";
 
 const TABS = [
   { href: "/nutrition/journal", label: "Journal" },
@@ -11,6 +13,7 @@ const TABS = [
 
 export function NutritionSubNav() {
   const pathname = usePathname();
+  const pastilleId = useId();
 
   return (
     <nav className={SEGMENT_CADRE} aria-label="Nutrition">
@@ -21,9 +24,12 @@ export function NutritionSubNav() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={segmentClasse(active)}
+            className={segmentClasseGlissant()}
           >
-            {tab.label}
+            {active && <SegmentedPill layoutId={pastilleId} />}
+            <span className={`relative transition-colors ${active ? "text-on-kcal" : "text-ink-2"}`}>
+              {tab.label}
+            </span>
           </TransitionLink>
         );
       })}

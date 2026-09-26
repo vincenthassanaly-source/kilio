@@ -1,8 +1,27 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import { motion } from "framer-motion";
-import { SEGMENT_CADRE, segmentClasse } from "@/lib/segmented";
+import { motion, useReducedMotion } from "framer-motion";
+import { SEGMENT_CADRE, segmentClasse, segmentClasseGlissant } from "@/lib/segmented";
+
+/**
+ * Pastille de fond glissante partagée par tout contrôle segmenté animé
+ * (ce composant en mode `glissant`, `NutritionSubNav`, `PeriodeSelector`) :
+ * un seul `layoutId` par instance (passé par l'appelant, typiquement via
+ * `useId()`) pour que framer-motion anime sa position/taille entre segments
+ * sans jamais faire glisser la pastille d'un contrôle vers un autre.
+ */
+export function SegmentedPill({ layoutId }: { layoutId: string }) {
+  const reduceMotion = useReducedMotion() ?? false;
+  return (
+    <motion.span
+      layoutId={layoutId}
+      aria-hidden="true"
+      className="absolute inset-0 rounded-xl bg-kcal"
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 40 }}
+    />
+  );
+}
 
 // Contrôle segmenté partagé (constat T7 de l'audit du 2026-09-25) : il était
 // réimplémenté dans une dizaine d'écrans avec des couleurs d'actif
@@ -67,16 +86,9 @@ export function SegmentedControl<T extends string>({
             aria-pressed={actif}
             aria-label={option.ariaLabel}
             onClick={() => onChange(option.value)}
-            className={segmentClasse(false, taille).replace("text-ink-2 hover:text-ink", "")}
+            className={segmentClasseGlissant(taille)}
           >
-            {actif && (
-              <motion.span
-                layoutId={pastilleId}
-                aria-hidden="true"
-                className="absolute inset-0 rounded-xl bg-kcal"
-                transition={{ type: "spring", stiffness: 500, damping: 40 }}
-              />
-            )}
+            {actif && <SegmentedPill layoutId={pastilleId} />}
             <span className={`relative transition-colors ${actif ? "text-on-kcal" : "text-ink-2"}`}>
               {option.label}
             </span>
