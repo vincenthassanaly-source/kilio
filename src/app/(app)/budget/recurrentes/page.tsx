@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { getCategories } from "@/app/actions/categories-budget";
 import { getRecurrences } from "@/app/actions/transactions-recurrentes";
@@ -35,6 +36,7 @@ export default function RecurrentesPage() {
 // Le formulaire d'ajout a besoin des comptes et catégories : il arrive avec
 // la liste.
 async function Recurrences() {
+  await connection();
   const [comptes, categories, recurrences] = await Promise.all([
     getComptesAvecSolde(),
     getCategories(),

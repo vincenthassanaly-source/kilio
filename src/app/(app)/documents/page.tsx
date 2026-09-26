@@ -1,9 +1,11 @@
+import { connection } from "next/server";
 import { getDocuments, getEtiquettes } from "@/app/actions/documents";
 import { screenTitle } from "@/lib/ui";
 import { DocumentsBrowser } from "./DocumentsBrowser";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default async function DocumentsPage() {
+  await connection();
   const [documents, etiquettes] = await Promise.all([getDocuments(), getEtiquettes()]);
 
   return (

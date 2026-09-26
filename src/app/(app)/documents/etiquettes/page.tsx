@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getEtiquettes } from "@/app/actions/documents";
 import { TransitionLink } from "@/components/TransitionLink";
 import { eyebrow, linkButton, screenTitle } from "@/lib/ui";
@@ -5,6 +6,7 @@ import { AddEtiquetteToggle } from "./AddEtiquetteToggle";
 import { EtiquettesManager } from "./EtiquettesManager";
 
 export default async function EtiquettesPage() {
+  await connection();
   const etiquettes = await getEtiquettes();
 
   return (

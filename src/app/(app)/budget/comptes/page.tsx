@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { screenTitle } from "@/lib/ui";
 import { AddCompteToggle } from "./AddCompteToggle";
@@ -21,5 +22,6 @@ export default function ComptesPage() {
 }
 
 async function Comptes() {
+  await connection();
   return <ComptesList comptes={await getComptesAvecSolde()} />;
 }

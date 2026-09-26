@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getReglagesNettoyage } from "@/app/actions/nettoyage";
 import { TransitionLink } from "@/components/TransitionLink";
 import { screenTitle, sectionTitle } from "@/lib/ui";
@@ -55,6 +56,7 @@ function ChevronIcon() {
 }
 
 export default async function ReglagesPage() {
+  await connection();
   const reglagesNettoyage = await getReglagesNettoyage();
 
   return (

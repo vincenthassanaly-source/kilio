@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AddRecetteToggle } from "./AddRecetteToggle";
 import { RecettesList } from "./RecettesList";
@@ -11,6 +12,7 @@ import { NutritionSubNav } from "@/components/NutritionSubNav";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default async function RecettesPage() {
+  await connection();
   const supabase = createAdminClient();
 
   const { data: recettes, error } = await supabase

@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getComptesTachesParListe, getListes, getTags } from "@/app/actions/taches";
 import { TransitionLink } from "@/components/TransitionLink";
 import { eyebrow, linkButton, screenTitle, sectionTitle } from "@/lib/ui";
@@ -7,6 +8,7 @@ import { AddTagToggle } from "./AddTagToggle";
 import { TagsManager } from "./TagsManager";
 
 export default async function ListesTachesPage() {
+  await connection();
   const [listes, tags, comptes] = await Promise.all([getListes(), getTags(), getComptesTachesParListe()]);
 
   return (
