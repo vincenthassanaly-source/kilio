@@ -3,7 +3,7 @@
 import { db } from "./db";
 import { decisionApresEchec, decisionAvantExecution } from "./flush-policy";
 import { showToast } from "@/components/toast/toast-store";
-import { toggleTache, deleteTache } from "@/app/actions/taches";
+import { setTacheFait, deleteTache } from "@/app/actions/taches";
 import { toggleNoteItem, deleteNote } from "@/app/actions/notes";
 import {
   createCourseItem,
@@ -23,7 +23,7 @@ type ActionFn = (...args: any[]) => Promise<unknown>;
 // écritures haute fréquence des 4 modules du scope (cf. 2.4 du prompt de
 // session) : Budget et Recettes ne sont volontairement pas couverts.
 const ACTIONS: Record<string, Record<string, ActionFn>> = {
-  taches: { toggleTache, deleteTache },
+  taches: { setTacheFait, deleteTache },
   notes: { toggleNoteItem, deleteNote },
   courses: {
     createCourseItem,

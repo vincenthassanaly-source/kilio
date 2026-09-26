@@ -8,6 +8,7 @@ import {
   formatMontant,
   formatPeriode,
   grilleCalendrierMois,
+  normaliserPeriode,
   periodeAdjacente,
   periodeParDefaut,
   premierJourDeLAnnee,
@@ -217,5 +218,31 @@ describe("calculerProchaineOccurrence", () => {
 
   it("mensuel franchit correctement un changement d'année", () => {
     expect(calculerProchaineOccurrence("2026-12-15", "mensuel")).toBe("2027-01-15");
+  });
+});
+
+describe("normaliserPeriode", () => {
+  it("recale une période mensuelle sur le premier du mois", () => {
+    expect(normaliserPeriode("2026-09-17", "mensuel")).toBe("2026-09-01");
+  });
+
+  it("recale une période hebdomadaire sur le lundi de la semaine", () => {
+    // 2026-09-17 est un jeudi -> lundi 2026-09-14
+    expect(normaliserPeriode("2026-09-17", "hebdomadaire")).toBe("2026-09-14");
+  });
+
+  it("recale une période annuelle sur le 1er janvier", () => {
+    expect(normaliserPeriode("2026-09-17", "annuel")).toBe("2026-01-01");
+  });
+
+  it("renvoie null pour un format invalide", () => {
+    expect(normaliserPeriode("abc", "mensuel")).toBeNull();
+    expect(normaliserPeriode("2026-9-1", "mensuel")).toBeNull();
+    expect(normaliserPeriode("", "mensuel")).toBeNull();
+  });
+
+  it("renvoie null pour une date calendaire invalide plutôt que de déborder sur le mois suivant", () => {
+    expect(normaliserPeriode("2026-02-30", "mensuel")).toBeNull();
+    expect(normaliserPeriode("2026-13-01", "mensuel")).toBeNull();
   });
 });

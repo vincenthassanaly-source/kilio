@@ -1,4 +1,5 @@
-import type { Tables } from "@/lib/supabase/types";
+import { calculerProchaineOccurrence } from "@/lib/budget/compute";
+import type { Enums, Tables } from "@/lib/supabase/types";
 
 // Onglets de vue de /taches (TachesView) : défini ici, dans un module pur,
 // pour que les règles qui en dépendent (échéance par défaut) restent
@@ -105,6 +106,54 @@ export type ChampsAvancesTache = Pick<
  * formulaire de tâche est renseigné. En édition, le bloc est alors déplié
  * d'office : on ne cache jamais une valeur existante derrière un repli.
  */
+export type EtatRecurrence = {
+  echeance: string | null;
+  recurrence_frequence: Enums<"frequence_recurrence"> | null;
+  recurrence_fin: string | null;
+};
+
+export type ResultatCochage = {
+  fait: boolean;
+  echeance: string | null;
+  /** Vrai si une occurrence a été avancée (les sous-tâches doivent être remises à zéro). */
+  occurrenceAvancee: boolean;
+};
+
+/**
+ * Calcule le nouvel état d'une tâche après un changement de case à cocher,
+ * fonction pure partagée par le serveur (toggleTache/setTacheFait) et testée
+ * indépendamment de Supabase.
+ *
+ * Décocher, ou cocher une tâche non récurrente : simple bascule de `fait`.
+ *
+ * Cocher une tâche récurrente : elle repart non cochée à sa prochaine
+ * échéance. La prochaine échéance est calculée en boucle tant qu'elle ne
+ * dépasse pas `today` (et non en un seul pas depuis `echeance`), pour qu'une
+ * tâche en retard reparte directement sur une échéance future plutôt que de
+ * rester en retard après chaque coche. Si cette échéance dépasse
+ * `recurrence_fin`, la récurrence s'arrête et la tâche reste cochée.
+ */
+export function appliquerCochage(
+  tache: EtatRecurrence,
+  fait: boolean,
+  today: string
+): ResultatCochage {
+  if (!fait || !tache.recurrence_frequence) {
+    return { fait, echeance: tache.echeance, occurrenceAvancee: false };
+  }
+
+  let prochaine = tache.echeance ?? today;
+  do {
+    prochaine = calculerProchaineOccurrence(prochaine, tache.recurrence_frequence);
+  } while (prochaine <= today);
+
+  const recurrenceTerminee = tache.recurrence_fin !== null && prochaine > tache.recurrence_fin;
+  if (recurrenceTerminee) {
+    return { fait: true, echeance: tache.echeance, occurrenceAvancee: false };
+  }
+  return { fait: false, echeance: prochaine, occurrenceAvancee: true };
+}
+
 export function champsAvancesRenseignes(tache: ChampsAvancesTache): boolean {
   return (
     tache.heure !== null ||

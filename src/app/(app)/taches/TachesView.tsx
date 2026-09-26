@@ -244,7 +244,7 @@ export function TachesView() {
           taches={filtered}
           listes={listes}
           tags={tags}
-          reordonnable={vue === "toutes"}
+          reordonnable={vue === "toutes" && !recherche.trim()}
           highlightedId={tacheSurlignee}
         />
       )}

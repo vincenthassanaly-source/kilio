@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fail, ok, type ActionResult } from "@/lib/actions/result";
 import { finDuMois } from "@/lib/budget/compute";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
 export type TransactionFormState = { error: string | null };
@@ -209,38 +210,50 @@ export async function getTransactions(filtres?: {
 }): Promise<TransactionAvecRelations[]> {
   const supabase = createAdminClient();
 
-  // Deux FK vers `comptes` (compte_id, compte_destination_id) : il faut
-  // désambiguïser chaque embed PostgREST avec le nom de la contrainte.
-  let query = supabase
-    .from("transactions")
-    .select(
-      "*, compte:comptes!transactions_compte_id_fkey(id, nom), compte_destination:comptes!transactions_compte_destination_id_fkey(id, nom), categorie:categories_budget(id, nom, icone)"
-    )
-    .order("date_operation", { ascending: false })
-    .order("created_at", { ascending: false });
+  // Reconstruit à chaque page (voir plus bas) : un query builder Supabase ne
+  // se rejoue pas après avoir été exécuté une première fois.
+  function buildQuery() {
+    // Deux FK vers `comptes` (compte_id, compte_destination_id) : il faut
+    // désambiguïser chaque embed PostgREST avec le nom de la contrainte.
+    let query = supabase
+      .from("transactions")
+      .select(
+        "*, compte:comptes!transactions_compte_id_fkey(id, nom), compte_destination:comptes!transactions_compte_destination_id_fkey(id, nom), categorie:categories_budget(id, nom, icone)"
+      )
+      .order("date_operation", { ascending: false })
+      .order("created_at", { ascending: false });
 
-  if (filtres?.compteId && UUID_RE.test(filtres.compteId)) {
-    // Un virement doit apparaître dans l'historique filtré du compte crédité
-    // comme de celui débité, pas seulement de la source.
-    query = query.or(
-      `compte_id.eq.${filtres.compteId},compte_destination_id.eq.${filtres.compteId}`
-    );
-  }
-  if (filtres?.categorieId) query = query.eq("categorie_id", filtres.categorieId);
-  if (filtres?.date) query = query.eq("date_operation", filtres.date);
-  if (filtres?.mois) {
-    query = query.gte("date_operation", filtres.mois).lt("date_operation", finDuMois(filtres.mois));
-  }
-  // `ilike` sur une colonne nulle ne matche jamais (NULL en SQL) : une
-  // transaction sans libellé est donc naturellement exclue d'une recherche
-  // non vide, sans traitement particulier.
-  if (filtres?.recherche?.trim()) {
-    query = query.ilike("libelle", `%${filtres.recherche.trim()}%`);
+    if (filtres?.compteId && UUID_RE.test(filtres.compteId)) {
+      // Un virement doit apparaître dans l'historique filtré du compte crédité
+      // comme de celui débité, pas seulement de la source.
+      query = query.or(
+        `compte_id.eq.${filtres.compteId},compte_destination_id.eq.${filtres.compteId}`
+      );
+    }
+    if (filtres?.categorieId) query = query.eq("categorie_id", filtres.categorieId);
+    if (filtres?.date) query = query.eq("date_operation", filtres.date);
+    if (filtres?.mois) {
+      query = query.gte("date_operation", filtres.mois).lt("date_operation", finDuMois(filtres.mois));
+    }
+    // `ilike` sur une colonne nulle ne matche jamais (NULL en SQL) : une
+    // transaction sans libellé est donc naturellement exclue d'une recherche
+    // non vide, sans traitement particulier.
+    if (filtres?.recherche?.trim()) {
+      query = query.ilike("libelle", `%${filtres.recherche.trim()}%`);
+    }
+    return query;
   }
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return data ?? [];
+  // `mois` et `date` bornent déjà le nombre de lignes possibles ; sans l'un
+  // des deux, l'historique complet peut dépasser le plafond de 1000 lignes
+  // de PostgREST et serait alors tronqué silencieusement (transactions les
+  // plus anciennes manquantes sans erreur).
+  if (filtres?.mois || filtres?.date) {
+    const { data, error } = await buildQuery();
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+  return fetchAllRows<TransactionAvecRelations>((from, to) => buildQuery().range(from, to));
 }
 
 export type ResumeMois = { totalDepenses: number; totalRevenus: number };

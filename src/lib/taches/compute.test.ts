@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  appliquerCochage,
   champsAvancesRenseignes,
   echeanceParDefaut,
   libelleNombreTaches,
@@ -8,6 +9,71 @@ import {
   messageSuppressionListe,
   type ChampsAvancesTache,
 } from "./compute";
+
+describe("appliquerCochage", () => {
+  it("bascule simplement une tâche non récurrente", () => {
+    const tache = { echeance: "2026-09-20", recurrence_frequence: null, recurrence_fin: null };
+    expect(appliquerCochage(tache, true, "2026-09-26")).toEqual({
+      fait: true,
+      echeance: "2026-09-20",
+      occurrenceAvancee: false,
+    });
+    expect(appliquerCochage(tache, false, "2026-09-26")).toEqual({
+      fait: false,
+      echeance: "2026-09-20",
+      occurrenceAvancee: false,
+    });
+  });
+
+  it("décocher une tâche récurrente ne touche pas à l'échéance", () => {
+    const tache = { echeance: "2026-09-26", recurrence_frequence: "quotidien" as const, recurrence_fin: null };
+    expect(appliquerCochage(tache, false, "2026-09-26")).toEqual({
+      fait: false,
+      echeance: "2026-09-26",
+      occurrenceAvancee: false,
+    });
+  });
+
+  it("cocher une tâche récurrente à jour avance d'une occurrence", () => {
+    const tache = { echeance: "2026-09-26", recurrence_frequence: "quotidien" as const, recurrence_fin: null };
+    expect(appliquerCochage(tache, true, "2026-09-26")).toEqual({
+      fait: false,
+      echeance: "2026-09-27",
+      occurrenceAvancee: true,
+    });
+  });
+
+  it("cocher une tâche récurrente en retard avance jusqu'à dépasser aujourd'hui, pas d'un seul pas", () => {
+    const tache = { echeance: "2026-09-10", recurrence_frequence: "quotidien" as const, recurrence_fin: null };
+    expect(appliquerCochage(tache, true, "2026-09-26")).toEqual({
+      fait: false,
+      echeance: "2026-09-27",
+      occurrenceAvancee: true,
+    });
+  });
+
+  it("arrête la récurrence si la prochaine échéance dépasse recurrence_fin", () => {
+    const tache = {
+      echeance: "2026-09-26",
+      recurrence_frequence: "quotidien" as const,
+      recurrence_fin: "2026-09-26",
+    };
+    expect(appliquerCochage(tache, true, "2026-09-26")).toEqual({
+      fait: true,
+      echeance: "2026-09-26",
+      occurrenceAvancee: false,
+    });
+  });
+
+  it("part d'aujourd'hui quand l'échéance est absente", () => {
+    const tache = { echeance: null, recurrence_frequence: "hebdomadaire" as const, recurrence_fin: null };
+    expect(appliquerCochage(tache, true, "2026-09-26")).toEqual({
+      fait: false,
+      echeance: "2026-10-03",
+      occurrenceAvancee: true,
+    });
+  });
+});
 
 describe("echeanceParDefaut", () => {
   it("pré-remplit la date du jour pour 'aujourdhui' et 'semaine'", () => {

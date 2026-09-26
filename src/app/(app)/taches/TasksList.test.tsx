@@ -14,7 +14,7 @@ vi.mock("@/app/actions/taches", () => ({
   enregistrerOrdreTaches: vi.fn(),
   reordonnerSousTaches: vi.fn(),
   toggleSousTache: vi.fn(),
-  toggleTache: vi.fn(),
+  setTacheFait: vi.fn(),
 }));
 
 // dnd-kit s'appuie sur PointerEvent / getBoundingClientRect réels pour ses

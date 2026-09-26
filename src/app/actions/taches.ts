@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fail, ok, type ActionResult } from "@/lib/actions/result";
-import { aujourdhuiISO, calculerProchaineOccurrence } from "@/lib/budget/compute";
+import { aujourdhuiISO } from "@/lib/budget/compute";
 import type { Enums, Tables } from "@/lib/supabase/types";
-import { messageAvertissementCreation } from "@/lib/taches/compute";
+import { appliquerCochage, messageAvertissementCreation } from "@/lib/taches/compute";
 
 // `id` : renseigné par createTache en cas de succès (id de la tâche créée,
 // pour que l'UI puisse la mettre en évidence) ; absent pour updateTache et
@@ -487,36 +487,63 @@ async function supprimerImagesDeTache(supabase: SupabaseClient, tacheId: string,
 // Option A (validée) : quand une tâche récurrente est cochée, elle repart
 // non cochée avec l'échéance suivante au lieu de rester "faite". Si la date
 // de fin de récurrence est dépassée par la nouvelle échéance, la récurrence
-// s'arrête et la tâche reste cochée.
-export async function toggleTache(id: string) {
+// s'arrête et la tâche reste cochée. Le calcul de la nouvelle échéance est
+// délégué à `appliquerCochage` (lib/taches/compute.ts, fonction pure et
+// testée) : il avance en boucle jusqu'à dépasser aujourd'hui, pour qu'une
+// tâche en retard reparte sur une échéance future plutôt que de rester en
+// retard après chaque coche.
+//
+// `setTacheFait` fixe l'état voulu (plutôt que de l'inverser) : c'est
+// l'action à utiliser pour toute mutation rejouable (file hors ligne), pour
+// qu'un rejeu en double ou un changement fait ailleurs entre-temps ne
+// bascule pas la tâche dans l'état inverse de celui voulu.
+export async function setTacheFait(id: string, fait: boolean) {
   const supabase = createAdminClient();
 
   const { data, error: fetchError } = await supabase
     .from("taches")
-    .select("fait, echeance, recurrence_frequence, recurrence_fin")
+    .select("echeance, recurrence_frequence, recurrence_fin")
     .eq("id", id)
     .single();
 
   if (fetchError) throw new Error(fetchError.message);
 
-  const fait = !data.fait;
+  const resultat = appliquerCochage(data, fait, aujourdhuiISO());
 
-  if (fait && data.recurrence_frequence) {
-    const base = data.echeance ?? aujourdhuiISO();
-    const prochaine = calculerProchaineOccurrence(base, data.recurrence_frequence);
-    const recurrenceTerminee = data.recurrence_fin !== null && prochaine > data.recurrence_fin;
+  const { error } = await supabase
+    .from("taches")
+    .update({
+      fait: resultat.fait,
+      echeance: resultat.echeance,
+      ...(resultat.occurrenceAvancee ? { rappel_envoye_le: null } : {}),
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
 
-    const { error } = await supabase
-      .from("taches")
-      .update(recurrenceTerminee ? { fait: true } : { fait: false, echeance: prochaine })
-      .eq("id", id);
-    if (error) throw new Error(error.message);
-  } else {
-    const { error } = await supabase.from("taches").update({ fait }).eq("id", id);
-    if (error) throw new Error(error.message);
+  if (resultat.occurrenceAvancee) {
+    const { error: sousTachesError } = await supabase
+      .from("sous_taches")
+      .update({ fait: false, termine_le: null })
+      .eq("tache_id", id);
+    if (sousTachesError) throw new Error(sousTachesError.message);
   }
 
   revalidateTachesPaths();
+}
+
+// Conservée pour les appelants qui basculent l'état sans le connaître à
+// l'avance (UI en ligne). Hors ligne, préférer `setTacheFait` avec l'état
+// cible déjà décidé par l'appelant (voir TasksList.tsx / DashboardTaskItem.tsx).
+export async function toggleTache(id: string) {
+  const supabase = createAdminClient();
+  const { data, error: fetchError } = await supabase
+    .from("taches")
+    .select("fait")
+    .eq("id", id)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  await setTacheFait(id, !data.fait);
 }
 
 export async function deleteTache(id: string) {

@@ -109,6 +109,45 @@ export function bornesPeriode(
   }
 }
 
+const PERIODE_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Valide et recale une période venue d'un paramètre de recherche (jamais
+ * garantie calée ni même une date valide) sur le premier jour de
+ * semaine/mois/année du type demandé — le même calage que celui appliqué à
+ * l'écriture par `upsertBudget`, pour que la lecture (`getSuiviCategories`)
+ * cible toujours la même ligne. Renvoie `null` si la valeur n'est pas une
+ * date "YYYY-MM-DD" valide (au lieu de laisser `finDuMois`/`bornesPeriode`
+ * lever une `RangeError` sur une date invalide).
+ */
+export function normaliserPeriode(
+  periodeRaw: string,
+  typePeriode: Enums<"type_periode_budget">
+): string | null {
+  const match = PERIODE_REGEX.exec(periodeRaw);
+  if (!match) return null;
+
+  const annee = Number(match[1]);
+  const mois = Number(match[2]);
+  const jour = Number(match[3]);
+  const date = new Date(annee, mois - 1, jour);
+  // `new Date` accepte silencieusement un mois/jour hors bornes en débordant
+  // sur le mois suivant (ex. 2026-02-30 -> 2 mars) : on rejette plutôt que de
+  // recaler sur une date que l'utilisateur n'a pas demandée.
+  if (date.getFullYear() !== annee || date.getMonth() !== mois - 1 || date.getDate() !== jour) {
+    return null;
+  }
+
+  switch (typePeriode) {
+    case "hebdomadaire":
+      return premierJourDeLaSemaine(date);
+    case "annuel":
+      return premierJourDeLAnnee(date);
+    case "mensuel":
+      return premierJourDuMois(date);
+  }
+}
+
 /** Période précédente/suivante (même type), pour la navigation à flèches de
  * /budget/categories. La période d'entrée est toujours déjà calée (premier
  * jour de semaine/mois/année) : ajouter/retrancher une unité la garde calée

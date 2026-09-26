@@ -340,7 +340,17 @@ export async function genererOccurrencesDues(): Promise<void> {
 
       let insertError = null;
       if (occurrences.length > 0) {
-        ({ error: insertError } = await supabase.from("transactions").insert(occurrences));
+        // `upsert` + `ignoreDuplicates` plutôt qu'`insert` : deux rendus
+        // concurrents de /budget ou /budget/transactions peuvent lancer cette
+        // génération en même temps ; l'index unique partiel sur
+        // (transaction_recurrente_id, date_operation) — voir
+        // scripts/migration-budget-recurrences-unique-2026-09-26.sql — évite
+        // alors une occurrence dupliquée plutôt que de la laisser échouer en
+        // erreur ou s'insérer deux fois.
+        ({ error: insertError } = await supabase.from("transactions").upsert(occurrences, {
+          onConflict: "transaction_recurrente_id,date_operation",
+          ignoreDuplicates: true,
+        }));
       }
 
       // date_fin dépassée après cette génération : le modèle se suspend tout

@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { connection } from "next/server";
 import { genererOccurrencesDues } from "@/app/actions/transactions-recurrentes";
-import { periodeParDefaut } from "@/lib/budget/compute";
+import { normaliserPeriode, periodeParDefaut } from "@/lib/budget/compute";
 import type { Enums } from "@/lib/supabase/types";
 
 // Lectures de requête communes aux pages du Budget. Appelées uniquement sous
@@ -26,7 +26,10 @@ export const genererOccurrencesDuesPourLaRequete = cache(async () => {
  */
 export async function lirePeriodeMensuelle(searchParams: Promise<{ periode?: string }>): Promise<string> {
   const { periode } = await searchParams;
-  if (periode) return periode;
+  if (periode) {
+    const normalisee = normaliserPeriode(periode, "mensuel");
+    if (normalisee) return normalisee;
+  }
   await connection();
   return periodeParDefaut("mensuel");
 }
@@ -41,7 +44,10 @@ export async function lirePeriodeCategories(
   const typePeriode = TYPES_PERIODE.includes(params.type_periode as Enums<"type_periode_budget">)
     ? (params.type_periode as Enums<"type_periode_budget">)
     : "mensuel";
-  if (params.periode) return { typePeriode, periode: params.periode };
+  if (params.periode) {
+    const normalisee = normaliserPeriode(params.periode, typePeriode);
+    if (normalisee) return { typePeriode, periode: normalisee };
+  }
   await connection();
   return { typePeriode, periode: periodeParDefaut(typePeriode) };
 }

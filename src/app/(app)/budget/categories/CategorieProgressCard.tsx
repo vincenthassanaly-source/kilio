@@ -85,7 +85,11 @@ export function CategorieProgressCard({
           style={{ width: `${pct}%`, background: color }}
         />
       </div>
-      <form action={formAction} className="flex items-center gap-2">
+      {/* `key={periode}` : remonte le formulaire au changement de période pour
+          que `defaultValue` (non contrôlé) reflète bien le montant cible de
+          la période affichée, plutôt que de garder celui de la période
+          précédente jusqu'à une saisie manuelle. */}
+      <form key={periode} action={formAction} className="flex items-center gap-2">
         <input type="hidden" name="categorie_id" value={suivi.categorie.id} />
         <input type="hidden" name="periode" value={periode} />
         <input type="hidden" name="type_periode" value={typePeriode} />

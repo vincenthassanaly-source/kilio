@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toggleTache, type TacheAvecRelations } from "@/app/actions/taches";
+import { setTacheFait, type TacheAvecRelations } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
 import { showToast } from "@/components/toast/toast-store";
 import { CheckToggle } from "@/components/CheckToggle";
@@ -26,13 +26,19 @@ export const DashboardTaskItem = memo(function DashboardTaskItem({
   // sur la même query key : cocher une tâche depuis le dashboard ou depuis
   // /taches met à jour le même cache, dans les deux sens.
   const toggleMutation = useMutation({
+    // `networkMode: "always"` : sans quoi TanStack Query met la mutation en
+    // pause tant qu'il se croit hors ligne (mutationFn jamais exécuté), et
+    // le repli hors ligne ci-dessous n'est jamais atteint (voir TaskCard,
+    // TasksList.tsx, pour le même correctif).
+    networkMode: "always",
     mutationFn: async () => {
       vibrate();
+      const nextFait = !fait;
       try {
-        await toggleTache(id);
+        await setTacheFait(id, nextFait);
       } catch (err) {
         if (!isNetworkError(err)) throw err;
-        await enqueueAction("taches", "toggleTache", [id]);
+        await enqueueAction("taches", "setTacheFait", [id, nextFait]);
         showToast("Enregistré, sera synchronisé à la reconnexion");
       }
     },

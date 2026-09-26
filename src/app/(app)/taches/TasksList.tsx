@@ -22,7 +22,7 @@ import {
   enregistrerOrdreTaches,
   reordonnerSousTaches,
   toggleSousTache,
-  toggleTache,
+  setTacheFait,
   type TacheAvecRelations,
 } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
@@ -347,11 +347,12 @@ export const TaskCard = memo(function TaskCard({
     networkMode: "always",
     mutationFn: async () => {
       vibrate();
+      const nextFait = !tache.fait;
       try {
-        await toggleTache(tache.id);
+        await setTacheFait(tache.id, nextFait);
       } catch (err) {
         if (!isNetworkError(err)) throw err;
-        await enqueueAction("taches", "toggleTache", [tache.id]);
+        await enqueueAction("taches", "setTacheFait", [tache.id, nextFait]);
         showToast("Enregistré, sera synchronisé à la reconnexion");
       }
     },
