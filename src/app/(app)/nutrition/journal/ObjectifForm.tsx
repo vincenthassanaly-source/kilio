@@ -67,6 +67,7 @@ export function ObjectifForm({
             max="10000"
             step="1"
             required
+            placeholder="ex. 2200"
             defaultValue={objectif?.kcal_cible ?? ""}
             className={input}
           />

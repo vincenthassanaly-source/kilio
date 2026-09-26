@@ -314,12 +314,12 @@ export function NoteForm({
 
       <div className="flex flex-col gap-1">
         <span className={labelClass}>Couleur</span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => setCouleur(null)}
             aria-label="Aucune couleur"
-            className={`h-7 w-7 rounded-full border-2 bg-surface ${
+            className={`relative after:absolute after:-inset-1.5 h-7 w-7 rounded-full border-2 bg-surface ${
               couleur === null ? "border-kcal" : "border-line"
             }`}
           />
@@ -329,7 +329,7 @@ export function NoteForm({
               type="button"
               onClick={() => setCouleur(c.cle)}
               aria-label={c.label}
-              className={`h-7 w-7 rounded-full border-2 ${
+              className={`relative after:absolute after:-inset-1.5 h-7 w-7 rounded-full border-2 ${
                 couleur === c.cle ? "border-kcal" : "border-transparent"
               }`}
               style={{ backgroundColor: `var(--note-${c.cle})` }}

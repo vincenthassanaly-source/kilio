@@ -125,10 +125,12 @@ Capture : `15-documents.png` — état d'erreur générique (échec sur `getDocu
 
 ## Résumé
 
-| Sévérité | Constat | Module | Capture vérifiée |
-|---|---|---|---|
-| MOYEN | Pastilles de couleur de note 28px sans zone de tap étendue | Notes | Code seul (écran en erreur) |
-| MOYEN | Incohérence visuelle du champ « Kcal cible » vide vs. voisins à 0 | Nutrition / Journal | Oui (donnée réelle) |
-| BAS | Poignée de réordonnancement de tâche 32px sans zone de tap étendue | Tâches | Code seul (skeleton) |
+| Sévérité | Constat | Module | Capture vérifiée | Statut |
+|---|---|---|---|---|
+| MOYEN | Pastilles de couleur de note 28px sans zone de tap étendue | Notes | Code seul (écran en erreur) | Corrigé (`NoteForm.tsx`) |
+| MOYEN | Incohérence visuelle du champ « Kcal cible » vide vs. voisins à 0 | Nutrition / Journal | Oui (donnée réelle) | Corrigé (`ObjectifForm.tsx`) |
+| BAS | Poignée de réordonnancement de tâche 32px sans zone de tap étendue | Tâches | Code seul (skeleton) | Corrigé (`TasksList.tsx`) |
+
+Les 3 correctifs ci-dessus ont été implémentés (diffs identiques à ceux proposés plus haut) et vérifiés visuellement : placeholder « ex. 2200 » bien affiché sur le champ Kcal cible, pastilles de couleur Notes avec espacement élargi (`gap-3`) sans chevauchement de leur zone de tap étendue. `npm run lint` et `tsc --noEmit` passent sans erreur après ces changements.
 
 Le reste des écrans passés en revue (Accueil, Nutrition Hub, Agenda, Collection, Documents, Réglages, Budget) ne fait apparaître aucun écart clair par rapport à la checklist — le design system (`src/lib/ui.ts`, `src/lib/segmented.ts`) applique déjà systématiquement rayons concentriques, `tabular-nums`, contours d'image et zones de tap 44px sur la grande majorité des composants inspectés. Les modules capturés uniquement en skeleton/erreur (Courses, Objectifs, Carburants, Nutrition/Recettes, Agenda) nécessitent une repasse visuelle une fois l'accès réseau à Supabase rétabli pour cet environnement, avant de considérer leur audit complet.

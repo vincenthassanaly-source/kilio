@@ -507,7 +507,7 @@ export const TaskCard = memo(function TaskCard({
         {reorderable && (
           <button
             type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-2"
+            className="relative after:absolute after:-inset-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-2"
             style={{ touchAction: "none", WebkitTouchCallout: "none" }}
             data-drag-handle
             aria-label="Réordonner : glisser pour déplacer la tâche"
