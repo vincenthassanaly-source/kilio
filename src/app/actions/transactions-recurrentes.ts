@@ -315,40 +315,53 @@ export async function genererOccurrencesDues(): Promise<void> {
   if (error) throw new Error(error.message);
   if (!recurrences || recurrences.length === 0) return;
 
-  for (const modele of recurrences) {
-    let prochaine = modele.prochaine_occurrence;
-    const occurrences: TablesInsert<"transactions">[] = [];
+  // Modèles indépendants les uns des autres : un insert/update par modèle,
+  // lancés en parallèle (Promise.all) plutôt qu'attendus séquentiellement
+  // dans une boucle `for` — cette génération s'exécute avant les autres
+  // lectures du Server Component /budget (voir commentaire ci-dessus).
+  const resultats = await Promise.all(
+    recurrences.map(async (modele) => {
+      let prochaine = modele.prochaine_occurrence;
+      const occurrences: TablesInsert<"transactions">[] = [];
 
-    while (prochaine <= aujourdhui && (modele.date_fin === null || prochaine <= modele.date_fin)) {
-      occurrences.push({
-        compte_id: modele.compte_id,
-        categorie_id: modele.categorie_id,
-        compte_destination_id: modele.compte_destination_id,
-        montant: modele.montant,
-        type: modele.type,
-        date_operation: prochaine,
-        libelle: modele.libelle,
-        transaction_recurrente_id: modele.id,
-      });
-      prochaine = calculerProchaineOccurrence(prochaine, modele.frequence);
-    }
+      while (prochaine <= aujourdhui && (modele.date_fin === null || prochaine <= modele.date_fin)) {
+        occurrences.push({
+          compte_id: modele.compte_id,
+          categorie_id: modele.categorie_id,
+          compte_destination_id: modele.compte_destination_id,
+          montant: modele.montant,
+          type: modele.type,
+          date_operation: prochaine,
+          libelle: modele.libelle,
+          transaction_recurrente_id: modele.id,
+        });
+        prochaine = calculerProchaineOccurrence(prochaine, modele.frequence);
+      }
 
-    if (occurrences.length > 0) {
-      const { error: insertError } = await supabase.from("transactions").insert(occurrences);
-      if (insertError) throw new Error(insertError.message);
-    }
+      let insertError = null;
+      if (occurrences.length > 0) {
+        ({ error: insertError } = await supabase.from("transactions").insert(occurrences));
+      }
 
-    // date_fin dépassée après cette génération : le modèle se suspend tout
-    // seul, même si aucune occurrence n'a été générée à ce passage (cf.
-    // rapport — évite le bug où un modèle dont la date_fin a été raccourcie
-    // sous prochaine_occurrence ne serait jamais désactivé).
-    const desactiver = modele.date_fin !== null && prochaine > modele.date_fin;
-    if (prochaine !== modele.prochaine_occurrence || desactiver) {
-      const { error: updateError } = await supabase
-        .from("transactions_recurrentes")
-        .update({ prochaine_occurrence: prochaine, active: !desactiver })
-        .eq("id", modele.id);
-      if (updateError) throw new Error(updateError.message);
-    }
+      // date_fin dépassée après cette génération : le modèle se suspend tout
+      // seul, même si aucune occurrence n'a été générée à ce passage (cf.
+      // rapport — évite le bug où un modèle dont la date_fin a été
+      // raccourcie sous prochaine_occurrence ne serait jamais désactivé).
+      const desactiver = modele.date_fin !== null && prochaine > modele.date_fin;
+      let updateError = null;
+      if (prochaine !== modele.prochaine_occurrence || desactiver) {
+        ({ error: updateError } = await supabase
+          .from("transactions_recurrentes")
+          .update({ prochaine_occurrence: prochaine, active: !desactiver })
+          .eq("id", modele.id));
+      }
+
+      return { insertError, updateError };
+    })
+  );
+
+  for (const { insertError, updateError } of resultats) {
+    if (insertError) throw new Error(insertError.message);
+    if (updateError) throw new Error(updateError.message);
   }
 }

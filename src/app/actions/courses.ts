@@ -130,12 +130,15 @@ export async function ajouterArticlesCourses(libelles: string[]): Promise<Result
     if (error) throw new Error(error.message);
   }
 
-  for (let index = 0; index < plan.aReactiver.length; index++) {
-    const article = plan.aReactiver[index];
-    const { error } = await supabase
-      .from("courses_items")
-      .update({ coche: false, created_at: new Date(maintenant + plan.aCreer.length + index).toISOString() })
-      .eq("id", article.id);
+  const resultatsReactivation = await Promise.all(
+    plan.aReactiver.map((article, index) =>
+      supabase
+        .from("courses_items")
+        .update({ coche: false, created_at: new Date(maintenant + plan.aCreer.length + index).toISOString() })
+        .eq("id", article.id)
+    )
+  );
+  for (const { error } of resultatsReactivation) {
     if (error) throw new Error(error.message);
   }
 

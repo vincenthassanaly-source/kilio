@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enregistrerEntreeHabitude, type HabitudeDuJour } from "@/app/actions/habitudes";
 import { queryKeys } from "@/lib/query/keys";
@@ -8,7 +9,13 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
-export function DashboardHabitItem({ habitude, date }: { habitude: HabitudeDuJour; date: string }) {
+export const DashboardHabitItem = memo(function DashboardHabitItem({
+  habitude,
+  date,
+}: {
+  habitude: HabitudeDuJour;
+  date: string;
+}) {
   const queryClient = useQueryClient();
   const valeur = habitude.entreeDuJour?.valeur ?? 0;
   const fait = valeur > 0;
@@ -78,4 +85,4 @@ export function DashboardHabitItem({ habitude, date }: { habitude: HabitudeDuJou
       )}
     </button>
   );
-}
+});

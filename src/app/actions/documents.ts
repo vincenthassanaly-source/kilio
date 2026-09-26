@@ -119,35 +119,39 @@ export async function uploadDocumentFichiers(documentId: string, formData: FormD
     .limit(1)
     .maybeSingle();
 
-  let ordre = (derniere?.ordre ?? -1) + 1;
+  const ordreDepart = (derniere?.ordre ?? -1) + 1;
 
-  for (const { role, fichier } of rectoVerso) {
-    const uploade = await uploaderFichier(supabase, fichier);
+  if (rectoVerso.length > 0) {
+    const uploades = await Promise.all(
+      rectoVerso.map(({ fichier }) => uploaderFichier(supabase, fichier))
+    );
 
-    const { error: insertError } = await supabase.from("document_fichiers").insert({
-      document_id: documentId,
-      url: uploade.url,
-      fichier_type: uploade.fichier_type,
-      ordre,
-      role,
-    });
+    const { error: insertError } = await supabase.from("document_fichiers").insert(
+      uploades.map((uploade, index) => ({
+        document_id: documentId,
+        url: uploade.url,
+        fichier_type: uploade.fichier_type,
+        ordre: ordreDepart + index,
+        role: rectoVerso[index].role,
+      }))
+    );
     if (insertError) throw new Error(insertError.message);
-
-    ordre++;
   }
 
-  for (const fichier of fichiers) {
-    const uploade = await uploaderFichier(supabase, fichier);
+  const ordreFichiersDepart = ordreDepart + rectoVerso.length;
 
-    const { error: insertError } = await supabase.from("document_fichiers").insert({
-      document_id: documentId,
-      url: uploade.url,
-      fichier_type: uploade.fichier_type,
-      ordre,
-    });
+  if (fichiers.length > 0) {
+    const uploades = await Promise.all(fichiers.map((fichier) => uploaderFichier(supabase, fichier)));
+
+    const { error: insertError } = await supabase.from("document_fichiers").insert(
+      uploades.map((uploade, index) => ({
+        document_id: documentId,
+        url: uploade.url,
+        fichier_type: uploade.fichier_type,
+        ordre: ordreFichiersDepart + index,
+      }))
+    );
     if (insertError) throw new Error(insertError.message);
-
-    ordre++;
   }
 
   revalidateDocumentsPaths(documentId);

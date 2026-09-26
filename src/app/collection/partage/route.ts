@@ -36,21 +36,22 @@ export async function POST(request: NextRequest) {
     url.searchParams.set("nb", String(Math.min(nb, 50)));
   }
 
-  if (fichiers.length > 0) {
-    const urls = await uploaderPhotosPartagees(fichiers);
+  const photosPromise = fichiers.length > 0 ? uploaderPhotosPartagees(fichiers) : null;
+  const videoPromise = lienVideo ? recupererLienVideoPartage(lienVideo) : null;
+
+  const [urls, metadonnees] = await Promise.all([photosPromise, videoPromise]);
+
+  if (urls) {
     for (const photoUrl of urls) {
       url.searchParams.append("photo", photoUrl);
     }
   }
 
-  if (lienVideo) {
-    const metadonnees = await recupererLienVideoPartage(lienVideo);
-    if (metadonnees) {
-      url.searchParams.set("video_url", metadonnees.url);
-      url.searchParams.set("video_thumbnail", metadonnees.thumbnailUrl);
-      url.searchParams.set("video_titre", metadonnees.titre);
-      url.searchParams.set("video_type", metadonnees.type);
-    }
+  if (metadonnees) {
+    url.searchParams.set("video_url", metadonnees.url);
+    url.searchParams.set("video_thumbnail", metadonnees.thumbnailUrl);
+    url.searchParams.set("video_titre", metadonnees.titre);
+    url.searchParams.set("video_type", metadonnees.type);
   }
 
   return NextResponse.redirect(url, 303);

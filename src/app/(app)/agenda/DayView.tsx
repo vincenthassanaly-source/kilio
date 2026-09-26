@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { addDays, format, isSameDay, isToday, startOfToday, subDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TacheAvecRelations } from "@/app/actions/taches";
@@ -51,17 +51,24 @@ export function DayView({
 }) {
   // Les tâches sans heure sont regroupées après celles ayant une heure
   // (cohérent avec le tri "échéance nullsFirst: false" déjà utilisé par la
-  // page Tâches).
-  const dayTachesJour = taches.filter(
-    (t) => t.echeance && isSameDay(parseISODate(t.echeance), selectedDate)
-  );
+  // page Tâches). Mémorisé : ne dépend que de `taches`/`selectedDate`, pas de
+  // `zoom`, qui change à chaque frame pendant le geste de pincement/molette
+  // (cf. useAgendaZoom) — sans ce useMemo, layoutChevauchements et les
+  // filtres/tris ci-dessous étaient recalculés à chaque frame de zoom.
+  const { dayTaches, dayTachesArchivees, dayTachesAvecHeure, dayTachesSansHeure, positions } = useMemo(() => {
+    const dayTachesJour = taches.filter(
+      (t) => t.echeance && isSameDay(parseISODate(t.echeance), selectedDate)
+    );
 
-  const dayTaches = dayTachesJour.filter((t) => !t.fait).sort(sortByHeure);
-  const dayTachesArchivees = dayTachesJour.filter((t) => t.fait).sort(sortByHeure);
+    const dayTaches = dayTachesJour.filter((t) => !t.fait).sort(sortByHeure);
+    const dayTachesArchivees = dayTachesJour.filter((t) => t.fait).sort(sortByHeure);
 
-  const dayTachesAvecHeure = dayTaches.filter((t) => t.heure);
-  const dayTachesSansHeure = dayTachesJour.filter((t) => !t.fait && !t.heure);
-  const positions = layoutChevauchements(dayTachesAvecHeure);
+    const dayTachesAvecHeure = dayTaches.filter((t) => t.heure);
+    const dayTachesSansHeure = dayTachesJour.filter((t) => !t.fait && !t.heure);
+    const positions = layoutChevauchements(dayTachesAvecHeure);
+
+    return { dayTaches, dayTachesArchivees, dayTachesAvecHeure, dayTachesSansHeure, positions };
+  }, [taches, selectedDate]);
 
   const creneauxJour = getCreneauxDuJour(creneaux, selectedDate, exceptions);
   const { zoom, touchHandlers } = useAgendaZoom();

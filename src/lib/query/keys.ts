@@ -9,6 +9,10 @@ export const queryKeys = {
   notes: ["notes"] as const,
   courses: ["courses"] as const,
   habitudes: (date: string) => ["habitudes", date] as const,
+  // Historique mensuel d'une habitude (vue calendrier) : clé par habitude +
+  // mois (premier jour du mois, format ISO) pour que changer d'habitude ou
+  // naviguer d'un mois à l'autre déclenche un nouveau fetch distinct.
+  historiqueHabitude: (habitudeId: string, mois: string) => ["historique-habitude", habitudeId, mois] as const,
   journal: (date: string, jourType: string) => ["journal", date, jourType] as const,
   // Résumé nutritionnel d'une date (consommé + cible du type de jour
   // mémorisé) : invalidé après un ajout de repas ou un changement de type.

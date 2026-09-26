@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { DocumentForm } from "./DocumentForm";
+import dynamic from "next/dynamic";
 import { useBackClose } from "@/hooks/useBackClose";
 import { AnimatedAddCard } from "@/components/AnimatedAddCard";
 import type { Tables } from "@/lib/supabase/types";
 import { addCard, addCardIcon, card } from "@/lib/ui";
+
+const DocumentForm = dynamic(() => import("./DocumentForm").then((m) => m.DocumentForm), { ssr: false });
 
 export function AddDocumentToggle({
   etiquettes,

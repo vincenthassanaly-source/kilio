@@ -204,18 +204,14 @@ export async function uploadCollectionPhotos(collectionId: string, formData: For
     .limit(1)
     .maybeSingle();
 
-  let ordre = (derniere?.ordre ?? -1) + 1;
+  const ordreDepart = (derniere?.ordre ?? -1) + 1;
 
-  for (const fichier of fichiers) {
-    const url = await compresserEtUploaderPhoto(supabase, fichier);
+  const urls = await Promise.all(fichiers.map((fichier) => compresserEtUploaderPhoto(supabase, fichier)));
 
-    const { error: insertError } = await supabase
-      .from("collection_items")
-      .insert({ collection_id: collectionId, url, ordre });
-    if (insertError) throw new Error(insertError.message);
-
-    ordre++;
-  }
+  const { error: insertError } = await supabase.from("collection_items").insert(
+    urls.map((url, index) => ({ collection_id: collectionId, url, ordre: ordreDepart + index }))
+  );
+  if (insertError) throw new Error(insertError.message);
 
   revalidateCollectionsPaths(collectionId);
 }
@@ -284,11 +280,7 @@ export async function deleteCollectionItem(itemId: string) {
 // dans le bucket, sans les rattacher à une collection.
 export async function uploaderPhotosPartagees(fichiers: File[]): Promise<string[]> {
   const supabase = createAdminClient();
-  const urls: string[] = [];
-  for (const fichier of fichiers) {
-    urls.push(await compresserEtUploaderPhoto(supabase, fichier));
-  }
-  return urls;
+  return Promise.all(fichiers.map((fichier) => compresserEtUploaderPhoto(supabase, fichier)));
 }
 
 // Variante appelée depuis le navigateur (flux de partage via le service

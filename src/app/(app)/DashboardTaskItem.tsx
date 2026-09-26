@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toggleTache, type TacheAvecRelations } from "@/app/actions/taches";
 import { queryKeys } from "@/lib/query/keys";
@@ -8,7 +9,7 @@ import { CheckToggle } from "@/components/CheckToggle";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
-export function DashboardTaskItem({
+export const DashboardTaskItem = memo(function DashboardTaskItem({
   id,
   titre,
   heure,
@@ -76,4 +77,4 @@ export function DashboardTaskItem({
       </div>
     </div>
   );
-}
+});

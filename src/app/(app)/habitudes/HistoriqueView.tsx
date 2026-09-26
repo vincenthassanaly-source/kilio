@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   addMonths,
   eachDayOfInterval,
@@ -13,6 +14,7 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getHistoriqueHabitude } from "@/app/actions/habitudes";
+import { queryKeys } from "@/lib/query/keys";
 import type { Tables } from "@/lib/supabase/types";
 import { ghostButton, input } from "@/lib/ui";
 import { useSwipeHorizontal, type SensSwipe } from "@/hooks/useSwipeHorizontal";
@@ -31,7 +33,6 @@ function intensite(habitude: Tables<"habitudes">, valeur: number | undefined): n
 export function HistoriqueView({ habitudes }: { habitudes: Tables<"habitudes">[] }) {
   const [habitudeId, setHabitudeId] = useState(habitudes[0]?.id ?? "");
   const [mois, setMois] = useState(() => startOfMonth(new Date()));
-  const [entries, setEntries] = useState<Tables<"habitude_entries">[]>([]);
   // Sens du dernier changement de mois (swipe ou boutons ←/→), pilote le
   // sens de l'animation `agenda-glisse-*` rejouée ci-dessous.
   const [sens, setSens] = useState<SensSwipe>("suivant");
@@ -43,18 +44,12 @@ export function HistoriqueView({ habitudes }: { habitudes: Tables<"habitudes">[]
 
   const habitude = habitudes.find((h) => h.id === habitudeId);
 
-  useEffect(() => {
-    if (!habitudeId) return;
-    let annule = false;
-    const debut = toISODate(startOfMonth(mois));
-    const fin = toISODate(endOfMonth(mois));
-    getHistoriqueHabitude(habitudeId, debut, fin).then((data) => {
-      if (!annule) setEntries(data);
-    });
-    return () => {
-      annule = true;
-    };
-  }, [habitudeId, mois]);
+  const moisISO = toISODate(startOfMonth(mois));
+  const { data: entries = [] } = useQuery({
+    queryKey: queryKeys.historiqueHabitude(habitudeId, moisISO),
+    queryFn: () => getHistoriqueHabitude(habitudeId, moisISO, toISODate(endOfMonth(mois))),
+    enabled: !!habitudeId,
+  });
 
   if (habitudes.length === 0) {
     return <p className="text-ink-2">Aucune habitude pour l&apos;instant.</p>;

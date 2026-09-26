@@ -32,9 +32,15 @@ function clampZoomAbsolute(zoom: number): number {
 }
 
 function readStoredZoom(): number {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  const parsed = raw !== null ? Number(raw) : NaN;
-  return Number.isFinite(parsed) ? clampZoomAbsolute(parsed) : DEFAULT_ZOOM;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed = raw !== null ? Number(raw) : NaN;
+    return Number.isFinite(parsed) ? clampZoomAbsolute(parsed) : DEFAULT_ZOOM;
+  } catch {
+    // Navigation privée / stockage désactivé : localStorage peut lever
+    // (Safari notamment) — on retombe sur le zoom par défaut.
+    return DEFAULT_ZOOM;
+  }
 }
 
 // Resynchronise si le zoom est modifié depuis un autre onglet.
@@ -147,7 +153,12 @@ export function useAgendaZoom({ minZoom = MIN_ZOOM_FALLBACK }: { minZoom?: numbe
     }
     const zoomFinal = pendingZoomRef.current ?? zoomRef.current;
     pendingZoomRef.current = null;
-    window.localStorage.setItem(STORAGE_KEY, String(zoomFinal));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, String(zoomFinal));
+    } catch {
+      // Navigation privée / stockage désactivé : on ignore silencieusement,
+      // le zoom reste seulement en mémoire pour cette session.
+    }
     setLiveZoom(null);
   }, []);
 

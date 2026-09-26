@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteCollectionItem } from "@/app/actions/collections";
 import { queryKeys } from "@/lib/query/keys";
 import { supprimerAvecAnnulation } from "@/lib/actions/suppressionDifferee";
 import { FadeInImage } from "@/components/FadeInImage";
-import { ImageLightbox } from "@/components/ImageLightbox";
-import { TiktokLightbox } from "@/components/TiktokLightbox";
-import { YoutubeLightbox } from "@/components/YoutubeLightbox";
 import { estTypeVideo } from "@/lib/collection/video";
 import type { Tables } from "@/lib/supabase/types";
 import { vibrate } from "@/lib/haptics";
+
+const ImageLightbox = dynamic(() => import("@/components/ImageLightbox").then((m) => m.ImageLightbox), {
+  ssr: false,
+});
+const TiktokLightbox = dynamic(() => import("@/components/TiktokLightbox").then((m) => m.TiktokLightbox), {
+  ssr: false,
+});
+const YoutubeLightbox = dynamic(() => import("@/components/YoutubeLightbox").then((m) => m.YoutubeLightbox), {
+  ssr: false,
+});
 
 function TiktokIcon() {
   return (

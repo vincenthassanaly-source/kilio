@@ -209,11 +209,22 @@ export async function createTache(
     .limit(1)
     .maybeSingle();
 
-  const { data: tache, error } = await supabase
-    .from("taches")
-    .insert({ ...parsed.value, ordre: (derniere?.ordre ?? -1) + 1 })
-    .select("id")
-    .single();
+  // resolveTagIds ne dépend que de formData, pas de l'id de la tâche créée :
+  // on le lance en parallèle de l'insertion plutôt que de l'attendre après
+  // coup.
+  const { tagIds, nouveauxNoms } = parseTagFields(formData);
+
+  const [{ data: tache, error }, tagsResult] = await Promise.all([
+    supabase
+      .from("taches")
+      .insert({ ...parsed.value, ordre: (derniere?.ordre ?? -1) + 1 })
+      .select("id")
+      .single(),
+    resolveTagIds(supabase, tagIds, nouveauxNoms).then(
+      (resolvedTagIds) => ({ ok: true as const, resolvedTagIds }),
+      (tagError: unknown) => ({ ok: false as const, tagError })
+    ),
+  ]);
 
   if (error) return { error: error.message };
 
@@ -226,9 +237,8 @@ export async function createTache(
   let echecImages = false;
 
   try {
-    const { tagIds, nouveauxNoms } = parseTagFields(formData);
-    const resolvedTagIds = await resolveTagIds(supabase, tagIds, nouveauxNoms);
-    await syncTachesTags(supabase, tache.id, resolvedTagIds);
+    if (!tagsResult.ok) throw tagsResult.tagError;
+    await syncTachesTags(supabase, tache.id, tagsResult.resolvedTagIds);
   } catch (tagError) {
     echecTags = true;
     console.error("createTache : échec de l'enregistrement des tags", tagError);
@@ -279,10 +289,20 @@ export async function updateTache(
     existante.heure !== parsed.value.heure ||
     existante.rappel_minutes !== parsed.value.rappel_minutes;
 
-  const { error } = await supabase
-    .from("taches")
-    .update(rappelObsolete ? { ...parsed.value, rappel_envoye_le: null } : parsed.value)
-    .eq("id", id);
+  // resolveTagIds ne dépend que de formData, pas du résultat de la mise à
+  // jour : on le lance en parallèle plutôt que de l'attendre après coup.
+  const { tagIds, nouveauxNoms } = parseTagFields(formData);
+
+  const [{ error }, tagsResult] = await Promise.all([
+    supabase
+      .from("taches")
+      .update(rappelObsolete ? { ...parsed.value, rappel_envoye_le: null } : parsed.value)
+      .eq("id", id),
+    resolveTagIds(supabase, tagIds, nouveauxNoms).then(
+      (resolvedTagIds) => ({ ok: true as const, resolvedTagIds }),
+      (tagError: unknown) => ({ ok: false as const, tagError })
+    ),
+  ]);
 
   if (error) return { error: error.message };
 
@@ -292,9 +312,8 @@ export async function updateTache(
   // ignorées) : en cas d'échec d'une étape secondaire on garde donc un
   // retour `{ error }`, le formulaire reste ouvert pour un nouvel essai.
   try {
-    const { tagIds, nouveauxNoms } = parseTagFields(formData);
-    const resolvedTagIds = await resolveTagIds(supabase, tagIds, nouveauxNoms);
-    await syncTachesTags(supabase, id, resolvedTagIds);
+    if (!tagsResult.ok) throw tagsResult.tagError;
+    await syncTachesTags(supabase, id, tagsResult.resolvedTagIds);
   } catch (tagError) {
     revalidateTachesPaths();
     return { error: tagError instanceof Error ? tagError.message : "Erreur lors des tags." };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { deleteCourseItem, toggleCourseItem, updateCourseItem } from "@/app/actions/courses";
@@ -17,7 +17,7 @@ import { restaurerArticlesCourses } from "./undo";
 // Extrait de CoursesList pour être réutilisé tel quel par
 // ArchivedCoursesSection (mêmes mutations optimistes toggle/suppression pour
 // les articles archivés), sans import circulaire entre les deux fichiers.
-export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
+function CourseItemRowBase({ item }: { item: Tables<"courses_items"> }) {
   const queryClient = useQueryClient();
   // Article créé hors ligne, encore affiché avec son id optimiste
   // `temp-<uuid>` tant que la création n'a pas été confirmée par le serveur
@@ -281,3 +281,5 @@ export function CourseItemRow({ item }: { item: Tables<"courses_items"> }) {
     </motion.li>
   );
 }
+
+export const CourseItemRow = memo(CourseItemRowBase);

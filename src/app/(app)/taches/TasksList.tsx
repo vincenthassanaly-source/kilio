@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -261,7 +261,7 @@ function TacheImagesRow({ tache }: { tache: TacheAvecRelations }) {
   );
 }
 
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
   tache,
   listes,
   tags,
@@ -599,7 +599,7 @@ export function TaskCard({
       </li>
     </AnimatePresence>
   );
-}
+});
 
 // Contrairement aux tuiles de la page d'accueil (appui long ~400ms sur
 // toute la tuile, cf. NavigationEditContext), ici le drag part d'une

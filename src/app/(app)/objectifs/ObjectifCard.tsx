@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supprimerObjectif } from "@/app/actions/objectifs";
@@ -26,7 +26,7 @@ function formatEcheance(iso: string) {
   });
 }
 
-export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
+function ObjectifCardBase({ objectif }: { objectif: Tables<"objectifs"> }) {
   const [editing, setEditing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -130,3 +130,5 @@ export function ObjectifCard({ objectif }: { objectif: Tables<"objectifs"> }) {
     </motion.li>
   );
 }
+
+export const ObjectifCard = memo(ObjectifCardBase);

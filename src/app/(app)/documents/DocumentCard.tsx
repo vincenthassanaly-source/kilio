@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { deleteDocument, type DocumentAvecFichiers } from "@/app/actions/documents";
-import { DocumentForm } from "./DocumentForm";
 import { formatEcheance, niveauAlerte } from "./echeance";
 import { formatMois } from "./champs";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -13,6 +13,8 @@ import type { Tables } from "@/lib/supabase/types";
 import { card, dangerButton, ghostButton, kcalPillTag, listCard, metaText, nameText, pillTag } from "@/lib/ui";
 import { confirmDelete } from "@/lib/confirm";
 import { runAction } from "@/lib/actions/runAction";
+
+const DocumentForm = dynamic(() => import("./DocumentForm").then((m) => m.DocumentForm), { ssr: false });
 
 function PdfIcon() {
   return (

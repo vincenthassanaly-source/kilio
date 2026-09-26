@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { memo, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enregistrerEntreeHabitude, supprimerHabitude, type HabitudeDuJour } from "@/app/actions/habitudes";
@@ -13,7 +13,7 @@ import { confirmDelete } from "@/lib/confirm";
 import { vibrate } from "@/lib/haptics";
 import { enqueueAction, isNetworkError } from "@/lib/offline/queue";
 
-export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; date: string }) {
+function HabitudeCardBase({ habitude, date }: { habitude: HabitudeDuJour; date: string }) {
   const [editing, setEditing] = useState(false);
   const reduceMotion = useReducedMotion() ?? false;
   const [isPending, startTransition] = useTransition();
@@ -203,3 +203,5 @@ export function HabitudeCard({ habitude, date }: { habitude: HabitudeDuJour; dat
     </motion.li>
   );
 }
+
+export const HabitudeCard = memo(HabitudeCardBase);

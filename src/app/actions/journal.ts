@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -36,11 +37,11 @@ export type ResumeNutritionJour = {
 
 // Type de jour mémorisé pour une date (table journal_jours, vague 1) ;
 // absence de ligne = repos.
-async function lireJourTypeMemorise(date: string): Promise<Enums<"jour_type_ppl">> {
+const lireJourTypeMemorise = cache(async (date: string): Promise<Enums<"jour_type_ppl">> => {
   const supabase = createAdminClient();
   const { data } = await supabase.from("journal_jours").select("jour_type").eq("date", date).maybeSingle();
   return data?.jour_type ?? "repos";
-}
+});
 
 export async function getJourTypeJournal(date: string): Promise<Enums<"jour_type_ppl">> {
   return lireJourTypeMemorise(date);

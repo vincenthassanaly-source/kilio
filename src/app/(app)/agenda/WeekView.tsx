@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   addWeeks,
   eachDayOfInterval,
@@ -65,6 +65,38 @@ export function WeekView({
   const today = new Date();
   const weekContainsToday = days.some((d) => isSameDay(d, today));
 
+  // Données par jour (créneaux, tâches filtrées, layout des chevauchements) :
+  // mémorisées par jour de la semaine, indépendamment de `zoom`, qui change
+  // à chaque frame pendant le geste de pincement/molette (cf. useAgendaZoom)
+  // — sans ce useMemo, layoutChevauchements et les filtres ci-dessous
+  // étaient recalculés à chaque frame de zoom.
+  const parJour = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        creneauxJour: ReturnType<typeof getCreneauxDuJour>;
+        dayTachesAvecHeure: Tache[];
+        dayTachesSansHeure: Tache[];
+        positions: ReturnType<typeof layoutChevauchements>;
+      }
+    >();
+    for (const day of eachDayOfInterval({ start: weekStart, end: weekEnd })) {
+      const creneauxJour = getCreneauxDuJour(creneaux, day, exceptions);
+      const dayTachesAvecHeure = taches.filter(
+        (t) => !t.fait && t.echeance && isSameDay(parseISODate(t.echeance), day) && t.heure
+      );
+      const dayTachesSansHeure = taches.filter(
+        (t) => !t.fait && t.echeance && isSameDay(parseISODate(t.echeance), day) && !t.heure
+      );
+      const positions = layoutChevauchements(dayTachesAvecHeure);
+      map.set(day.toISOString(), { creneauxJour, dayTachesAvecHeure, dayTachesSansHeure, positions });
+    }
+    return map;
+    // weekStart/weekEnd sont dérivés de façon pure de selectedDate (date-fns,
+    // sans état mutable) : selectedDate suffit comme dépendance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taches, selectedDate, creneaux, exceptions]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   // Zoom minimal dynamique : le plancher de dézoom est fixé au niveau
   // exact où les 7 colonnes remplissent la largeur visible du conteneur
@@ -123,14 +155,13 @@ export function WeekView({
             </div>
 
             {days.map((day) => {
-              const creneauxJour = getCreneauxDuJour(creneaux, day, exceptions);
-              const dayTachesAvecHeure = taches.filter(
-                (t) => !t.fait && t.echeance && isSameDay(parseISODate(t.echeance), day) && t.heure
-              );
-              const dayTachesSansHeure = taches.filter(
-                (t) => !t.fait && t.echeance && isSameDay(parseISODate(t.echeance), day) && !t.heure
-              );
-              const positions = layoutChevauchements(dayTachesAvecHeure);
+              const { creneauxJour, dayTachesAvecHeure, dayTachesSansHeure, positions } =
+                parJour.get(day.toISOString()) ?? {
+                  creneauxJour: [],
+                  dayTachesAvecHeure: [],
+                  dayTachesSansHeure: [],
+                  positions: new Map(),
+                };
 
               return (
                 <div
