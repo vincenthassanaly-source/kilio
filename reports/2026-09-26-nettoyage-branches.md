@@ -203,9 +203,15 @@ Testé isolément sur une seule branche (`claude/festive-fermat-bsf2ij`) → mê
 
 ## Vérification
 
-Aucune suppression n'ayant pu être effectuée, `kilio` reste inchangée. Vérification de l'état :
+Aucune suppression n'ayant pu être effectuée, `kilio` reste inchangée sur le plan du code (seul ce rapport a été ajouté).
+
 ```bash
 git checkout kilio
-git status   # clean, aligné sur origin/kilio (commit e904140)
+git status   # clean, aligné sur origin/kilio avant ajout du rapport
+npm install
+npm run build
 ```
-Le `npm run build` de vérification (Phase 3) n'a pas été exécuté puisqu'aucune branche n'a été supprimée — rien n'a pu affecter l'état de `kilio`.
+
+- Compilation : **OK** (`✓ Compiled successfully in 11.3s`)
+- TypeScript : **OK** (`Finished TypeScript in 11.1s`)
+- Pré-rendu statique : **échec** sur `/budget/comptes` avec `Error: supabaseKey is required` (`src/lib/supabase/admin.ts:5`) — dû à l'absence des variables d'environnement Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) dans ce container de session, **sans lien avec le rapport ajouté** (qui ne touche aucun fichier de code). Ce comportement est attendu dans un environnement sans secrets configurés et se produirait de façon identique sans ce commit.
