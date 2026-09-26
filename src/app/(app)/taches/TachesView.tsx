@@ -213,7 +213,7 @@ export function TachesView() {
             type="button"
             onClick={() => setRecherche("")}
             aria-label="Effacer la recherche"
-            className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-surface-alt"
+            className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink-3 transition-colors after:absolute after:-inset-2 hover:bg-surface-alt"
           >
             {CLEAR_ICON}
           </button>
