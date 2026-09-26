@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { calculerStreak } from "@/lib/habitudes/compute";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Enums, Tables } from "@/lib/supabase/types";
 
@@ -137,24 +138,6 @@ export type HabitudeDuJour = Tables<"habitudes"> & {
   streak: number;
 };
 
-// Le streak se calcule côté serveur (JS, pas SQL récursif) : on remonte
-// jour par jour depuis `date` tant que la valeur de l'entrée est > 0, et on
-// s'arrête au premier jour manquant ou nul. Choix documenté dans le rapport.
-function calculerStreak(entriesParDate: Map<string, number>, date: string): number {
-  let streak = 0;
-  const curseur = new Date(`${date}T00:00:00`);
-
-  while (true) {
-    const iso = curseur.toISOString().slice(0, 10);
-    const valeur = entriesParDate.get(iso);
-    if (!valeur || valeur <= 0) break;
-    streak += 1;
-    curseur.setDate(curseur.getDate() - 1);
-  }
-
-  return streak;
-}
-
 export async function getHabitudesDuJour(date: string): Promise<HabitudeDuJour[]> {
   const supabase = createAdminClient();
 
@@ -172,8 +155,8 @@ export async function getHabitudesDuJour(date: string): Promise<HabitudeDuJour[]
   // Historique large (1 an) pour les habitudes de type streak, sinon
   // uniquement l'entrée du jour demandé.
   const idsAJour = habitudes.map((h) => h.id);
-  const uneAnneeAvant = new Date(`${date}T00:00:00`);
-  uneAnneeAvant.setDate(uneAnneeAvant.getDate() - 365);
+  const uneAnneeAvant = new Date(`${date}T00:00:00Z`);
+  uneAnneeAvant.setUTCDate(uneAnneeAvant.getUTCDate() - 365);
   const dateMin = streakIds.length > 0 ? uneAnneeAvant.toISOString().slice(0, 10) : date;
 
   const { data: entries, error: entriesError } = await supabase
