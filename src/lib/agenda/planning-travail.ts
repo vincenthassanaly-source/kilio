@@ -1,6 +1,6 @@
 import { differenceInCalendarWeeks, getDay } from "date-fns";
 import type { Tables } from "@/lib/supabase/types";
-import { parseISODate, toISODate } from "@/app/(app)/agenda/date-utils";
+import { parseISODate, toISODate } from "@/lib/date/iso";
 
 // Forme minimale commune aux créneaux récurrents (horaires_travail_creneaux)
 // et aux exceptions ponctuelles (horaires_travail_exceptions) une fois

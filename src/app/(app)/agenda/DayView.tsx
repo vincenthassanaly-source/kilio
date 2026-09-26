@@ -10,7 +10,8 @@ import { layoutChevauchements } from "@/lib/agenda/compute";
 import { TaskCard } from "../taches/TasksList";
 import { ArchivedTasksSection } from "./ArchivedTasksSection";
 import { PeriodHeader } from "./PeriodHeader";
-import { parseISODate, sortByHeure } from "./date-utils";
+import { parseISODate } from "@/lib/date/iso";
+import { sortByHeure } from "./date-utils";
 import {
   computeInitialScrollMinutes,
   gridHeight,

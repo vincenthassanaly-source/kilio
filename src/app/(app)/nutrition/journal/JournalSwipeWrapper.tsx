@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSwipeHorizontal, type SensSwipe } from "@/hooks/useSwipeHorizontal";
-import { shiftDate } from "./date-utils";
+import { shiftDate } from "@/lib/date/iso";
 
 type JourCourant = { date: string; jourType: string };
 

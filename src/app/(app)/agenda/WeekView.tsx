@@ -17,7 +17,7 @@ import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
 import { layoutChevauchements } from "@/lib/agenda/compute";
 import { PeriodHeader } from "./PeriodHeader";
-import { parseISODate } from "./date-utils";
+import { parseISODate } from "@/lib/date/iso";
 import {
   computeInitialScrollMinutes,
   gridHeight,

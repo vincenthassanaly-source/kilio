@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { JourJournal } from "./jour";
-import { shiftDate } from "./date-utils";
+import { shiftDate } from "@/lib/date/iso";
 import { JourTypeBascule } from "./JourTypeBascule";
 import { ONGLETS, ONGLETS_CADRE, ongletClasse } from "./onglets";
 

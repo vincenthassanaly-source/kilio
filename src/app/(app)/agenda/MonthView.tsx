@@ -17,7 +17,7 @@ import { fr } from "date-fns/locale";
 import type { Tables } from "@/lib/supabase/types";
 import { getCreneauxDuJour } from "@/lib/agenda/planning-travail";
 import { PeriodHeader } from "./PeriodHeader";
-import { toISODate } from "./date-utils";
+import { toISODate } from "@/lib/date/iso";
 
 type Tache = Tables<"taches">;
 

@@ -18,7 +18,7 @@ import { queryKeys } from "@/lib/query/keys";
 import type { Tables } from "@/lib/supabase/types";
 import { ghostButton, input } from "@/lib/ui";
 import { useSwipeHorizontal, type SensSwipe } from "@/hooks/useSwipeHorizontal";
-import { toISODate } from "./date-utils";
+import { toISODate } from "@/lib/date/iso";
 
 const WEEKDAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 

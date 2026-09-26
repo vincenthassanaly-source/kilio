@@ -7,7 +7,8 @@ import type { Tables } from "@/lib/supabase/types";
 import { TaskCard } from "../taches/TasksList";
 import { sectionTitle } from "@/lib/ui";
 import { ArchivedTasksSection } from "./ArchivedTasksSection";
-import { parseISODate, sortByHeure } from "./date-utils";
+import { parseISODate } from "@/lib/date/iso";
+import { sortByHeure } from "./date-utils";
 
 export function ListView({
   taches,
