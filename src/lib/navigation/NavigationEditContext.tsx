@@ -90,6 +90,16 @@ export function NavigationEditProvider({
   // bouton "Terminé" ou le tremblement des tuiles actifs ailleurs.
   const isEditing = isEditingRaw && pathname === "/plus";
 
+  // Quitter /plus sans passer par exitEditing() (ex. activation clavier
+  // d'un lien BottomNav, qui ne déclenche pas le pointerdown ci-dessous)
+  // laissait isEditingRaw à `true` en mémoire : revenir sur /plus
+  // réactivait alors le mode édition sans appui long (CLICK-PATH-103).
+  useEffect(() => {
+    if (pathname === "/plus") return;
+    const id = setTimeout(() => setIsEditingRaw(false), 0);
+    return () => clearTimeout(id);
+  }, [pathname]);
+
   // Sortie du mode édition en tapant en dehors d'une tuile éditable ou du
   // bouton "Terminé" (voir data-nav-edit-tile / data-nav-edit-exit).
   useEffect(() => {

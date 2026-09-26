@@ -592,6 +592,7 @@ export async function createListe(
   if (error) return { error: error.message };
 
   revalidatePath("/taches");
+  revalidatePath("/taches/listes");
   return { error: null };
 }
 
@@ -614,7 +615,12 @@ export async function updateListe(
 
   if (error) return { error: error.message };
 
+  // `/taches/listes` (Server Component sans refetch client) est la page
+  // réellement affichée par ce formulaire — même correctif que
+  // `reordonnerListes` (CLICK-PATH-301/302) : sans elle, la nouvelle liste
+  // ou le nouveau nom n'apparaît qu'après un rechargement manuel.
   revalidatePath("/taches");
+  revalidatePath("/taches/listes");
   return { error: null };
 }
 

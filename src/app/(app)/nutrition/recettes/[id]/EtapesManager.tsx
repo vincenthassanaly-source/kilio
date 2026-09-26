@@ -125,7 +125,7 @@ function EtapeLine({ etape, index, recetteId }: { etape: EtapeRow; index: number
 
 const initialState: EtapeFormState = { error: null };
 
-function AddEtapeForm({ recetteId, nextOrdre }: { recetteId: string; nextOrdre: number }) {
+function AddEtapeForm({ recetteId }: { recetteId: string }) {
   const [state, formAction, pending] = useActionState(addEtape, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const prevPending = useRef(pending);
@@ -140,7 +140,6 @@ function AddEtapeForm({ recetteId, nextOrdre }: { recetteId: string; nextOrdre: 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="recette_id" value={recetteId} />
-      <input type="hidden" name="ordre" value={nextOrdre} />
 
       <input name="titre" placeholder="Titre (optionnel, ex. Aux fourneaux !)" className={input} />
       <textarea name="consigne" placeholder="Consigne" rows={3} required className={input} />
@@ -172,7 +171,7 @@ export function EtapesManager({ recetteId, etapes }: { recetteId: string; etapes
         </ul>
       )}
 
-      <AddEtapeForm recetteId={recetteId} nextOrdre={etapes.length} />
+      <AddEtapeForm recetteId={recetteId} />
     </div>
   );
 }

@@ -62,14 +62,22 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notes });
-      const previous = queryClient.getQueryData<NoteAvecRelations[]>(queryKeys.notes);
+      // Snapshot d'un seul champ (pas de tout le tableau, CLICK-PATH-603) :
+      // le rollback d'un échec ici ne doit pas effacer une mutation sœur
+      // indépendante (ex. un item coché sur une autre note) déjà appliquée
+      // au cache entre-temps.
+      const previousEpingle = note.epingle;
       queryClient.setQueryData<NoteAvecRelations[]>(queryKeys.notes, (old) =>
         old?.map((n) => (n.id === note.id ? { ...n, epingle: !n.epingle } : n))
       );
-      return { previous };
+      return { previousEpingle };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.notes, context.previous);
+      if (context) {
+        queryClient.setQueryData<NoteAvecRelations[]>(queryKeys.notes, (old) =>
+          old?.map((n) => (n.id === note.id ? { ...n, epingle: context.previousEpingle } : n))
+        );
+      }
       showToast("Impossible de mettre à jour la note.");
     },
     onSettled: invalidate,
@@ -88,7 +96,9 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
     },
     onMutate: async ({ itemId, coche }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notes });
-      const previous = queryClient.getQueryData<NoteAvecRelations[]>(queryKeys.notes);
+      // Idem pinMutation : snapshot du seul item touché, pas de la note (et
+      // encore moins de tout le tableau) entière (CLICK-PATH-603).
+      const previousCoche = note.items.find((i) => i.id === itemId)?.coche ?? !coche;
       queryClient.setQueryData<NoteAvecRelations[]>(queryKeys.notes, (old) =>
         old?.map((n) =>
           n.id === note.id
@@ -96,10 +106,21 @@ export function NoteCard({ note, tags }: { note: NoteAvecRelations; tags: Tables
             : n
         )
       );
-      return { previous };
+      return { itemId, previousCoche };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.notes, context.previous);
+      if (context) {
+        queryClient.setQueryData<NoteAvecRelations[]>(queryKeys.notes, (old) =>
+          old?.map((n) =>
+            n.id === note.id
+              ? {
+                  ...n,
+                  items: n.items.map((i) => (i.id === context.itemId ? { ...i, coche: context.previousCoche } : i)),
+                }
+              : n
+          )
+        );
+      }
       showToast("Impossible de mettre à jour l'item.");
     },
     onSettled: invalidate,

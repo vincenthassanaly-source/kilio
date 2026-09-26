@@ -17,13 +17,25 @@ export async function addIngredientLibre(
   const recette_id = String(formData.get("recette_id") ?? "");
   const nom = String(formData.get("nom") ?? "").trim();
   const quantiteRaw = String(formData.get("quantite") ?? "").trim();
-  const ordre = Number(formData.get("ordre") ?? 0);
 
   if (!recette_id || !nom) {
     return { error: "Nom requis." };
   }
 
   const supabase = createAdminClient();
+  // `ordre` calculé côté serveur (pas confié au client, cf.
+  // `ingredients.length` côté formulaire) : deux ajouts rapides avant que les
+  // props du parent ne se rafraîchissent envoyaient sinon le même `ordre`
+  // pour deux lignes différentes (CLICK-PATH-205).
+  const { data: dernier } = await supabase
+    .from("recette_ingredients_libres")
+    .select("ordre")
+    .eq("recette_id", recette_id)
+    .order("ordre", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ordre = (dernier?.ordre ?? -1) + 1;
+
   const { error } = await supabase
     .from("recette_ingredients_libres")
     .insert({ recette_id, nom, quantite: quantiteRaw || null, ordre });

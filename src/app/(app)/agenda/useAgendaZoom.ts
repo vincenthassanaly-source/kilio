@@ -136,7 +136,18 @@ export function useAgendaZoom({ minZoom = MIN_ZOOM_FALLBACK }: { minZoom?: numbe
   const onTouchEnd = useCallback((e: ReactTouchEvent) => {
     if (e.touches.length >= 2 || !gestureRef.current) return;
     gestureRef.current = null;
-    window.localStorage.setItem(STORAGE_KEY, String(zoomRef.current));
+    // Si touchend arrive avant que le rAF en attente d'onTouchMove ait pu
+    // s'exécuter, zoomRef.current retarde encore d'une frame sur le zoom
+    // réellement pincé : on annule ce rAF et on utilise sa valeur en attente
+    // pour la persistance, plutôt que de persister une valeur périmée puis
+    // laisser le rAF la corriger visuellement après coup (CLICK-PATH-403).
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    const zoomFinal = pendingZoomRef.current ?? zoomRef.current;
+    pendingZoomRef.current = null;
+    window.localStorage.setItem(STORAGE_KEY, String(zoomFinal));
     setLiveZoom(null);
   }, []);
 

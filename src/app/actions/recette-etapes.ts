@@ -18,13 +18,23 @@ export async function addEtape(
   const titre = String(formData.get("titre") ?? "").trim();
   const consigne = String(formData.get("consigne") ?? "").trim();
   const astuce = String(formData.get("astuce") ?? "").trim();
-  const ordre = Number(formData.get("ordre") ?? 0);
 
   if (!recette_id || !consigne) {
     return { error: "La consigne est requise." };
   }
 
   const supabase = createAdminClient();
+  // `ordre` calculé côté serveur, pas confié au client (voir
+  // recette-ingredients-libres.ts, même fix, CLICK-PATH-205).
+  const { data: derniere } = await supabase
+    .from("recette_etapes")
+    .select("ordre")
+    .eq("recette_id", recette_id)
+    .order("ordre", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ordre = (derniere?.ordre ?? -1) + 1;
+
   const { error } = await supabase.from("recette_etapes").insert({
     recette_id,
     titre: titre || null,

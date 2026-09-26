@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteCollection, renameCollection } from "@/app/actions/collections";
 import { queryKeys } from "@/lib/query/keys";
+import { useBackClose } from "@/hooks/useBackClose";
 import { TransitionLink } from "@/components/TransitionLink";
 import type { Tables } from "@/lib/supabase/types";
 import { dangerButton, errorText, ghostButton, input, linkButton } from "@/lib/ui";
@@ -17,6 +18,10 @@ export function CollectionHeader({ collection }: { collection: Tables<"collectio
   const [nom, setNom] = useState(collection.nom);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Cohérent avec NoteCard/AddCollectionToggle : le bouton/geste retour ferme
+  // le formulaire de renommage plutôt que de quitter la page en abandonnant
+  // silencieusement la saisie en cours (CLICK-PATH-604).
+  useBackClose(editing, () => setEditing(false));
 
   function handleRename(e: React.FormEvent) {
     e.preventDefault();

@@ -650,7 +650,7 @@ function SortableTachesList({
   const queryClient = useQueryClient();
   const sensors = useTaskDragSensors();
 
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -671,6 +671,12 @@ function SortableTachesList({
     }
     if (updates.length === 0) return;
 
+    // Comme pour toggle/delete plus haut : annule tout refetch en vol avant
+    // d'écrire l'optimiste, sinon une mutation concurrente sans rapport
+    // (toggle d'une autre tâche) peut faire retomber la liste sur l'ordre
+    // pré-drag une fois son propre refetch résolu (CLICK-PATH-303).
+    await queryClient.cancelQueries({ queryKey: queryKeys.taches });
+
     const parOrdre = new Map(updates.map((u) => [u.id, u.ordre]));
     queryClient.setQueryData<TacheAvecRelations[]>(queryKeys.taches, (old) =>
       old
@@ -678,10 +684,15 @@ function SortableTachesList({
         .sort(comparerPourAffichage)
     );
 
-    enregistrerOrdreTaches(updates).catch(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+    try {
+      await enregistrerOrdreTaches(updates);
+    } catch {
       showToast("Échec de la réorganisation, réessaie.");
-    });
+    } finally {
+      // Réconcilie avec le serveur dans tous les cas, pas seulement l'échec :
+      // rien d'autre n'invalidait après un enregistrerOrdreTaches réussi.
+      queryClient.invalidateQueries({ queryKey: queryKeys.taches });
+    }
   }
 
   return (

@@ -118,7 +118,7 @@ function IngredientLibreLine({
 
 const initialState: IngredientLibreFormState = { error: null };
 
-function AddIngredientLibreForm({ recetteId, nextOrdre }: { recetteId: string; nextOrdre: number }) {
+function AddIngredientLibreForm({ recetteId }: { recetteId: string }) {
   const [state, formAction, pending] = useActionState(addIngredientLibre, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const prevPending = useRef(pending);
@@ -133,7 +133,6 @@ function AddIngredientLibreForm({ recetteId, nextOrdre }: { recetteId: string; n
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="recette_id" value={recetteId} />
-      <input type="hidden" name="ordre" value={nextOrdre} />
 
       <div className="flex gap-2">
         <input name="nom" placeholder="Ingrédient" required className={`min-w-0 flex-1 ${input}`} />
@@ -172,7 +171,7 @@ export function IngredientsLibresManager({
         </ul>
       )}
 
-      <AddIngredientLibreForm recetteId={recetteId} nextOrdre={ingredients.length} />
+      <AddIngredientLibreForm recetteId={recetteId} />
     </div>
   );
 }

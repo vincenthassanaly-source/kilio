@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   addNoteItem,
   createNote,
@@ -15,6 +15,8 @@ import {
 } from "@/app/actions/notes";
 import { queryKeys } from "@/lib/query/keys";
 import { runAction } from "@/lib/actions/runAction";
+import { showToast } from "@/components/toast/toast-store";
+import { vibrate } from "@/lib/haptics";
 import type { Enums, Tables } from "@/lib/supabase/types";
 import { NOTE_PALETTE, estCouleurValide, type NoteCouleur } from "@/lib/notes/palette";
 import { CheckToggle } from "@/components/CheckToggle";
@@ -35,6 +37,34 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.notes });
   }
+
+  // Même pattern optimiste que NoteCard.itemMutation (hors formulaire) :
+  // sans lui, cocher un item ici n'était visuellement réactif qu'après un
+  // aller-retour serveur complet, alors que le même geste sur la tuile est
+  // instantané (CLICK-PATH-602).
+  const toggleMutation = useMutation({
+    mutationFn: ({ itemId, coche }: { itemId: string; coche: boolean }) => {
+      vibrate();
+      return toggleNoteItem(itemId, coche);
+    },
+    onMutate: async ({ itemId, coche }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notes });
+      const previous = queryClient.getQueryData<NoteAvecRelations[]>(queryKeys.notes);
+      queryClient.setQueryData<NoteAvecRelations[]>(queryKeys.notes, (old) =>
+        old?.map((n) =>
+          n.id === noteId
+            ? { ...n, items: n.items.map((i) => (i.id === itemId ? { ...i, coche } : i)) }
+            : n
+        )
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.notes, context.previous);
+      showToast("L'item n'a pas pu être coché. Réessaie.");
+    },
+    onSettled: invalidate,
+  });
 
   // Contrat T1 : chaque écriture passe par `runAction`, qui transforme une
   // exception (réseau, serveur) en toast `role="alert"` au lieu de faire
@@ -64,9 +94,7 @@ function NoteItemsEditor({ noteId, items }: { noteId: string; items: Tables<"not
         <div key={item.id} className="flex items-center gap-1.5">
           <CheckToggle
             checked={item.coche}
-            onToggle={() =>
-              executer(() => toggleNoteItem(item.id, !item.coche), "L'item n'a pas pu être coché. Réessaie.")
-            }
+            onToggle={() => toggleMutation.mutate({ itemId: item.id, coche: !item.coche })}
             label={item.coche ? "Décocher l'item" : "Cocher l'item"}
             size={20}
             // `flex flex-col gap-1.5` (6px) entre lignes : hitSlop réduit, voir
