@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getEtiquettes } from "@/app/actions/documents";
 import { TransitionLink } from "@/components/TransitionLink";
 import { eyebrow, linkButton, screenTitle } from "@/lib/ui";
@@ -5,6 +6,10 @@ import { AddEtiquetteToggle } from "./AddEtiquetteToggle";
 import { EtiquettesManager } from "./EtiquettesManager";
 
 export default async function EtiquettesPage() {
+  // Voir le commentaire de /budget/comptes : createAdminClient() jette de
+  // façon synchrone au build sans SUPABASE_SERVICE_ROLE_KEY (absente sur
+  // les déploiements preview Vercel).
+  await connection();
   const etiquettes = await getEtiquettes();
 
   return (

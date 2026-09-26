@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AddRecetteToggle } from "./AddRecetteToggle";
 import { RecettesList } from "./RecettesList";
@@ -11,6 +12,15 @@ import { NutritionSubNav } from "@/components/NutritionSubNav";
 import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default async function RecettesPage() {
+  // Sans `connection()` : createAdminClient() jette de façon synchrone
+  // (pas une rejection async récupérable par Cache Components) dès que
+  // SUPABASE_SERVICE_ROLE_KEY est absent au build — fait échouer tout
+  // `next build`, pas seulement cette route (voir le crash de build
+  // reproduit sur les déploiements preview Vercel, où cette clé n'est
+  // configurée que pour Production). Même pattern que /agenda, /courses,
+  // /habitudes, /objectifs, /taches : sort cette route de la prérender
+  // statique, la requête part seulement à la requête.
+  await connection();
   const supabase = createAdminClient();
 
   const { data: recettes, error } = await supabase

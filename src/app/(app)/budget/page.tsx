@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { getResumeMois } from "@/app/actions/transactions";
 import { getSuiviCategories } from "@/app/actions/budgets";
@@ -51,7 +52,11 @@ function StatistiquesIcon() {
   );
 }
 
-export default function BudgetPage() {
+export default async function BudgetPage() {
+  // Voir le commentaire de /budget/comptes : createAdminClient() jette de
+  // façon synchrone au build sans SUPABASE_SERVICE_ROLE_KEY (absente sur
+  // les déploiements preview Vercel), même sous <Suspense>.
+  await connection();
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-5">

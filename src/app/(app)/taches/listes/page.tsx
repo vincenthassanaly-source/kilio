@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getComptesTachesParListe, getListes, getTags } from "@/app/actions/taches";
 import { TransitionLink } from "@/components/TransitionLink";
 import { eyebrow, linkButton, screenTitle, sectionTitle } from "@/lib/ui";
@@ -7,6 +8,10 @@ import { AddTagToggle } from "./AddTagToggle";
 import { TagsManager } from "./TagsManager";
 
 export default async function ListesTachesPage() {
+  // Voir le commentaire de /budget/comptes : createAdminClient() jette de
+  // façon synchrone au build sans SUPABASE_SERVICE_ROLE_KEY (absente sur
+  // les déploiements preview Vercel). /taches (page parente) le fait déjà.
+  await connection();
   const [listes, tags, comptes] = await Promise.all([getListes(), getTags(), getComptesTachesParListe()]);
 
   return (

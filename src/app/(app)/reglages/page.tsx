@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getReglagesNettoyage } from "@/app/actions/nettoyage";
 import { screenTitle, sectionTitle } from "@/lib/ui";
 import { AppearanceRow } from "./AppearanceRow";
@@ -35,6 +36,10 @@ function VersionIcon() {
 }
 
 export default async function ReglagesPage() {
+  // Voir le commentaire de /budget/comptes : createAdminClient() jette de
+  // façon synchrone au build sans SUPABASE_SERVICE_ROLE_KEY (absente sur
+  // les déploiements preview Vercel).
+  await connection();
   const reglagesNettoyage = await getReglagesNettoyage();
 
   return (

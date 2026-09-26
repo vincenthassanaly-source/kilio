@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RecetteHeader } from "./RecetteHeader";
 import { RecetteMacros } from "./RecetteMacros";
@@ -13,6 +14,8 @@ export default async function RecetteDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Voir le commentaire de /budget/comptes.
+  await connection();
   const { id } = await params;
   const supabase = createAdminClient();
 

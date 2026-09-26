@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense, cache } from "react";
+import { connection } from "next/server";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { getSuiviCategories } from "@/app/actions/budgets";
 import { getResumeMoisPlage } from "@/app/actions/transactions";
@@ -38,7 +39,9 @@ const NB_MOIS_TENDANCE = 6;
 
 type StatistiquesSearchParams = Promise<{ periode?: string }>;
 
-export default function StatistiquesPage({ searchParams }: { searchParams: StatistiquesSearchParams }) {
+export default async function StatistiquesPage({ searchParams }: { searchParams: StatistiquesSearchParams }) {
+  // Voir le commentaire de /budget/comptes.
+  await connection();
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">

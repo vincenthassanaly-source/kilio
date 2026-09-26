@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getCategories } from "@/app/actions/categories-budget";
 import { getSuiviCategories } from "@/app/actions/budgets";
 import { eyebrow, screenTitle } from "@/lib/ui";
@@ -11,7 +12,9 @@ import { lirePeriodeCategories } from "../requete";
 
 type CategoriesSearchParams = Promise<{ type_periode?: string; periode?: string }>;
 
-export default function CategoriesBudgetPage({ searchParams }: { searchParams: CategoriesSearchParams }) {
+export default async function CategoriesBudgetPage({ searchParams }: { searchParams: CategoriesSearchParams }) {
+  // Voir le commentaire de /budget/comptes.
+  await connection();
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">

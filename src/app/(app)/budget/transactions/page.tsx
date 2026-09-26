@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { getCategories } from "@/app/actions/categories-budget";
 import { getTransactions } from "@/app/actions/transactions";
@@ -52,7 +53,9 @@ type TransactionsSearchParams = Promise<{
   q?: string;
 }>;
 
-export default function TransactionsPage({ searchParams }: { searchParams: TransactionsSearchParams }) {
+export default async function TransactionsPage({ searchParams }: { searchParams: TransactionsSearchParams }) {
+  // Voir le commentaire de /budget/comptes.
+  await connection();
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">

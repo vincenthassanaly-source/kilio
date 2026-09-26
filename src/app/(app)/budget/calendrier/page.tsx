@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getTransactionsParJour } from "@/app/actions/transactions";
 import { formatMontant, grilleCalendrierMois } from "@/lib/budget/compute";
 import { card, eyebrow, screenTitle } from "@/lib/ui";
@@ -30,7 +31,9 @@ function ListeIcon() {
 
 type CalendrierSearchParams = Promise<{ periode?: string }>;
 
-export default function CalendrierPage({ searchParams }: { searchParams: CalendrierSearchParams }) {
+export default async function CalendrierPage({ searchParams }: { searchParams: CalendrierSearchParams }) {
+  // Voir le commentaire de /budget/comptes.
+  await connection();
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { getComptesAvecSolde } from "@/app/actions/comptes";
 import { getCategories } from "@/app/actions/categories-budget";
 import { getRecurrences } from "@/app/actions/transactions-recurrentes";
@@ -9,7 +10,11 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { Skeleton } from "@/components/skeletons/Skeleton";
 import { ListItemSkeletonGroup } from "@/components/skeletons/ListItemSkeleton";
 
-export default function RecurrentesPage() {
+export default async function RecurrentesPage() {
+  // Voir le commentaire de /budget/comptes : le <Suspense> ne suffit pas,
+  // createAdminClient() jette de façon synchrone au build sans
+  // SUPABASE_SERVICE_ROLE_KEY (absente sur les déploiements preview Vercel).
+  await connection();
   return (
     <PullToRefresh>
       <div className="flex flex-col gap-4">
